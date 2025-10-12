@@ -6,6 +6,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -44,5 +46,46 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // Relations added for project domain
+    public function proposals(): HasMany
+    {
+        return $this->hasMany(Proposal::class, 'proposer_id');
+    }
+
+    public function preferredProposals(): HasMany
+    {
+        return $this->hasMany(Proposal::class, 'preferred_director_id');
+    }
+
+    public function groupMemberships(): HasMany
+    {
+        return $this->hasMany(GroupMember::class);
+    }
+
+    public function projectStaff(): HasMany
+    {
+        return $this->hasMany(ProjectStaff::class);
+    }
+
+    public function eligiblePositions(): BelongsToMany
+    {
+        return $this->belongsToMany(ProjectPosition::class, 'user_project_eligibilities', 'user_id', 'project_position_id');
+    }
+
+    public function meetingsCreated(): HasMany
+    {
+        return $this->hasMany(Meeting::class, 'created_by');
+    }
+
+    public function meetingsAttended(): BelongsToMany
+    {
+        return $this->belongsToMany(Meeting::class, 'meeting_attendees', 'user_id', 'meeting_id');
+    }
+
+    public function evaluationsAuthored(): HasMany
+    {
+        return $this->hasMany(Evaluation::class, 'evaluator_id');
     }
 }
