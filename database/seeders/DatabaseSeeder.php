@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,11 +13,70 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        Schema::disableForeignKeyConstraints();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $tables = [
+            'meeting_attendees',
+            'meetings',
+            'repository_proposal_files',
+            'repository_proposals',
+            'repository_project_files',
+            'repository_projects',
+            'rubric_deliverables',
+            'evaluations',
+            'submission_files',
+            'submissions',
+            'deliverable_files',
+            'deliverables',
+            'files',
+            'group_members',
+            'project_groups',
+            'project_staff',
+            'user_project_eligibilities',
+            'project_positions',
+            'projects',
+            'proposals',
+            'rubric_thematic_lines',
+            'rubrics',
+            'thematic_lines',
+            'phases',
+            'academic_periods',
+            'users',
+        ];
+
+        foreach ($tables as $table) {
+            DB::table($table)->truncate();
+        }
+
+        Schema::enableForeignKeyConstraints();
+
+        $this->call([
+            UserSeeder::class,
+            AcademicPeriodSeeder::class,
+            PhaseSeeder::class,
+            ThematicLineSeeder::class,
+            RubricSeeder::class,
+            RubricThematicLineSeeder::class,
+            ProjectPositionSeeder::class,
+            UserProjectEligibilitySeeder::class,
+            ProposalSeeder::class,
+            ProjectSeeder::class,
+            ProjectStaffSeeder::class,
+            ProjectGroupSeeder::class,
+            GroupMemberSeeder::class,
+            FileSeeder::class,
+            DeliverableSeeder::class,
+            DeliverableFileSeeder::class,
+            SubmissionSeeder::class,
+            SubmissionFileSeeder::class,
+            EvaluationSeeder::class,
+            RubricDeliverableSeeder::class,
+            RepositoryProjectSeeder::class,
+            RepositoryProjectFileSeeder::class,
+            RepositoryProposalSeeder::class,
+            RepositoryProposalFileSeeder::class,
+            MeetingSeeder::class,
+            MeetingAttendeeSeeder::class,
         ]);
     }
 }

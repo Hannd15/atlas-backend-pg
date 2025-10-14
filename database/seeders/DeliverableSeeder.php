@@ -1,0 +1,36 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Deliverable;
+use App\Models\Phase;
+use Illuminate\Database\Seeder;
+
+class DeliverableSeeder extends Seeder
+{
+    public function run(): void
+    {
+        Deliverable::query()->delete();
+
+        $phaseIds = Phase::pluck('id')->all();
+        if (empty($phaseIds)) {
+            return;
+        }
+
+        $faker = fake();
+        $records = [];
+
+        for ($i = 0; $i < 10; $i++) {
+            $dueDate = $faker->dateTimeBetween('now', '+3 months');
+            $records[] = [
+                'phase_id' => $faker->randomElement($phaseIds),
+                'name' => 'Deliverable ' . strtoupper($faker->unique()->bothify('##')), 
+                'due_date' => $dueDate->format('Y-m-d H:i:s'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        Deliverable::insert($records);
+    }
+}
