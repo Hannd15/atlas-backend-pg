@@ -1087,6 +1087,442 @@
                     }
                 }
             }
+        },
+        "/api/pg/project-positions": {
+            "get": {
+                "tags": [
+                    "Project Positions"
+                ],
+                "summary": "Get all project positions",
+                "operationId": "2d0ed7253bad6ff4012d970360ce8f37",
+                "responses": {
+                    "200": {
+                        "description": "List of project positions with eligible user names and staff names"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Project Positions"
+                ],
+                "summary": "Create a new project position",
+                "operationId": "074936bd9a269205705dbc6046a07195",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Jurado"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Project position created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/project-positions/{id}": {
+            "get": {
+                "tags": [
+                    "Project Positions"
+                ],
+                "summary": "Get a specific project position",
+                "operationId": "d8855bf0ef646af437f52cef5a4a748e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project position details with relation IDs"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Project Positions"
+                ],
+                "summary": "Update a project position",
+                "operationId": "f88394ead9cd45382f7dff92bbf39112",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Project position updated successfully"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Project Positions"
+                ],
+                "summary": "Delete a project position",
+                "operationId": "0a707a210bb2239b014a37312c9ef0a5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project position deleted successfully"
+                    }
+                }
+            }
+        },
+        "/api/pg/project-positions/dropdown": {
+            "get": {
+                "tags": [
+                    "Project Positions"
+                ],
+                "summary": "Get project positions for dropdown",
+                "operationId": "6cc71525c2327391f8b354b952fb5e0e",
+                "responses": {
+                    "200": {
+                        "description": "List of project positions formatted for dropdowns"
+                    }
+                }
+            }
+        },
+        "/api/pg/users": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get all users",
+                "operationId": "6b7feb892674bdbd2489e028fd56dd49",
+                "responses": {
+                    "200": {
+                        "description": "List of users with comma-separated project position eligibility names",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "email": {
+                                                "type": "string",
+                                                "format": "email"
+                                            },
+                                            "project_position_eligibility_names": {
+                                                "description": "Comma-separated position names",
+                                                "type": "string"
+                                            },
+                                            "created_at": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            },
+                                            "updated_at": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/users/{id}": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get a specific user",
+                "operationId": "82365ad68a62a0adf93fdfbd70c989f8",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User details with array of project position eligibility IDs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string",
+                                            "format": "email"
+                                        },
+                                        "project_position_eligibility_ids": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update a user",
+                "operationId": "2fe1714e472adabc9dc037858e132349",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "project_position_eligibility_ids": {
+                                        "description": "Array of project position IDs. Empty array removes all eligibilities. Null or missing field is ignored.",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User updated successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/users/dropdown": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get users for dropdown",
+                "operationId": "81dfd57b411a5700af5e4b9a6a132a82",
+                "responses": {
+                    "200": {
+                        "description": "List of users formatted for dropdowns"
+                    }
+                }
+            }
+        },
+        "/api/pg/user-project-eligibilities": {
+            "get": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Get all user project eligibilities",
+                "operationId": "79ecbb8c0a6a19dfb9f8f351d8387b99",
+                "responses": {
+                    "200": {
+                        "description": "List of user project eligibilities with user and position names"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Create a new user project eligibility",
+                "operationId": "38ac9652bc15fc7630b3724f8b4d812e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id",
+                                    "project_position_id"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "project_position_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User project eligibility created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/user-project-eligibilities/{user_id}/{project_position_id}": {
+            "get": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Get a specific user project eligibility",
+                "operationId": "49e1b25d11a6640e7432606495e2c47a",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project_position_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User project eligibility details with relation IDs"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Delete a user project eligibility",
+                "operationId": "fdaa0ff2e200304230fdd3f3e8b871fe",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project_position_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User project eligibility deleted successfully"
+                    }
+                }
+            }
         }
     },
     "tags": [
@@ -1109,6 +1545,18 @@
         {
             "name": "Phases",
             "description": "API endpoints for managing phases (read-only, phases are auto-created with academic periods)"
+        },
+        {
+            "name": "Project Positions",
+            "description": "API endpoints for managing project positions"
+        },
+        {
+            "name": "Users",
+            "description": "API endpoints for managing users and their project position eligibilities"
+        },
+        {
+            "name": "User Project Eligibilities",
+            "description": "API endpoints for managing user project position eligibilities"
         }
     ]
 }

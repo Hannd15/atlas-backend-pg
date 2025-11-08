@@ -13,13 +13,13 @@ class ProjectPosition extends Model
         'name',
     ];
 
-    public function staff()
+    public function staff(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ProjectStaff::class);
     }
 
-    public function eligibleUsers()
+    public function eligibleUsers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'user_project_eligibilities');
+        return $this->belongsToMany(User::class, 'user_project_eligibilities', 'project_position_id', 'user_id');
     }
 }

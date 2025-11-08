@@ -5,6 +5,9 @@ use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\DeliverableFileController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\PhaseController;
+use App\Http\Controllers\ProjectPositionController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserProjectEligibilityController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('pg')->group(function () {
@@ -32,4 +35,20 @@ Route::prefix('pg')->group(function () {
     Route::post('deliverable-files', [DeliverableFileController::class, 'store']);
     Route::get('deliverable-files/{deliverable_id}/{file_id}', [DeliverableFileController::class, 'show']);
     Route::delete('deliverable-files/{deliverable_id}/{file_id}', [DeliverableFileController::class, 'destroy']);
+
+    // Users routes
+    Route::get('users/dropdown', [UserController::class, 'dropdown']);
+    Route::get('users', [UserController::class, 'index']);
+    Route::get('users/{user}', [UserController::class, 'show']);
+    Route::put('users/{user}', [UserController::class, 'update']);
+
+    // Project Positions routes
+    Route::get('project-positions/dropdown', [ProjectPositionController::class, 'dropdown']);
+    Route::apiResource('project-positions', ProjectPositionController::class);
+
+    // User Project Eligibilities routes (composite key)
+    Route::get('user-project-eligibilities', [UserProjectEligibilityController::class, 'index']);
+    Route::post('user-project-eligibilities', [UserProjectEligibilityController::class, 'store']);
+    Route::get('user-project-eligibilities/{user_id}/{project_position_id}', [UserProjectEligibilityController::class, 'show']);
+    Route::delete('user-project-eligibilities/{user_id}/{project_position_id}', [UserProjectEligibilityController::class, 'destroy']);
 });

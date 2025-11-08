@@ -16,12 +16,12 @@ class UserProjectEligibility extends Model
         'project_position_id',
     ];
 
-    public function user()
+    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function position()
+    public function position(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(ProjectPosition::class, 'project_position_id');
     }

@@ -11,17 +11,12 @@ class ProjectPositionSeeder extends Seeder
     {
         ProjectPosition::query()->delete();
 
-        $faker = fake();
-        $records = [];
+        $positions = ['Jurado', 'Asesor', 'Director', 'Codirector'];
 
-        for ($i = 0; $i < 10; $i++) {
-            $records[] = [
-                'name' => ucfirst($faker->unique()->jobTitle()),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+        foreach ($positions as $position) {
+            ProjectPosition::create([
+                'name' => $position,
+            ]);
         }
-
-        ProjectPosition::insert($records);
     }
 }
