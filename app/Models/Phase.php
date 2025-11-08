@@ -16,12 +16,12 @@ class Phase extends Model
         'end_date',
     ];
 
-    public function period()
+    public function period(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(AcademicPeriod::class, 'period_id');
     }
 
-    public function deliverables()
+    public function deliverables(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Deliverable::class);
     }

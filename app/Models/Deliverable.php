@@ -15,17 +15,17 @@ class Deliverable extends Model
         'due_date',
     ];
 
-    public function phase()
+    public function phase(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Phase::class);
     }
 
-    public function files()
+    public function files(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(File::class, 'deliverable_files');
     }
 
-    public function submissions()
+    public function submissions(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Submission::class);
     }

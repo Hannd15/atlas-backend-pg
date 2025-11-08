@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('project_id')->nullable()->constrained()->onDelete('set null');
             $table->string('title');
             $table->text('description')->nullable();
+            $table->string('url')->nullable();
             $table->timestamps();
         });
     }

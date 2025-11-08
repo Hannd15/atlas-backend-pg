@@ -13,6 +13,7 @@ class RepositoryProject extends Model
         'project_id',
         'title',
         'description',
+        'url',
     ];
 
     public function project()

@@ -15,8 +15,8 @@ class AcademicPeriod extends Model
         'end_date',
     ];
 
-    public function phases()
+    public function phases(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(Phase::class);
+        return $this->hasMany(Phase::class, 'period_id');
     }
 }
