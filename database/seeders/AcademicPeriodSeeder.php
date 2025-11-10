@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\AcademicPeriod;
+use App\Models\AcademicPeriodState;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -15,14 +16,17 @@ class AcademicPeriodSeeder extends Seeder
         $faker = fake();
         $periods = [];
 
+        $defaultState = AcademicPeriodState::query()->first();
+
         for ($i = 0; $i < 10; $i++) {
             $start = $faker->dateTimeBetween('-2 years', '+1 year');
-            $end = (clone $start)->modify('+' . rand(3, 6) . ' months');
+            $end = (clone $start)->modify('+'.rand(3, 6).' months');
 
             $periods[] = [
-                'name' => 'Academic Period ' . Str::upper($faker->unique()->bothify('??-####')),
+                'name' => 'Academic Period '.Str::upper($faker->unique()->bothify('??-####')),
                 'start_date' => $start->format('Y-m-d'),
                 'end_date' => $end->format('Y-m-d'),
+                'state_id' => AcademicPeriodState::inRandomOrder()->value('id') ?? $defaultState?->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

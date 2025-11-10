@@ -17,10 +17,14 @@ class FileSeeder extends Seeder
         for ($i = 0; $i < 10; $i++) {
             $name = $faker->unique()->words(2, true);
             $extension = $faker->fileExtension();
+            $path = 'seeded/'.
+                $faker->uuid().'.'.$extension;
             $records[] = [
                 'name' => ucfirst($name),
                 'extension' => $extension,
                 'url' => $faker->url(),
+                'disk' => 'public',
+                'path' => $path,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

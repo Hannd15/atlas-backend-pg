@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class File extends Model
 {
@@ -13,7 +14,18 @@ class File extends Model
         'name',
         'extension',
         'url',
+        'disk',
+        'path',
     ];
+
+    protected static function booted(): void
+    {
+        static::deleting(function (File $file) {
+            if ($file->path && $file->disk) {
+                Storage::disk($file->disk)->delete($file->path);
+            }
+        });
+    }
 
     public function deliverables(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {

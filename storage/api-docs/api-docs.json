@@ -24,7 +24,7 @@
                 "operationId": "f0d7c0cc8f0c91e548e25d41d815d55d",
                 "responses": {
                     "200": {
-                        "description": "List of academic periods with phase names",
+                        "description": "List of academic periods with nested phases and deliverables",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -32,22 +32,51 @@
                                     "items": {
                                         "properties": {
                                             "id": {
-                                                "type": "integer"
+                                                "type": "integer",
+                                                "example": 3
                                             },
                                             "name": {
-                                                "type": "string"
+                                                "type": "string",
+                                                "example": "2025-1"
                                             },
                                             "start_date": {
                                                 "type": "string",
-                                                "format": "date"
+                                                "format": "date",
+                                                "example": "2025-01-15"
                                             },
                                             "end_date": {
                                                 "type": "string",
-                                                "format": "date"
+                                                "format": "date",
+                                                "example": "2025-06-30"
                                             },
-                                            "phase_names": {
-                                                "description": "Comma-separated phase names",
-                                                "type": "string"
+                                            "state": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Active"
+                                                    },
+                                                    "description": {
+                                                        "type": "string",
+                                                        "example": "Academic period is currently running."
+                                                    }
+                                                },
+                                                "type": "object",
+                                                "nullable": true
+                                            },
+                                            "phases": {
+                                                "properties": {
+                                                    "phase_one": {
+                                                        "$ref": "#/components/schemas/AcademicPeriodPhaseResource"
+                                                    },
+                                                    "phase_two": {
+                                                        "$ref": "#/components/schemas/AcademicPeriodPhaseResource"
+                                                    }
+                                                },
+                                                "type": "object"
                                             },
                                             "created_at": {
                                                 "type": "string",
@@ -96,6 +125,46 @@
                                         "type": "string",
                                         "format": "date",
                                         "example": "2025-06-30"
+                                    },
+                                    "state_id": {
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "phases": {
+                                        "properties": {
+                                            "phase_one": {
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Proyecto de grado I"
+                                                    },
+                                                    "deliverables": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "$ref": "#/components/schemas/AcademicPeriodDeliverableInput"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            "phase_two": {
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Proyecto de grado II"
+                                                    },
+                                                    "deliverables": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "$ref": "#/components/schemas/AcademicPeriodDeliverableInput"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
                                     }
                                 },
                                 "type": "object"
@@ -111,18 +180,189 @@
                                 "schema": {
                                     "properties": {
                                         "id": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 3
                                         },
                                         "name": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "example": "2025-1"
                                         },
                                         "start_date": {
                                             "type": "string",
-                                            "format": "date"
+                                            "format": "date",
+                                            "example": "2025-01-15"
                                         },
                                         "end_date": {
                                             "type": "string",
-                                            "format": "date"
+                                            "format": "date",
+                                            "example": "2025-06-30"
+                                        },
+                                        "state": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Draft"
+                                                },
+                                                "description": {
+                                                    "type": "string",
+                                                    "example": "Academic period is being prepared."
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "phases": {
+                                            "properties": {
+                                                "phase_one": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 10
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "Proyecto de grado I"
+                                                        },
+                                                        "start_date": {
+                                                            "type": "string",
+                                                            "format": "date",
+                                                            "example": "2025-01-15"
+                                                        },
+                                                        "end_date": {
+                                                            "type": "string",
+                                                            "format": "date",
+                                                            "example": "2025-06-30"
+                                                        },
+                                                        "deliverables": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer",
+                                                                        "example": 25
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string",
+                                                                        "example": "Entrega 1"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string",
+                                                                        "example": "Documento PDF con la propuesta"
+                                                                    },
+                                                                    "due_date": {
+                                                                        "type": "string",
+                                                                        "format": "date-time",
+                                                                        "example": "2025-02-15T23:59:00"
+                                                                    },
+                                                                    "files": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "properties": {
+                                                                                "id": {
+                                                                                    "type": "integer",
+                                                                                    "example": 90
+                                                                                },
+                                                                                "name": {
+                                                                                    "type": "string",
+                                                                                    "example": "propuesta.pdf"
+                                                                                },
+                                                                                "extension": {
+                                                                                    "type": "string",
+                                                                                    "example": "pdf"
+                                                                                },
+                                                                                "url": {
+                                                                                    "type": "string",
+                                                                                    "example": "https://storage.test/pg/uploads/2025/propuesta.pdf"
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "phase_two": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 11
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "Proyecto de grado II"
+                                                        },
+                                                        "start_date": {
+                                                            "type": "string",
+                                                            "format": "date",
+                                                            "example": "2025-01-15"
+                                                        },
+                                                        "end_date": {
+                                                            "type": "string",
+                                                            "format": "date",
+                                                            "example": "2025-06-30"
+                                                        },
+                                                        "deliverables": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer",
+                                                                        "example": 36
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string",
+                                                                        "example": "Entrega final"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string",
+                                                                        "example": "Repositorio con código fuente"
+                                                                    },
+                                                                    "due_date": {
+                                                                        "type": "string",
+                                                                        "format": "date-time",
+                                                                        "example": "2025-06-20T23:59:00"
+                                                                    },
+                                                                    "files": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "properties": {
+                                                                                "id": {
+                                                                                    "type": "integer",
+                                                                                    "example": 94
+                                                                                },
+                                                                                "name": {
+                                                                                    "type": "string",
+                                                                                    "example": "presentacion.pptx"
+                                                                                },
+                                                                                "extension": {
+                                                                                    "type": "string",
+                                                                                    "example": "pptx"
+                                                                                },
+                                                                                "url": {
+                                                                                    "type": "string",
+                                                                                    "example": "https://storage.test/pg/uploads/2025/presentacion.pptx"
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
                                         },
                                         "created_at": {
                                             "type": "string",
@@ -163,30 +403,58 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Academic period details with phase IDs",
+                        "description": "Academic period details with phases and deliverables",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "id": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 3
                                         },
                                         "name": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "example": "2025-1"
                                         },
                                         "start_date": {
                                             "type": "string",
-                                            "format": "date"
+                                            "format": "date",
+                                            "example": "2025-01-15"
                                         },
                                         "end_date": {
                                             "type": "string",
-                                            "format": "date"
+                                            "format": "date",
+                                            "example": "2025-06-30"
                                         },
-                                        "phase_ids": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "integer"
-                                            }
+                                        "state": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Active"
+                                                },
+                                                "description": {
+                                                    "type": "string",
+                                                    "example": "Academic period is currently running."
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "phases": {
+                                            "description": "Always returns two phases aligned with the academic period dates",
+                                            "properties": {
+                                                "phase_one": {
+                                                    "$ref": "#/components/schemas/AcademicPeriodPhaseResource"
+                                                },
+                                                "phase_two": {
+                                                    "$ref": "#/components/schemas/AcademicPeriodPhaseResource"
+                                                }
+                                            },
+                                            "type": "object"
                                         },
                                         "created_at": {
                                             "type": "string",
@@ -230,15 +498,60 @@
                             "schema": {
                                 "properties": {
                                     "name": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "example": "2025-1"
                                     },
                                     "start_date": {
                                         "type": "string",
-                                        "format": "date"
+                                        "format": "date",
+                                        "example": "2025-01-15"
                                     },
                                     "end_date": {
                                         "type": "string",
-                                        "format": "date"
+                                        "format": "date",
+                                        "example": "2025-06-30"
+                                    },
+                                    "state_id": {
+                                        "type": "integer",
+                                        "example": 2,
+                                        "nullable": true
+                                    },
+                                    "phases": {
+                                        "description": "Provide partial data to rename phases or replace deliverables. Omitted phases remain unchanged.",
+                                        "properties": {
+                                            "phase_one": {
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Proyecto de grado I"
+                                                    },
+                                                    "deliverables": {
+                                                        "description": "Complete replacement list for phase deliverables. Files can be sent via multipart uploads.",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "$ref": "#/components/schemas/AcademicPeriodDeliverableInput"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            "phase_two": {
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Proyecto de grado II"
+                                                    },
+                                                    "deliverables": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "$ref": "#/components/schemas/AcademicPeriodDeliverableInput"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
                                     }
                                 },
                                 "type": "object"
@@ -338,7 +651,17 @@
                 "operationId": "7ae26f21055ed76fad4e7bb42aaca919",
                 "responses": {
                     "200": {
-                        "description": "List of deliverables with phase and file names"
+                        "description": "List of deliverables with phase and file relationships",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DeliverableResource"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -346,72 +669,25 @@
                 "tags": [
                     "Deliverables"
                 ],
-                "summary": "Create deliverable(s) - supports both single object and batch creation",
+                "summary": "Create deliverable(s)",
                 "operationId": "5c940f036f85439fbcca31a5d91157f5",
                 "requestBody": {
-                    "description": "Single deliverable object or array of deliverables",
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "oneOf": [
                                     {
-                                        "required": [
-                                            "phase_id",
-                                            "name",
-                                            "due_date"
-                                        ],
-                                        "properties": {
-                                            "phase_id": {
-                                                "type": "integer",
-                                                "example": 1
-                                            },
-                                            "name": {
-                                                "type": "string",
-                                                "example": "Entrega 1"
-                                            },
-                                            "due_date": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "example": "2025-03-15 23:59:00"
-                                            },
-                                            "file_ids": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "integer"
-                                                }
-                                            }
-                                        },
-                                        "type": "object"
+                                        "$ref": "#/components/schemas/DeliverableCreatePayload"
                                     },
                                     {
                                         "type": "array",
                                         "items": {
-                                            "required": [
-                                                "phase_id",
-                                                "name",
-                                                "due_date"
-                                            ],
-                                            "properties": {
-                                                "phase_id": {
-                                                    "type": "integer"
-                                                },
-                                                "name": {
-                                                    "type": "string"
-                                                },
-                                                "due_date": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                },
-                                                "file_ids": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "integer"
-                                                    }
-                                                }
-                                            },
-                                            "type": "object"
+                                            "$ref": "#/components/schemas/DeliverableCreatePayload"
                                         }
+                                    },
+                                    {
+                                        "$ref": "#/components/schemas/DeliverableBatchPayload"
                                     }
                                 ]
                             }
@@ -420,7 +696,24 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Deliverable(s) created successfully"
+                        "description": "Deliverable(s) created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/DeliverableResource"
+                                        },
+                                        {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DeliverableResource"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "422": {
                         "description": "Validation error"
@@ -447,7 +740,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Deliverable details with relation IDs"
+                        "description": "Deliverable details with phase and file metadata",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DeliverableResource"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -474,19 +774,33 @@
                             "schema": {
                                 "properties": {
                                     "phase_id": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "nullable": true
                                     },
                                     "name": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
                                     },
                                     "due_date": {
                                         "type": "string",
-                                        "format": "date-time"
+                                        "format": "date-time",
+                                        "nullable": true
                                     },
                                     "file_ids": {
                                         "type": "array",
                                         "items": {
                                             "type": "integer"
+                                        }
+                                    },
+                                    "files": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
                                         }
                                     }
                                 },
@@ -497,7 +811,14 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Deliverable updated successfully"
+                        "description": "Deliverable updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DeliverableResource"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -547,7 +868,17 @@
                 "operationId": "a98bc04dabe0e82011214630bc603f37",
                 "responses": {
                     "200": {
-                        "description": "List of deliverable-file associations with related names"
+                        "description": "List of deliverable-file associations with related names",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DeliverableFileResource"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -583,7 +914,14 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Deliverable-file association created successfully"
+                        "description": "Deliverable-file association created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DeliverableFileResource"
+                                }
+                            }
+                        }
                     },
                     "422": {
                         "description": "Validation error"
@@ -618,7 +956,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Deliverable-file association details with relation IDs"
+                        "description": "Deliverable-file association details with related names",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DeliverableFileResource"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -662,7 +1007,17 @@
                 "operationId": "224cc93ba558bac42ca6feb764cf1516",
                 "responses": {
                     "200": {
-                        "description": "List of files with deliverable, submission, repository project, and repository proposal names"
+                        "description": "List of stored files with related deliverables and repository entities",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/StoredFileResource"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -675,48 +1030,46 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "required": [
-                                    "name",
-                                    "extension",
-                                    "url"
+                                    "files"
                                 ],
                                 "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "example": "document.pdf"
-                                    },
-                                    "extension": {
-                                        "type": "string",
-                                        "example": "pdf"
-                                    },
-                                    "url": {
-                                        "type": "string",
-                                        "example": "https://example.com/files/document.pdf"
+                                    "files": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        },
+                                        "minItems": 1
                                     },
                                     "deliverable_ids": {
                                         "type": "array",
                                         "items": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 27
                                         }
                                     },
                                     "submission_ids": {
                                         "type": "array",
                                         "items": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 12
                                         }
                                     },
                                     "repository_project_ids": {
                                         "type": "array",
                                         "items": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 4
                                         }
                                     },
                                     "repository_proposal_ids": {
                                         "type": "array",
                                         "items": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 8
                                         }
                                     }
                                 },
@@ -731,37 +1084,10 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer"
-                                        },
-                                        "name": {
-                                            "type": "string"
-                                        },
-                                        "extension": {
-                                            "type": "string"
-                                        },
-                                        "url": {
-                                            "type": "string"
-                                        },
-                                        "academic_period_name": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "deliverable_name": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "created_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        },
-                                        "updated_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        }
-                                    },
-                                    "type": "object"
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/StoredFileResource"
+                                    }
                                 }
                             }
                         }
@@ -791,65 +1117,11 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "File details with relation IDs, academic period name, and deliverable name",
+                        "description": "File details with related deliverables and repository entities",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer"
-                                        },
-                                        "name": {
-                                            "type": "string"
-                                        },
-                                        "extension": {
-                                            "type": "string"
-                                        },
-                                        "url": {
-                                            "type": "string"
-                                        },
-                                        "academic_period_name": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "deliverable_name": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "deliverable_ids": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "integer"
-                                            }
-                                        },
-                                        "submission_ids": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "integer"
-                                            }
-                                        },
-                                        "repository_project_ids": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "integer"
-                                            }
-                                        },
-                                        "repository_proposal_ids": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "integer"
-                                            }
-                                        },
-                                        "created_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        },
-                                        "updated_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        }
-                                    },
-                                    "type": "object"
+                                    "$ref": "#/components/schemas/StoredFileResource"
                                 }
                             }
                         }
@@ -919,7 +1191,14 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "File updated successfully"
+                        "description": "File updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StoredFileResource"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -1522,6 +1801,448 @@
                         "description": "User project eligibility deleted successfully"
                     }
                 }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AcademicPeriodPhaseResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Proyecto de grado I"
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-01-15"
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-06-30"
+                    },
+                    "deliverables": {
+                        "description": "Deliverables are sorted in creation order and include associated files",
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 25
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "example": "Entrega de anteproyecto"
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "example": "Documento PDF con la propuesta"
+                                },
+                                "due_date": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "example": "2025-02-15T23:59:00"
+                                },
+                                "files": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 90
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "example": "propuesta.pdf"
+                                            },
+                                            "extension": {
+                                                "type": "string",
+                                                "example": "pdf"
+                                            },
+                                            "url": {
+                                                "type": "string",
+                                                "example": "https://storage.test/pg/uploads/2025/propuesta.pdf"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "AcademicPeriodDeliverableInput": {
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "Entrega 1"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Documento PDF con la propuesta",
+                        "nullable": true
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-02-15T23:59:00",
+                        "nullable": true
+                    },
+                    "file_ids": {
+                        "description": "Existing file IDs to associate",
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 42
+                        },
+                        "nullable": true
+                    },
+                    "files": {
+                        "description": "Uploaded files to attach to the deliverable",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "DeliverableCreatePayload": {
+                "required": [
+                    "phase_id",
+                    "name"
+                ],
+                "properties": {
+                    "phase_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Entrega 1"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Documento PDF con la propuesta",
+                        "nullable": true
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-03-15T23:59:00",
+                        "nullable": true
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 42
+                        }
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "DeliverableBatchPayload": {
+                "required": [
+                    "deliverables"
+                ],
+                "properties": {
+                    "deliverables": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DeliverableCreatePayload"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "DeliverableResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Entrega 1"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Documento PDF con la propuesta",
+                        "nullable": true
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-03-15T23:59:00",
+                        "nullable": true
+                    },
+                    "phase": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 5
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Proyecto de grado I"
+                            },
+                            "period": {
+                                "properties": {
+                                    "id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "2025-1"
+                                    }
+                                },
+                                "type": "object",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DeliverableFileResource"
+                        }
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 12
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-01-01T12:00:00"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-01-15T18:30:00"
+                    }
+                },
+                "type": "object"
+            },
+            "DeliverableFileResource": {
+                "properties": {
+                    "deliverable_id": {
+                        "type": "integer",
+                        "example": 27
+                    },
+                    "file_id": {
+                        "type": "integer",
+                        "example": 90
+                    },
+                    "deliverable_name": {
+                        "type": "string",
+                        "example": "Entrega 1"
+                    },
+                    "phase_name": {
+                        "type": "string",
+                        "example": "Proyecto de grado I"
+                    },
+                    "academic_period_name": {
+                        "type": "string",
+                        "example": "2025-1"
+                    },
+                    "file_name": {
+                        "type": "string",
+                        "example": "propuesta.pdf"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "FileDeliverableSummary": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 40
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Entrega 1"
+                    },
+                    "phase": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 5
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Proyecto de grado I"
+                            },
+                            "period": {
+                                "properties": {
+                                    "id": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "2025-1"
+                                    }
+                                },
+                                "type": "object",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "StoredFileResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 90
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "propuesta.pdf"
+                    },
+                    "extension": {
+                        "type": "string",
+                        "example": "pdf"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://storage.test/pg/uploads/2025/propuesta.pdf"
+                    },
+                    "disk": {
+                        "type": "string",
+                        "example": "public"
+                    },
+                    "path": {
+                        "type": "string",
+                        "example": "pg/uploads/2025/01/15/propuesta.pdf"
+                    },
+                    "deliverables": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FileDeliverableSummary"
+                        }
+                    },
+                    "deliverable_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 40
+                        }
+                    },
+                    "submissions": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 12
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "submission_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 12
+                        }
+                    },
+                    "repository_projects": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 3
+                                },
+                                "title": {
+                                    "type": "string",
+                                    "example": "Sistema de seguimiento"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "repository_project_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    },
+                    "repository_proposals": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 8
+                                },
+                                "title": {
+                                    "type": "string",
+                                    "example": "Plataforma de aprendizaje"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "repository_proposal_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 8
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
             }
         }
     },

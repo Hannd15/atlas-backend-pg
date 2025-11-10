@@ -171,18 +171,31 @@ class UserController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="List of users formatted for dropdowns"
+     *         description="List of users formatted for dropdowns",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *                 type="object",
+     *
+     *                 @OA\Property(property="value", type="integer", example=5),
+     *                 @OA\Property(property="label", type="string", example="Jane Doe"),
+     *                 @OA\Property(property="project_position_eligibility_names", type="string", example="Director, Jurado")
+     *             )
+     *         )
      *     )
      * )
      */
     public function dropdown(): \Illuminate\Http\JsonResponse
     {
-        $users = User::all()->map(function ($user) {
+        $users = User::with('eligiblePositions')->orderBy('name')->get()->map(function ($user) {
             return [
                 'value' => $user->id,
                 'label' => $user->name,
+                'project_position_eligibility_names' => $user->eligiblePositions->pluck('name')->implode(', '),
             ];
-        });
+        })->values();
 
         return response()->json($users);
     }

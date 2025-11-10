@@ -125,7 +125,14 @@ class ProjectPositionController extends Controller
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="name", type="string")
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(
+     *                 property="eligible_user_ids",
+     *                 type="array",
+     *                 description="Array of user IDs eligible for this position. Empty array clears all eligibilities. Null or missing field leaves current assignments untouched.",
+     *
+     *                 @OA\Items(type="integer")
+     *             )
      *         )
      *     ),
      *
@@ -139,9 +146,18 @@ class ProjectPositionController extends Controller
     {
         $request->validate([
             'name' => 'sometimes|required|string|max:255|unique:project_positions,name,'.$projectPosition->id,
+            'eligible_user_ids' => 'nullable|array',
+            'eligible_user_ids.*' => 'exists:users,id',
         ]);
 
         $projectPosition->update($request->only('name'));
+
+        if ($request->has('eligible_user_ids')) {
+            $projectPosition->eligibleUsers()->sync($request->input('eligible_user_ids', []));
+        }
+
+        $projectPosition->load('eligibleUsers');
+        $projectPosition->eligible_user_ids = $projectPosition->eligibleUsers->pluck('id');
 
         return response()->json($projectPosition);
     }

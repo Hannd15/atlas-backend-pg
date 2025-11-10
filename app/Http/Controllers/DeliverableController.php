@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Deliverable;
+use App\Services\FileStorageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -12,9 +14,73 @@ use Illuminate\Support\Facades\Validator;
  *     name="Deliverables",
  *     description="API endpoints for managing deliverables (supports batch creation)"
  * )
+ *
+ * @OA\Schema(
+ *     schema="DeliverableCreatePayload",
+ *     type="object",
+ *     required={"phase_id","name"},
+ *
+ *     @OA\Property(property="phase_id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="Entrega 1"),
+ *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
+ *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
+ *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer", example=42)),
+ *     @OA\Property(property="files", type="array", @OA\Items(type="string", format="binary"))
+ * )
+ *
+ * @OA\Schema(
+ *     schema="DeliverableBatchPayload",
+ *     type="object",
+ *     required={"deliverables"},
+ *
+ *     @OA\Property(
+ *         property="deliverables",
+ *         type="array",
+ *
+ *         @OA\Items(ref="#/components/schemas/DeliverableCreatePayload")
+ *     )
+ * )
+ *
+ * @OA\Schema(
+ *     schema="DeliverableResource",
+ *     type="object",
+ *
+ *     @OA\Property(property="id", type="integer", example=12),
+ *     @OA\Property(property="name", type="string", example="Entrega 1"),
+ *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
+ *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
+ *     @OA\Property(
+ *         property="phase",
+ *         type="object",
+ *         nullable=true,
+ *         @OA\Property(property="id", type="integer", example=5),
+ *         @OA\Property(property="name", type="string", example="Proyecto de grado I"),
+ *         @OA\Property(
+ *             property="period",
+ *             type="object",
+ *             nullable=true,
+ *             @OA\Property(property="id", type="integer", example=2),
+ *             @OA\Property(property="name", type="string", example="2025-1")
+ *         )
+ *     ),
+ *     @OA\Property(
+ *         property="files",
+ *         type="array",
+ *
+ *         @OA\Items(ref="#/components/schemas/DeliverableFileResource")
+ *     ),
+ *
+ *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer", example=12)),
+ *     @OA\Property(property="created_at", type="string", format="date-time", example="2025-01-01T12:00:00"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-01-15T18:30:00")
+ * )
  */
 class DeliverableController extends Controller
 {
+    public function __construct(
+        protected FileStorageService $fileStorageService
+    ) {}
+
     /**
      * @OA\Get(
      *     path="/api/pg/deliverables",
@@ -23,66 +89,64 @@ class DeliverableController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="List of deliverables with phase and file names"
+     *         description="List of deliverables with phase and file relationships",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(ref="#/components/schemas/DeliverableResource")
+     *         )
      *     )
      * )
      */
     public function index(): \Illuminate\Http\JsonResponse
     {
-        $deliverables = Deliverable::with(['phase', 'files'])->orderBy('updated_at', 'desc')->get();
+        $deliverables = Deliverable::with(['phase.period', 'files'])->orderByDesc('updated_at')->get();
 
-        $deliverables->each(function ($deliverable) {
-            $deliverable->phase_names = $deliverable->phase ? $deliverable->phase->name : '';
-            $deliverable->file_names = $deliverable->files->pluck('name')->implode(', ');
-        });
-
-        return response()->json($deliverables);
+        return response()->json($deliverables->map(fn (Deliverable $deliverable) => $this->transformDeliverable($deliverable)));
     }
 
     /**
      * @OA\Post(
      *     path="/api/pg/deliverables",
-     *     summary="Create deliverable(s) - supports both single object and batch creation",
+     *     summary="Create deliverable(s)",
      *     tags={"Deliverables"},
      *
      *     @OA\RequestBody(
      *         required=true,
-     *         description="Single deliverable object or array of deliverables",
      *
      *         @OA\JsonContent(
      *             oneOf={
      *
-     *                 @OA\Schema(
-     *                     type="object",
-     *                     required={"phase_id","name","due_date"},
-     *
-     *                     @OA\Property(property="phase_id", type="integer", example=1),
-     *                     @OA\Property(property="name", type="string", example="Entrega 1"),
-     *                     @OA\Property(property="due_date", type="string", format="date-time", example="2025-03-15 23:59:00"),
-     *                     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer"))
-     *                 ),
-     *
+     *                 @OA\Schema(ref="#/components/schemas/DeliverableCreatePayload"),
      *                 @OA\Schema(
      *                     type="array",
      *
-     *                     @OA\Items(
-     *                         type="object",
-     *                         required={"phase_id","name","due_date"},
+     *                     @OA\Items(ref="#/components/schemas/DeliverableCreatePayload")
+     *                 ),
      *
-     *                         @OA\Property(property="phase_id", type="integer"),
-     *                         @OA\Property(property="name", type="string"),
-     *                         @OA\Property(property="due_date", type="string", format="date-time"),
-     *                         @OA\Property(property="file_ids", type="array", @OA\Items(type="integer"))
-     *                     )
-     *                 )
+     *                 @OA\Schema(ref="#/components/schemas/DeliverableBatchPayload")
      *             }
      *         )
      *     ),
      *
      *     @OA\Response(
      *         response=201,
-     *         description="Deliverable(s) created successfully"
+     *         description="Deliverable(s) created successfully",
+     *
+     *         @OA\JsonContent(
+     *             oneOf={
+     *
+     *                 @OA\Schema(ref="#/components/schemas/DeliverableResource"),
+     *                 @OA\Schema(
+     *                     type="array",
+     *
+     *                     @OA\Items(ref="#/components/schemas/DeliverableResource")
+     *                 )
+     *             }
+     *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error"
@@ -92,80 +156,72 @@ class DeliverableController extends Controller
     public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $data = $request->all();
+        $allFiles = $request->allFiles();
 
-        // Check if it's a batch creation (array) or single object
-        $isBatch = isset($data[0]) && is_array($data[0]);
-
-        if ($isBatch) {
-            return $this->storeBatch($data);
-        } else {
-            return $this->storeSingle($data);
+        if (isset($data['deliverables']) && is_array($data['deliverables'])) {
+            return $this->storeBatch($data['deliverables'], Arr::get($allFiles, 'deliverables', []));
         }
+
+        if ($this->isBatchPayload($data)) {
+            return $this->storeBatch($data, $allFiles);
+        }
+
+        return $this->storeSingle($data, Arr::get($allFiles, 'files', []));
     }
 
-    protected function storeSingle(array $data): \Illuminate\Http\JsonResponse
+    protected function storeSingle(array $data, array $uploadedFiles = []): \Illuminate\Http\JsonResponse
     {
         $validator = Validator::make($data, [
             'phase_id' => 'required|exists:phases,id',
             'name' => 'required|string|max:255',
-            'due_date' => 'required|date',
+            'description' => 'nullable|string',
+            'due_date' => 'nullable|date',
             'file_ids' => 'nullable|array',
             'file_ids.*' => 'exists:files,id',
+            'files' => 'nullable|array',
+            'files.*' => 'file',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $deliverable = Deliverable::create([
-            'phase_id' => $data['phase_id'],
-            'name' => $data['name'],
-            'due_date' => $data['due_date'],
-        ]);
+        $deliverable = $this->persistDeliverable($data, $uploadedFiles);
 
-        if (isset($data['file_ids'])) {
-            $deliverable->files()->sync($data['file_ids']);
-        }
-
-        return response()->json($deliverable, 201);
+        return response()->json($this->transformDeliverable($deliverable), 201);
     }
 
-    protected function storeBatch(array $dataArray): \Illuminate\Http\JsonResponse
+    protected function storeBatch(array $dataArray, array $uploadedFiles = []): \Illuminate\Http\JsonResponse
     {
         $validator = Validator::make(['deliverables' => $dataArray], [
             'deliverables' => 'required|array',
             'deliverables.*.phase_id' => 'required|exists:phases,id',
             'deliverables.*.name' => 'required|string|max:255',
-            'deliverables.*.due_date' => 'required|date',
+            'deliverables.*.description' => 'nullable|string',
+            'deliverables.*.due_date' => 'nullable|date',
             'deliverables.*.file_ids' => 'nullable|array',
             'deliverables.*.file_ids.*' => 'exists:files,id',
+            'deliverables.*.files' => 'nullable|array',
+            'deliverables.*.files.*' => 'file',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $deliverables = DB::transaction(function () use ($dataArray) {
+        $deliverables = DB::transaction(function () use ($dataArray, $uploadedFiles) {
             $createdDeliverables = [];
 
-            foreach ($dataArray as $deliverableData) {
-                $deliverable = Deliverable::create([
-                    'phase_id' => $deliverableData['phase_id'],
-                    'name' => $deliverableData['name'],
-                    'due_date' => $deliverableData['due_date'],
-                ]);
+            foreach ($dataArray as $index => $deliverableData) {
+                $filesForDeliverable = Arr::get($uploadedFiles, $index.'.files', Arr::get($uploadedFiles, $index, []));
 
-                if (isset($deliverableData['file_ids'])) {
-                    $deliverable->files()->sync($deliverableData['file_ids']);
-                }
-
-                $createdDeliverables[] = $deliverable;
+                $createdDeliverables[] = $this->persistDeliverable($deliverableData, $filesForDeliverable ?? []);
             }
 
             return $createdDeliverables;
         });
 
-        return response()->json($deliverables, 201);
+        return response()->json(collect($deliverables)->map(fn (Deliverable $deliverable) => $this->transformDeliverable($deliverable)), 201);
     }
 
     /**
@@ -184,18 +240,17 @@ class DeliverableController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="Deliverable details with relation IDs"
+     *         description="Deliverable details with phase and file metadata",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/DeliverableResource")
      *     )
      * )
      */
     public function show(Deliverable $deliverable): \Illuminate\Http\JsonResponse
     {
-        $deliverable->load('phase', 'files');
+        $deliverable->load('phase.period', 'files');
 
-        $deliverable->phase_id = $deliverable->phase ? [$deliverable->phase->id] : [];
-        $deliverable->file_ids = $deliverable->files->pluck('id');
-
-        return response()->json($deliverable);
+        return response()->json($this->transformDeliverable($deliverable));
     }
 
     /**
@@ -217,16 +272,20 @@ class DeliverableController extends Controller
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="phase_id", type="integer"),
-     *             @OA\Property(property="name", type="string"),
-     *             @OA\Property(property="due_date", type="string", format="date-time"),
-     *             @OA\Property(property="file_ids", type="array", @OA\Items(type="integer"))
+     *             @OA\Property(property="phase_id", type="integer", nullable=true),
+     *             @OA\Property(property="name", type="string", nullable=true),
+     *             @OA\Property(property="description", type="string", nullable=true),
+     *             @OA\Property(property="due_date", type="string", format="date-time", nullable=true),
+     *             @OA\Property(property="file_ids", type="array", @OA\Items(type="integer")),
+     *             @OA\Property(property="files", type="array", @OA\Items(type="string", format="binary"))
      *         )
      *     ),
      *
      *     @OA\Response(
      *         response=200,
-     *         description="Deliverable updated successfully"
+     *         description="Deliverable updated successfully",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/DeliverableResource")
      *     )
      * )
      */
@@ -235,18 +294,35 @@ class DeliverableController extends Controller
         $request->validate([
             'phase_id' => 'sometimes|required|exists:phases,id',
             'name' => 'sometimes|required|string|max:255',
-            'due_date' => 'sometimes|required|date',
+            'description' => 'sometimes|nullable|string',
+            'due_date' => 'sometimes|nullable|date',
             'file_ids' => 'nullable|array',
             'file_ids.*' => 'exists:files,id',
+            'files' => 'nullable|array',
+            'files.*' => 'file',
         ]);
 
-        $deliverable->update($request->only('phase_id', 'name', 'due_date'));
+        $deliverable->update($request->only('phase_id', 'name', 'description', 'due_date'));
+
+        $fileIds = null;
 
         if ($request->has('file_ids')) {
-            $deliverable->files()->sync($request->input('file_ids'));
+            $fileIds = collect($request->input('file_ids'))->filter()->map(fn ($id) => (int) $id);
         }
 
-        return response()->json($deliverable);
+        if ($request->hasFile('files')) {
+            $storedFiles = $this->fileStorageService->storeUploadedFiles($request->file('files'));
+            $fileIds = ($fileIds ?? $deliverable->files->pluck('id'))
+                ->merge($storedFiles->pluck('id'));
+        }
+
+        if ($fileIds !== null) {
+            $deliverable->files()->sync($fileIds->unique()->all());
+        }
+
+        $deliverable->load('phase.period', 'files');
+
+        return response()->json($this->transformDeliverable($deliverable));
     }
 
     /**
@@ -290,13 +366,71 @@ class DeliverableController extends Controller
      */
     public function dropdown(): \Illuminate\Http\JsonResponse
     {
-        $deliverables = Deliverable::all()->map(function ($deliverable) {
-            return [
-                'value' => $deliverable->id,
-                'label' => $deliverable->name,
-            ];
-        });
+        $deliverables = Deliverable::orderByDesc('updated_at')->get()->map(fn (Deliverable $deliverable) => [
+            'value' => $deliverable->id,
+            'label' => $deliverable->name,
+        ]);
 
         return response()->json($deliverables);
+    }
+
+    protected function persistDeliverable(array $data, array $uploadedFiles = []): Deliverable
+    {
+        $attributes = Arr::only($data, ['phase_id', 'name', 'description', 'due_date']);
+
+        $deliverable = Deliverable::create([
+            'phase_id' => $attributes['phase_id'],
+            'name' => $attributes['name'],
+            'description' => $attributes['description'] ?? null,
+            'due_date' => $attributes['due_date'] ?? null,
+        ]);
+
+        $fileIds = $this->resolveFileIds($data['file_ids'] ?? [], $uploadedFiles);
+
+        if ($fileIds->isNotEmpty()) {
+            $deliverable->files()->sync($fileIds->unique()->all());
+        }
+
+        return $deliverable->load('phase.period', 'files');
+    }
+
+    protected function resolveFileIds(array $fileIds, array $uploadedFiles = []): \Illuminate\Support\Collection
+    {
+        $existing = collect($fileIds)->filter()->map(fn ($id) => (int) $id);
+        $stored = $this->fileStorageService->storeUploadedFiles($uploadedFiles);
+
+        return $existing->merge($stored->pluck('id'));
+    }
+
+    protected function transformDeliverable(Deliverable $deliverable): array
+    {
+        return [
+            'id' => $deliverable->id,
+            'name' => $deliverable->name,
+            'description' => $deliverable->description,
+            'due_date' => optional($deliverable->due_date)->toDateTimeString(),
+            'phase' => $deliverable->phase ? [
+                'id' => $deliverable->phase->id,
+                'name' => $deliverable->phase->name,
+                'period' => $deliverable->phase->period ? [
+                    'id' => $deliverable->phase->period->id,
+                    'name' => $deliverable->phase->period->name,
+                ] : null,
+            ] : null,
+            'files' => $deliverable->files->map(fn ($file) => [
+                'id' => $file->id,
+                'name' => $file->name,
+                'extension' => $file->extension,
+                'url' => $file->url,
+            ])->values(),
+            'file_ids' => $deliverable->files->pluck('id')->values(),
+            'created_at' => optional($deliverable->created_at)->toDateTimeString(),
+            'updated_at' => optional($deliverable->updated_at)->toDateTimeString(),
+        ];
+    }
+
+    protected function isBatchPayload(array $payload): bool
+    {
+        return isset($payload[0]) && is_array($payload[0]);
     }
 }

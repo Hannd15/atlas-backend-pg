@@ -46,9 +46,9 @@ Route::prefix('pg')->group(function () {
     Route::get('project-positions/dropdown', [ProjectPositionController::class, 'dropdown']);
     Route::apiResource('project-positions', ProjectPositionController::class);
 
-    // User Project Eligibilities routes (composite key)
-    Route::get('user-project-eligibilities', [UserProjectEligibilityController::class, 'index']);
-    Route::post('user-project-eligibilities', [UserProjectEligibilityController::class, 'store']);
-    Route::get('user-project-eligibilities/{user_id}/{project_position_id}', [UserProjectEligibilityController::class, 'show']);
-    Route::delete('user-project-eligibilities/{user_id}/{project_position_id}', [UserProjectEligibilityController::class, 'destroy']);
+    // User Project Eligibilities routes
+    Route::get('user-project-eligibilities/by-user', [UserProjectEligibilityController::class, 'byUser']);
+    Route::get('user-project-eligibilities/by-user/dropdown', [UserProjectEligibilityController::class, 'byUserDropdown']);
+    Route::get('user-project-eligibilities/by-position', [UserProjectEligibilityController::class, 'byPosition']);
+    Route::get('user-project-eligibilities/by-position/dropdown', [UserProjectEligibilityController::class, 'byPositionDropdown']);
 });

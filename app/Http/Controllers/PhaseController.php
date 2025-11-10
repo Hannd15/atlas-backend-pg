@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Phase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 /**
  * @OA\Tag(
@@ -102,16 +103,20 @@ class PhaseController extends Controller
      */
     public function update(Request $request, Phase $phase): \Illuminate\Http\JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'start_date' => 'sometimes|required|date',
-            'end_date' => 'sometimes|required|date|after_or_equal:start_date',
-            'period_id' => 'nullable|exists:academic_periods,id',
+            'period_id' => 'sometimes|exists:academic_periods,id',
             'deliverable_ids' => 'nullable|array',
             'deliverable_ids.*' => 'exists:deliverables,id',
         ]);
 
-        $phase->update($request->only('name', 'start_date', 'end_date', 'period_id'));
+        $phase->update(Arr::only($validated, ['name', 'period_id']));
+
+        $phase->refresh();
+        $phase->update([
+            'start_date' => optional($phase->period)->start_date ?? $phase->start_date,
+            'end_date' => optional($phase->period)->end_date ?? $phase->end_date,
+        ]);
 
         if ($request->has('deliverable_ids')) {
             $phase->deliverables()->sync($request->input('deliverable_ids'));

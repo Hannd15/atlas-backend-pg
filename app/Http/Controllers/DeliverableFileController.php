@@ -10,6 +10,20 @@ use Illuminate\Http\Request;
  *     name="Deliverable Files",
  *     description="API endpoints for managing deliverable-file associations"
  * )
+ *
+ * @OA\Schema(
+ *     schema="DeliverableFileResource",
+ *     type="object",
+ *
+ *     @OA\Property(property="deliverable_id", type="integer", example=27),
+ *     @OA\Property(property="file_id", type="integer", example=90),
+ *     @OA\Property(property="deliverable_name", type="string", example="Entrega 1"),
+ *     @OA\Property(property="phase_name", type="string", example="Proyecto de grado I"),
+ *     @OA\Property(property="academic_period_name", type="string", example="2025-1"),
+ *     @OA\Property(property="file_name", type="string", example="propuesta.pdf"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
  */
 class DeliverableFileController extends Controller
 {
@@ -21,20 +35,21 @@ class DeliverableFileController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="List of deliverable-file associations with related names"
+     *         description="List of deliverable-file associations with related names",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(ref="#/components/schemas/DeliverableFileResource")
+     *         )
      *     )
      * )
      */
     public function index(): \Illuminate\Http\JsonResponse
     {
-        $deliverableFiles = DeliverableFile::with(['deliverable', 'file'])->orderBy('updated_at', 'desc')->get();
+        $deliverableFiles = DeliverableFile::with(['deliverable.phase.period', 'file'])->orderByDesc('updated_at')->get();
 
-        $deliverableFiles->each(function ($deliverableFile) {
-            $deliverableFile->deliverable_names = $deliverableFile->deliverable ? $deliverableFile->deliverable->name : '';
-            $deliverableFile->file_names = $deliverableFile->file ? $deliverableFile->file->name : '';
-        });
-
-        return response()->json($deliverableFiles);
+        return response()->json($deliverableFiles->map(fn (DeliverableFile $deliverableFile) => $this->transformDeliverableFile($deliverableFile)));
     }
 
     /**
@@ -56,8 +71,11 @@ class DeliverableFileController extends Controller
      *
      *     @OA\Response(
      *         response=201,
-     *         description="Deliverable-file association created successfully"
+     *         description="Deliverable-file association created successfully",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/DeliverableFileResource")
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error"
@@ -73,7 +91,9 @@ class DeliverableFileController extends Controller
 
         $deliverableFile = DeliverableFile::create($request->only('deliverable_id', 'file_id'));
 
-        return response()->json($deliverableFile, 201);
+        $deliverableFile->load('deliverable.phase.period', 'file');
+
+        return response()->json($this->transformDeliverableFile($deliverableFile), 201);
     }
 
     /**
@@ -100,7 +120,9 @@ class DeliverableFileController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="Deliverable-file association details with relation IDs"
+     *         description="Deliverable-file association details with related names",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/DeliverableFileResource")
      *     )
      * )
      */
@@ -110,12 +132,9 @@ class DeliverableFileController extends Controller
             ->where('file_id', $fileId)
             ->firstOrFail();
 
-        $deliverableFile->load('deliverable', 'file');
+        $deliverableFile->load('deliverable.phase.period', 'file');
 
-        $deliverableFile->deliverable_id = $deliverableFile->deliverable ? [$deliverableFile->deliverable->id] : [];
-        $deliverableFile->file_id = $deliverableFile->file ? [$deliverableFile->file->id] : [];
-
-        return response()->json($deliverableFile);
+        return response()->json($this->transformDeliverableFile($deliverableFile));
     }
 
     /**
@@ -155,5 +174,23 @@ class DeliverableFileController extends Controller
         $deliverableFile->delete();
 
         return response()->json(['message' => 'Deliverable-file association deleted successfully']);
+    }
+
+    protected function transformDeliverableFile(DeliverableFile $deliverableFile): array
+    {
+        $deliverable = $deliverableFile->deliverable;
+        $phase = $deliverable?->phase;
+        $period = $phase?->period;
+
+        return [
+            'deliverable_id' => $deliverableFile->deliverable_id,
+            'file_id' => $deliverableFile->file_id,
+            'deliverable_name' => $deliverable?->name,
+            'phase_name' => $phase?->name,
+            'academic_period_name' => $period?->name,
+            'file_name' => $deliverableFile->file?->name,
+            'created_at' => optional($deliverableFile->created_at)->toDateTimeString(),
+            'updated_at' => optional($deliverableFile->updated_at)->toDateTimeString(),
+        ];
     }
 }

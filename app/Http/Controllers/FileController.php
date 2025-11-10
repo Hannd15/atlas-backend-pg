@@ -3,16 +3,72 @@
 namespace App\Http\Controllers;
 
 use App\Models\File;
+use App\Services\FileStorageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 /**
  * @OA\Tag(
  *     name="Files",
  *     description="API endpoints for managing files"
  * )
+ *
+ * @OA\Schema(
+ *     schema="FileDeliverableSummary",
+ *     type="object",
+ *
+ *     @OA\Property(property="id", type="integer", example=40),
+ *     @OA\Property(property="name", type="string", example="Entrega 1"),
+ *     @OA\Property(
+ *         property="phase",
+ *         type="object",
+ *         nullable=true,
+ *         @OA\Property(property="id", type="integer", example=5),
+ *         @OA\Property(property="name", type="string", example="Proyecto de grado I"),
+ *         @OA\Property(
+ *             property="period",
+ *             type="object",
+ *             nullable=true,
+ *             @OA\Property(property="id", type="integer", example=3),
+ *             @OA\Property(property="name", type="string", example="2025-1")
+ *         )
+ *     )
+ * )
+ *
+ * @OA\Schema(
+ *     schema="StoredFileResource",
+ *     type="object",
+ *
+ *     @OA\Property(property="id", type="integer", example=90),
+ *     @OA\Property(property="name", type="string", example="propuesta.pdf"),
+ *     @OA\Property(property="extension", type="string", example="pdf"),
+ *     @OA\Property(property="url", type="string", example="https://storage.test/pg/uploads/2025/propuesta.pdf"),
+ *     @OA\Property(property="disk", type="string", example="public"),
+ *     @OA\Property(property="path", type="string", example="pg/uploads/2025/01/15/propuesta.pdf"),
+ *     @OA\Property(
+ *         property="deliverables",
+ *         type="array",
+ *
+ *         @OA\Items(ref="#/components/schemas/FileDeliverableSummary")
+ *     ),
+ *
+ *     @OA\Property(property="deliverable_ids", type="array", @OA\Items(type="integer", example=40)),
+ *     @OA\Property(property="submissions", type="array", @OA\Items(type="object", @OA\Property(property="id", type="integer", example=12))),
+ *     @OA\Property(property="submission_ids", type="array", @OA\Items(type="integer", example=12)),
+ *     @OA\Property(property="repository_projects", type="array", @OA\Items(type="object", @OA\Property(property="id", type="integer", example=3), @OA\Property(property="title", type="string", example="Sistema de seguimiento"))),
+ *     @OA\Property(property="repository_project_ids", type="array", @OA\Items(type="integer", example=3)),
+ *     @OA\Property(property="repository_proposals", type="array", @OA\Items(type="object", @OA\Property(property="id", type="integer", example=8), @OA\Property(property="title", type="string", example="Plataforma de aprendizaje"))),
+ *     @OA\Property(property="repository_proposal_ids", type="array", @OA\Items(type="integer", example=8)),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
  */
 class FileController extends Controller
 {
+    public function __construct(
+        protected FileStorageService $fileStorageService
+    ) {}
+
     /**
      * @OA\Get(
      *     path="/api/pg/files",
@@ -21,29 +77,26 @@ class FileController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="List of files with deliverable, submission, repository project, and repository proposal names"
+     *         description="List of stored files with related deliverables and repository entities",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(ref="#/components/schemas/StoredFileResource")
+     *         )
      *     )
      * )
      */
     public function index(): \Illuminate\Http\JsonResponse
     {
         $files = File::with([
-            'deliverables',
+            'deliverables.phase.period',
             'submissions',
             'repositoryProjects',
             'repositoryProposals',
-        ])->orderBy('updated_at', 'desc')->get();
+        ])->orderByDesc('updated_at')->get();
 
-        $files->each(function ($file) {
-            $file->deliverable_names = $file->deliverables->pluck('name')->implode(', ');
-            $file->submission_names = $file->submissions->map(function ($submission) {
-                return "Submission #{$submission->id}";
-            })->implode(', ');
-            $file->repository_project_names = $file->repositoryProjects->pluck('title')->implode(', ');
-            $file->repository_proposal_names = $file->repositoryProposals->pluck('title')->implode(', ');
-        });
-
-        return response()->json($files);
+        return response()->json($files->map(fn (File $file) => $this->transformFile($file)));
     }
 
     /**
@@ -55,16 +108,25 @@ class FileController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *
-     *         @OA\JsonContent(
-     *             required={"name","extension","url"},
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
      *
-     *             @OA\Property(property="name", type="string", example="document.pdf"),
-     *             @OA\Property(property="extension", type="string", example="pdf"),
-     *             @OA\Property(property="url", type="string", example="https://example.com/files/document.pdf"),
-     *             @OA\Property(property="deliverable_ids", type="array", @OA\Items(type="integer")),
-     *             @OA\Property(property="submission_ids", type="array", @OA\Items(type="integer")),
-     *             @OA\Property(property="repository_project_ids", type="array", @OA\Items(type="integer")),
-     *             @OA\Property(property="repository_proposal_ids", type="array", @OA\Items(type="integer"))
+     *             @OA\Schema(
+     *                 required={"files"},
+     *
+     *                 @OA\Property(
+     *                     property="files",
+     *                     type="array",
+     *                     minItems=1,
+     *
+     *                     @OA\Items(type="string", format="binary")
+     *                 ),
+     *
+     *                 @OA\Property(property="deliverable_ids", type="array", @OA\Items(type="integer", example=27)),
+     *                 @OA\Property(property="submission_ids", type="array", @OA\Items(type="integer", example=12)),
+     *                 @OA\Property(property="repository_project_ids", type="array", @OA\Items(type="integer", example=4)),
+     *                 @OA\Property(property="repository_proposal_ids", type="array", @OA\Items(type="integer", example=8))
+     *             )
      *         )
      *     ),
      *
@@ -73,15 +135,9 @@ class FileController extends Controller
      *         description="File created successfully",
      *
      *         @OA\JsonContent(
+     *             type="array",
      *
-     *             @OA\Property(property="id", type="integer"),
-     *             @OA\Property(property="name", type="string"),
-     *             @OA\Property(property="extension", type="string"),
-     *             @OA\Property(property="url", type="string"),
-     *             @OA\Property(property="academic_period_name", type="string", nullable=true),
-     *             @OA\Property(property="deliverable_name", type="string", nullable=true),
-     *             @OA\Property(property="created_at", type="string", format="date-time"),
-     *             @OA\Property(property="updated_at", type="string", format="date-time")
+     *             @OA\Items(ref="#/components/schemas/StoredFileResource")
      *         )
      *     ),
      *
@@ -93,42 +149,45 @@ class FileController extends Controller
      */
     public function store(Request $request): \Illuminate\Http\JsonResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'extension' => 'required|string|max:10',
-            'url' => 'required|url',
-            'deliverable_ids' => 'nullable|array',
-            'deliverable_ids.*' => 'exists:deliverables,id',
-            'submission_ids' => 'nullable|array',
-            'submission_ids.*' => 'exists:submissions,id',
-            'repository_project_ids' => 'nullable|array',
-            'repository_project_ids.*' => 'exists:repository_projects,id',
-            'repository_proposal_ids' => 'nullable|array',
-            'repository_proposal_ids.*' => 'exists:repository_proposals,id',
+        $validated = $request->validate([
+            'files' => ['required', 'array', 'min:1'],
+            'files.*' => ['file'],
+            'deliverable_ids' => ['nullable', 'array'],
+            'deliverable_ids.*' => ['exists:deliverables,id'],
+            'submission_ids' => ['nullable', 'array'],
+            'submission_ids.*' => ['exists:submissions,id'],
+            'repository_project_ids' => ['nullable', 'array'],
+            'repository_project_ids.*' => ['exists:repository_projects,id'],
+            'repository_proposal_ids' => ['nullable', 'array'],
+            'repository_proposal_ids.*' => ['exists:repository_proposals,id'],
         ]);
 
-        $file = File::create($request->only('name', 'extension', 'url'));
+        $storedFiles = $this->fileStorageService->storeUploadedFiles($request->file('files'));
 
-        if ($request->has('deliverable_ids')) {
-            $file->deliverables()->sync($request->input('deliverable_ids'));
-        }
+        $deliverableIds = collect($validated['deliverable_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
+        $submissionIds = collect($validated['submission_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
+        $repositoryProjectIds = collect($validated['repository_project_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
+        $repositoryProposalIds = collect($validated['repository_proposal_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
 
-        if ($request->has('submission_ids')) {
-            $file->submissions()->sync($request->input('submission_ids'));
-        }
+        $storedFiles->each(function (File $file) use ($deliverableIds, $submissionIds, $repositoryProjectIds, $repositoryProposalIds): void {
+            if (! empty($deliverableIds)) {
+                $file->deliverables()->syncWithoutDetaching($deliverableIds);
+            }
 
-        if ($request->has('repository_project_ids')) {
-            $file->repositoryProjects()->sync($request->input('repository_project_ids'));
-        }
+            if (! empty($submissionIds)) {
+                $file->submissions()->syncWithoutDetaching($submissionIds);
+            }
 
-        if ($request->has('repository_proposal_ids')) {
-            $file->repositoryProposals()->sync($request->input('repository_proposal_ids'));
-        }
+            if (! empty($repositoryProjectIds)) {
+                $file->repositoryProjects()->syncWithoutDetaching($repositoryProjectIds);
+            }
 
-        // Load relationships and add academic_period_name and deliverable_name
-        $file = $this->enrichFileWithRelationshipData($file);
+            if (! empty($repositoryProposalIds)) {
+                $file->repositoryProposals()->syncWithoutDetaching($repositoryProposalIds);
+            }
+        });
 
-        return response()->json($file, 201);
+        return response()->json($storedFiles->map(fn (File $file) => $this->transformFile($file)), 201);
     }
 
     /**
@@ -147,23 +206,9 @@ class FileController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="File details with relation IDs, academic period name, and deliverable name",
+     *         description="File details with related deliverables and repository entities",
      *
-     *         @OA\JsonContent(
-     *
-     *             @OA\Property(property="id", type="integer"),
-     *             @OA\Property(property="name", type="string"),
-     *             @OA\Property(property="extension", type="string"),
-     *             @OA\Property(property="url", type="string"),
-     *             @OA\Property(property="academic_period_name", type="string", nullable=true),
-     *             @OA\Property(property="deliverable_name", type="string", nullable=true),
-     *             @OA\Property(property="deliverable_ids", type="array", @OA\Items(type="integer")),
-     *             @OA\Property(property="submission_ids", type="array", @OA\Items(type="integer")),
-     *             @OA\Property(property="repository_project_ids", type="array", @OA\Items(type="integer")),
-     *             @OA\Property(property="repository_proposal_ids", type="array", @OA\Items(type="integer")),
-     *             @OA\Property(property="created_at", type="string", format="date-time"),
-     *             @OA\Property(property="updated_at", type="string", format="date-time")
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/StoredFileResource")
      *     )
      * )
      */
@@ -176,16 +221,7 @@ class FileController extends Controller
             'repositoryProposals',
         ]);
 
-        // Add relationship IDs as arrays
-        $file->deliverable_ids = $file->deliverables->pluck('id');
-        $file->submission_ids = $file->submissions->pluck('id');
-        $file->repository_project_ids = $file->repositoryProjects->pluck('id');
-        $file->repository_proposal_ids = $file->repositoryProposals->pluck('id');
-
-        // Add academic_period_name and deliverable_name
-        $file = $this->enrichFileWithRelationshipData($file);
-
-        return response()->json($file);
+        return response()->json($this->transformFile($file));
     }
 
     /**
@@ -219,48 +255,39 @@ class FileController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="File updated successfully"
+     *         description="File updated successfully",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/StoredFileResource")
      *     )
      * )
      */
     public function update(Request $request, File $file): \Illuminate\Http\JsonResponse
     {
-        $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'extension' => 'sometimes|required|string|max:10',
-            'url' => 'sometimes|required|url',
-            'deliverable_ids' => 'nullable|array',
-            'deliverable_ids.*' => 'exists:deliverables,id',
-            'submission_ids' => 'nullable|array',
-            'submission_ids.*' => 'exists:submissions,id',
-            'repository_project_ids' => 'nullable|array',
-            'repository_project_ids.*' => 'exists:repository_projects,id',
-            'repository_proposal_ids' => 'nullable|array',
-            'repository_proposal_ids.*' => 'exists:repository_proposals,id',
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'extension' => ['sometimes', 'string', 'max:10'],
+            'deliverable_ids' => ['nullable', 'array'],
+            'deliverable_ids.*' => ['exists:deliverables,id'],
+            'submission_ids' => ['nullable', 'array'],
+            'submission_ids.*' => ['exists:submissions,id'],
+            'repository_project_ids' => ['nullable', 'array'],
+            'repository_project_ids.*' => ['exists:repository_projects,id'],
+            'repository_proposal_ids' => ['nullable', 'array'],
+            'repository_proposal_ids.*' => ['exists:repository_proposals,id'],
         ]);
 
-        $file->update($request->only('name', 'extension', 'url'));
+        $file->update(Arr::only($validated, ['name', 'extension']));
 
-        if ($request->has('deliverable_ids')) {
-            $file->deliverables()->sync($request->input('deliverable_ids'));
-        }
+        $this->syncRelationships($file, $validated);
 
-        if ($request->has('submission_ids')) {
-            $file->submissions()->sync($request->input('submission_ids'));
-        }
+        $file->load([
+            'deliverables.phase.period',
+            'submissions',
+            'repositoryProjects',
+            'repositoryProposals',
+        ]);
 
-        if ($request->has('repository_project_ids')) {
-            $file->repositoryProjects()->sync($request->input('repository_project_ids'));
-        }
-
-        if ($request->has('repository_proposal_ids')) {
-            $file->repositoryProposals()->sync($request->input('repository_proposal_ids'));
-        }
-
-        // Reload and enrich with relationship data
-        $file = $this->enrichFileWithRelationshipData($file);
-
-        return response()->json($file);
+        return response()->json($this->transformFile($file));
     }
 
     /**
@@ -304,36 +331,73 @@ class FileController extends Controller
      */
     public function dropdown(): \Illuminate\Http\JsonResponse
     {
-        $files = File::all()->map(function ($file) {
-            return [
-                'value' => $file->id,
-                'label' => $file->name,
-            ];
-        });
+        $files = File::orderByDesc('updated_at')->get()->map(fn (File $file) => [
+            'value' => $file->id,
+            'label' => $file->name,
+        ]);
 
         return response()->json($files);
     }
 
-    /**
-     * Enrich file with academic_period_name and deliverable_name
-     */
-    protected function enrichFileWithRelationshipData(File $file): File
+    protected function transformFile(File $file): array
     {
-        $file->load('deliverables.phase.period');
+        return [
+            'id' => $file->id,
+            'name' => $file->name,
+            'extension' => $file->extension,
+            'url' => $file->url,
+            'disk' => $file->disk,
+            'path' => $file->path,
+            'deliverables' => $file->deliverables->map(function ($deliverable) {
+                return [
+                    'id' => $deliverable->id,
+                    'name' => $deliverable->name,
+                    'phase' => $deliverable->phase ? [
+                        'id' => $deliverable->phase->id,
+                        'name' => $deliverable->phase->name,
+                        'period' => $deliverable->phase->period ? [
+                            'id' => $deliverable->phase->period->id,
+                            'name' => $deliverable->phase->period->name,
+                        ] : null,
+                    ] : null,
+                ];
+            })->values(),
+            'deliverable_ids' => $file->deliverables->pluck('id')->values(),
+            'submissions' => $file->submissions->map(fn ($submission) => [
+                'id' => $submission->id,
+            ])->values(),
+            'submission_ids' => $file->submissions->pluck('id')->values(),
+            'repository_projects' => $file->repositoryProjects->map(fn ($repositoryProject) => [
+                'id' => $repositoryProject->id,
+                'title' => $repositoryProject->title,
+            ])->values(),
+            'repository_project_ids' => $file->repositoryProjects->pluck('id')->values(),
+            'repository_proposals' => $file->repositoryProposals->map(fn ($repositoryProposal) => [
+                'id' => $repositoryProposal->id,
+                'title' => $repositoryProposal->title,
+            ])->values(),
+            'repository_proposal_ids' => $file->repositoryProposals->pluck('id')->values(),
+            'created_at' => optional($file->created_at)->toDateTimeString(),
+            'updated_at' => optional($file->updated_at)->toDateTimeString(),
+        ];
+    }
 
-        // Get the first deliverable's academic period and deliverable name (if exists)
-        $firstDeliverable = $file->deliverables->first();
-
-        if ($firstDeliverable) {
-            $file->deliverable_name = $firstDeliverable->name;
-            $file->academic_period_name = $firstDeliverable->phase && $firstDeliverable->phase->period
-                ? $firstDeliverable->phase->period->name
-                : null;
-        } else {
-            $file->deliverable_name = null;
-            $file->academic_period_name = null;
+    protected function syncRelationships(File $file, array $payload): void
+    {
+        if (array_key_exists('deliverable_ids', $payload)) {
+            $file->deliverables()->sync(collect($payload['deliverable_ids'])->map(fn ($id) => (int) $id)->all());
         }
 
-        return $file;
+        if (array_key_exists('submission_ids', $payload)) {
+            $file->submissions()->sync(collect($payload['submission_ids'])->map(fn ($id) => (int) $id)->all());
+        }
+
+        if (array_key_exists('repository_project_ids', $payload)) {
+            $file->repositoryProjects()->sync(collect($payload['repository_project_ids'])->map(fn ($id) => (int) $id)->all());
+        }
+
+        if (array_key_exists('repository_proposal_ids', $payload)) {
+            $file->repositoryProposals()->sync(collect($payload['repository_proposal_ids'])->map(fn ($id) => (int) $id)->all());
+        }
     }
 }

@@ -41,6 +41,7 @@ class DatabaseSeeder extends Seeder
             'thematic_lines',
             'phases',
             'academic_periods',
+            'academic_period_states',
             'users',
         ];
 
@@ -51,6 +52,7 @@ class DatabaseSeeder extends Seeder
         Schema::enableForeignKeyConstraints();
 
         $this->call([
+            AcademicPeriodStateSeeder::class,
             AcademicPeriodSeeder::class,
             PhaseSeeder::class,
             ThematicLineSeeder::class,

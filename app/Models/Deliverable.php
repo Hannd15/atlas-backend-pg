@@ -12,8 +12,16 @@ class Deliverable extends Model
     protected $fillable = [
         'phase_id',
         'name',
+        'description',
         'due_date',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'due_date' => 'datetime',
+        ];
+    }
 
     public function phase(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
