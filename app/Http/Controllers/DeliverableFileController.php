@@ -167,11 +167,13 @@ class DeliverableFileController extends Controller
      */
     public function destroy(int $deliverableId, int $fileId): \Illuminate\Http\JsonResponse
     {
-        $deliverableFile = DeliverableFile::where('deliverable_id', $deliverableId)
+        DeliverableFile::where('deliverable_id', $deliverableId)
             ->where('file_id', $fileId)
             ->firstOrFail();
 
-        $deliverableFile->delete();
+        DeliverableFile::where('deliverable_id', $deliverableId)
+            ->where('file_id', $fileId)
+            ->delete();
 
         return response()->json(['message' => 'Deliverable-file association deleted successfully']);
     }
