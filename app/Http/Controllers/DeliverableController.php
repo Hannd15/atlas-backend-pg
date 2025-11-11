@@ -101,7 +101,7 @@ class DeliverableController extends Controller
      */
     public function index(): \Illuminate\Http\JsonResponse
     {
-        $deliverables = Deliverable::with(['phase.period', 'files'])->orderByDesc('updated_at')->get();
+        $deliverables = Deliverable::with(['phase.period', 'files', 'rubrics'])->orderByDesc('updated_at')->get();
 
         return response()->json($deliverables->map(fn (Deliverable $deliverable) => $this->transformDeliverable($deliverable)));
     }
@@ -180,6 +180,8 @@ class DeliverableController extends Controller
             'file_ids.*' => 'exists:files,id',
             'files' => 'nullable|array',
             'files.*' => 'file',
+            'rubric_ids' => 'nullable|array',
+            'rubric_ids.*' => 'exists:rubrics,id',
         ]);
 
         if ($validator->fails()) {
@@ -203,6 +205,8 @@ class DeliverableController extends Controller
             'deliverables.*.file_ids.*' => 'exists:files,id',
             'deliverables.*.files' => 'nullable|array',
             'deliverables.*.files.*' => 'file',
+            'deliverables.*.rubric_ids' => 'nullable|array',
+            'deliverables.*.rubric_ids.*' => 'exists:rubrics,id',
         ]);
 
         if ($validator->fails()) {
@@ -248,7 +252,7 @@ class DeliverableController extends Controller
      */
     public function show(Deliverable $deliverable): \Illuminate\Http\JsonResponse
     {
-        $deliverable->load('phase.period', 'files');
+        $deliverable->load('phase.period', 'files', 'rubrics');
 
         return response()->json($this->transformDeliverable($deliverable));
     }
@@ -300,6 +304,8 @@ class DeliverableController extends Controller
             'file_ids.*' => 'exists:files,id',
             'files' => 'nullable|array',
             'files.*' => 'file',
+            'rubric_ids' => 'nullable|array',
+            'rubric_ids.*' => 'exists:rubrics,id',
         ]);
 
         $deliverable->update($request->only('phase_id', 'name', 'description', 'due_date'));
@@ -320,7 +326,11 @@ class DeliverableController extends Controller
             $deliverable->files()->sync($fileIds->unique()->all());
         }
 
-        $deliverable->load('phase.period', 'files');
+        if ($request->has('rubric_ids') && $request->input('rubric_ids') !== null) {
+            $deliverable->rubrics()->sync($this->resolveRubricIds($request->input('rubric_ids'))->all());
+        }
+
+        $deliverable->load('phase.period', 'files', 'rubrics');
 
         return response()->json($this->transformDeliverable($deliverable));
     }
@@ -391,7 +401,11 @@ class DeliverableController extends Controller
             $deliverable->files()->sync($fileIds->unique()->all());
         }
 
-        return $deliverable->load('phase.period', 'files');
+        if (array_key_exists('rubric_ids', $data) && $data['rubric_ids'] !== null) {
+            $deliverable->rubrics()->sync($this->resolveRubricIds($data['rubric_ids'])->all());
+        }
+
+        return $deliverable->load('phase.period', 'files', 'rubrics');
     }
 
     protected function resolveFileIds(array $fileIds, array $uploadedFiles = []): \Illuminate\Support\Collection
@@ -400,6 +414,15 @@ class DeliverableController extends Controller
         $stored = $this->fileStorageService->storeUploadedFiles($uploadedFiles);
 
         return $existing->merge($stored->pluck('id'));
+    }
+
+    protected function resolveRubricIds(array $rubricIds): \Illuminate\Support\Collection
+    {
+        return collect($rubricIds)
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
     }
 
     protected function transformDeliverable(Deliverable $deliverable): array
@@ -422,8 +445,17 @@ class DeliverableController extends Controller
                 'name' => $file->name,
                 'extension' => $file->extension,
                 'url' => $file->url,
-            ])->values(),
-            'file_ids' => $deliverable->files->pluck('id')->values(),
+            ])->values()->all(),
+            'file_ids' => $deliverable->files->pluck('id')->values()->all(),
+            'rubrics' => $deliverable->rubrics->map(fn ($rubric) => [
+                'id' => $rubric->id,
+                'name' => $rubric->name,
+                'description' => $rubric->description,
+                'min_value' => $rubric->min_value,
+                'max_value' => $rubric->max_value,
+            ])->values()->all(),
+            'rubric_ids' => $deliverable->rubrics->pluck('id')->values()->all(),
+            'rubric_names' => $deliverable->rubrics->pluck('name')->implode(', '),
             'created_at' => optional($deliverable->created_at)->toDateTimeString(),
             'updated_at' => optional($deliverable->updated_at)->toDateTimeString(),
         ];

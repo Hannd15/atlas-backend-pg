@@ -2,103 +2,91 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ThematicLine\StoreThematicLineRequest;
+use App\Http\Requests\ThematicLine\UpdateThematicLineRequest;
 use App\Models\ThematicLine;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class ThematicLineController extends Controller
 {
-    public function update(Request $request, ThematicLine $thematicLine)
+    public function index(): JsonResponse
     {
-        $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'trl_expected' => 'nullable|integer',
-            'abet_criteria' => 'nullable|string',
-            'min_score' => 'nullable|integer',
-            'proposal_ids' => 'nullable|array',
-            'proposal_ids.*' => 'exists:proposals,id',
-            'rubric_ids' => 'nullable|array',
-            'rubric_ids.*' => 'exists:rubrics,id',
-        ]);
+        $thematicLines = ThematicLine::with('rubrics')->orderByDesc('updated_at')->get();
 
-        $thematicLine->update($request->only('name', 'description', 'trl_expected', 'abet_criteria', 'min_score'));
-
-        if ($request->has('proposal_ids')) {
-            $thematicLine->proposals()->sync($request->input('proposal_ids'));
-        }
-
-        if ($request->has('rubric_ids')) {
-            $thematicLine->rubrics()->sync($request->input('rubric_ids'));
-        }
-
-        return response()->json($thematicLine);
+        return response()->json($thematicLines->map(fn (ThematicLine $thematicLine) => $this->transformForIndex($thematicLine)));
     }
 
-    public function destroy(ThematicLine $thematicLine)
+    public function store(StoreThematicLineRequest $request): JsonResponse
+    {
+        $thematicLine = ThematicLine::create($request->safe()->only(['name', 'description']));
+
+        if (($rubricIds = $request->rubricIds()) !== null) {
+            $thematicLine->rubrics()->sync($rubricIds);
+        }
+
+        return response()->json($this->transformForShow($thematicLine->load('rubrics')), 201);
+    }
+
+    public function show(ThematicLine $thematicLine): JsonResponse
+    {
+        $thematicLine->load('rubrics');
+
+        return response()->json($this->transformForShow($thematicLine));
+    }
+
+    public function update(UpdateThematicLineRequest $request, ThematicLine $thematicLine): JsonResponse
+    {
+        $thematicLine->update($request->safe()->only(['name', 'description']));
+
+        if (($rubricIds = $request->rubricIds()) !== null) {
+            $thematicLine->rubrics()->sync($rubricIds);
+        }
+
+        $thematicLine->load('rubrics');
+
+        return response()->json($this->transformForShow($thematicLine));
+    }
+
+    public function destroy(ThematicLine $thematicLine): JsonResponse
     {
         $thematicLine->delete();
 
         return response()->json(['message' => 'Thematic line deleted successfully']);
     }
 
-    public function dropdown()
+    public function dropdown(): JsonResponse
     {
-        $thematicLines = ThematicLine::all()->map(function ($thematicLine) {
-            return [
-                'value' => $thematicLine->id,
-                'label' => $thematicLine->name,
-            ];
-        });
-
-        return response()->json($thematicLines);
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'trl_expected' => 'nullable|integer',
-            'abet_criteria' => 'nullable|string',
-            'min_score' => 'nullable|integer',
-            'proposal_ids' => 'nullable|array',
-            'proposal_ids.*' => 'exists:proposals,id',
-            'rubric_ids' => 'nullable|array',
-            'rubric_ids.*' => 'exists:rubrics,id',
+        $thematicLines = ThematicLine::orderBy('name')->get()->map(fn (ThematicLine $thematicLine) => [
+            'value' => $thematicLine->id,
+            'label' => $thematicLine->name,
         ]);
 
-        $thematicLine = ThematicLine::create($request->only('name', 'description', 'trl_expected', 'abet_criteria', 'min_score'));
-
-        if ($request->has('proposal_ids')) {
-            $thematicLine->proposals()->sync($request->input('proposal_ids'));
-        }
-
-        if ($request->has('rubric_ids')) {
-            $thematicLine->rubrics()->sync($request->input('rubric_ids'));
-        }
-
-        return response()->json($thematicLine, 201);
-    }
-
-    public function show(ThematicLine $thematicLine)
-    {
-        $thematicLine->load('proposals', 'rubrics');
-
-        $thematicLine->proposal_ids = $thematicLine->proposals->pluck('id');
-        $thematicLine->rubric_ids = $thematicLine->rubrics->pluck('id');
-
-        return response()->json($thematicLine);
-    }
-
-    public function index()
-    {
-        $thematicLines = ThematicLine::with(['proposals', 'rubrics'])->orderBy('updated_at', 'desc')->get();
-
-        $thematicLines->each(function ($thematicLine) {
-            $thematicLine->proposal_names = $thematicLine->proposals->pluck('title')->implode(', ');
-            $thematicLine->rubric_names = $thematicLine->rubrics->pluck('name')->implode(', ');
-        });
-
         return response()->json($thematicLines);
+    }
+
+    protected function transformForIndex(ThematicLine $thematicLine): array
+    {
+        return [
+            'id' => $thematicLine->id,
+            'name' => $thematicLine->name,
+            'description' => $thematicLine->description,
+            'rubric_names' => $thematicLine->rubrics->pluck('name')->implode(', '),
+            'rubric_ids' => $thematicLine->rubrics->pluck('id')->values()->all(),
+            'created_at' => optional($thematicLine->created_at)->toDateTimeString(),
+            'updated_at' => optional($thematicLine->updated_at)->toDateTimeString(),
+        ];
+    }
+
+    protected function transformForShow(ThematicLine $thematicLine): array
+    {
+        return [
+            'id' => $thematicLine->id,
+            'name' => $thematicLine->name,
+            'description' => $thematicLine->description,
+            'rubric_ids' => $thematicLine->rubrics->pluck('id')->values()->all(),
+            'rubric_names' => $thematicLine->rubrics->pluck('name')->implode(', '),
+            'created_at' => optional($thematicLine->created_at)->toDateTimeString(),
+            'updated_at' => optional($thematicLine->updated_at)->toDateTimeString(),
+        ];
     }
 }

@@ -18,11 +18,11 @@ class Rubric extends Model
 
     public function thematicLines()
     {
-        return $this->belongsToMany(ThematicLine::class, 'rubric_thematic_lines');
+        return $this->belongsToMany(ThematicLine::class, 'rubric_thematic_lines')->withTimestamps();
     }
 
     public function deliverables()
     {
-        return $this->belongsToMany(Deliverable::class, 'rubric_deliverables');
+        return $this->belongsToMany(Deliverable::class, 'rubric_deliverables')->withTimestamps();
     }
 }

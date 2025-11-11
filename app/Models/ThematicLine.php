@@ -24,6 +24,6 @@ class ThematicLine extends Model
 
     public function rubrics()
     {
-        return $this->belongsToMany(Rubric::class, 'rubric_thematic_lines');
+        return $this->belongsToMany(Rubric::class, 'rubric_thematic_lines')->withTimestamps();
     }
 }

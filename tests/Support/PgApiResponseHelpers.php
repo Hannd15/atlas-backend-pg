@@ -8,6 +8,7 @@ use App\Models\DeliverableFile;
 use App\Models\File;
 use App\Models\Phase;
 use App\Models\ProjectPosition;
+use App\Models\Rubric;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -52,7 +53,7 @@ trait PgApiResponseHelpers
 
     protected function phaseResource(Phase $phase): array
     {
-        $phase->loadMissing('deliverables.files');
+        $phase->loadMissing('deliverables.files', 'deliverables.rubrics');
 
         return [
             'id' => $phase->id,
@@ -70,13 +71,14 @@ trait PgApiResponseHelpers
                     'extension' => $file->extension,
                     'url' => $file->url,
                 ])->values()->all(),
+                'rubric_names' => $deliverable->rubrics->pluck('name')->implode(', '),
             ])->values()->all(),
         ];
     }
 
     protected function deliverableResource(Deliverable $deliverable): array
     {
-        $deliverable->loadMissing('phase.period', 'files');
+        $deliverable->loadMissing('phase.period', 'files', 'rubrics');
 
         return [
             'id' => $deliverable->id,
@@ -98,6 +100,15 @@ trait PgApiResponseHelpers
                 'url' => $file->url,
             ])->values()->all(),
             'file_ids' => $deliverable->files->pluck('id')->values()->all(),
+            'rubrics' => $deliverable->rubrics->map(fn (Rubric $rubric) => [
+                'id' => $rubric->id,
+                'name' => $rubric->name,
+                'description' => $rubric->description,
+                'min_value' => $rubric->min_value,
+                'max_value' => $rubric->max_value,
+            ])->values()->all(),
+            'rubric_ids' => $deliverable->rubrics->pluck('id')->values()->all(),
+            'rubric_names' => $deliverable->rubrics->pluck('name')->implode(', '),
             'created_at' => optional($deliverable->created_at)->toDateTimeString(),
             'updated_at' => optional($deliverable->updated_at)->toDateTimeString(),
         ];

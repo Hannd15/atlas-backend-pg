@@ -5,7 +5,11 @@ use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\DeliverableFileController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\PhaseController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectGroupController;
 use App\Http\Controllers\ProjectPositionController;
+use App\Http\Controllers\RubricController;
+use App\Http\Controllers\ThematicLineController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserProjectEligibilityController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +33,22 @@ Route::prefix('pg')->group(function () {
     // Files routes
     Route::get('files/dropdown', [FileController::class, 'dropdown']);
     Route::apiResource('files', FileController::class);
+
+    // Thematic Lines routes
+    Route::get('thematic-lines/dropdown', [ThematicLineController::class, 'dropdown']);
+    Route::apiResource('thematic-lines', ThematicLineController::class);
+
+    // Rubrics routes
+    Route::get('rubrics/dropdown', [RubricController::class, 'dropdown']);
+    Route::apiResource('rubrics', RubricController::class);
+
+    // Projects routes
+    Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
+    Route::apiResource('projects', ProjectController::class);
+
+    // Project Groups routes
+    Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
+    Route::apiResource('project-groups', ProjectGroupController::class);
 
     // Deliverable Files routes (composite key)
     Route::get('deliverable-files', [DeliverableFileController::class, 'index']);

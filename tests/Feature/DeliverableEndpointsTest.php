@@ -7,6 +7,7 @@ use App\Models\AcademicPeriodState;
 use App\Models\Deliverable;
 use App\Models\File;
 use App\Models\Phase;
+use App\Models\Rubric;
 use App\Services\FileStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -55,11 +56,19 @@ class DeliverableEndpointsTest extends TestCase
         ]);
         $deliverable->files()->attach($file);
 
+        $rubric = Rubric::create([
+            'name' => 'Calidad del documento',
+            'description' => 'Evalúa claridad y estructura',
+            'min_value' => 0,
+            'max_value' => 5,
+        ]);
+        $deliverable->rubrics()->attach($rubric);
+
         $deliverable->refresh();
 
         $response = $this->getJson('/api/pg/deliverables');
 
-        $expected = Deliverable::with('phase.period', 'files')->orderByDesc('updated_at')->get()
+        $expected = Deliverable::with('phase.period', 'files', 'rubrics')->orderByDesc('updated_at')->get()
             ->map(fn (Deliverable $item) => $this->deliverableResource($item))
             ->values()
             ->all();
@@ -79,12 +88,20 @@ class DeliverableEndpointsTest extends TestCase
             'path' => 'pg/uploads/diagrama.pdf',
         ]);
 
+        $rubric = Rubric::create([
+            'name' => 'Impacto',
+            'description' => 'Evalúa impacto del proyecto',
+            'min_value' => 0,
+            'max_value' => 10,
+        ]);
+
         $payload = [
             'phase_id' => $phase->id,
             'name' => 'Entrega 1',
             'description' => 'Documento PDF',
             'due_date' => '2025-04-20 17:00:00',
             'file_ids' => [$existingFile->id],
+            'rubric_ids' => [$rubric->id],
         ];
 
         $response = $this->postJson('/api/pg/deliverables', $payload);
@@ -101,11 +118,29 @@ class DeliverableEndpointsTest extends TestCase
             'deliverable_id' => $deliverable->id,
             'file_id' => $existingFile->id,
         ]);
+        $this->assertDatabaseHas('rubric_deliverables', [
+            'deliverable_id' => $deliverable->id,
+            'rubric_id' => $rubric->id,
+        ]);
     }
 
     public function test_store_accepts_batch_payload(): void
     {
         [$phase] = $this->createPhaseWithPeriod();
+
+        $rubricOne = Rubric::create([
+            'name' => 'Claridad',
+            'description' => 'Evalúa claridad',
+            'min_value' => 0,
+            'max_value' => 5,
+        ]);
+
+        $rubricTwo = Rubric::create([
+            'name' => 'Investigación',
+            'description' => 'Evalúa investigación',
+            'min_value' => 0,
+            'max_value' => 5,
+        ]);
 
         $payload = [
             'deliverables' => [
@@ -114,19 +149,21 @@ class DeliverableEndpointsTest extends TestCase
                     'name' => 'Entrega 1',
                     'description' => 'Doc 1',
                     'due_date' => '2025-04-20 17:00:00',
+                    'rubric_ids' => [$rubricOne->id],
                 ],
                 [
                     'phase_id' => $phase->id,
                     'name' => 'Entrega 2',
                     'description' => 'Doc 2',
                     'due_date' => '2025-04-25 17:00:00',
+                    'rubric_ids' => [$rubricTwo->id],
                 ],
             ],
         ];
 
         $response = $this->postJson('/api/pg/deliverables', $payload);
 
-        $deliverables = Deliverable::with('phase.period', 'files')->orderBy('id')->get();
+        $deliverables = Deliverable::with('phase.period', 'files', 'rubrics')->orderBy('id')->get();
 
         $response->assertCreated()->assertExactJson($deliverables->map(fn (Deliverable $item) => $this->deliverableResource($item))->values()->all());
 
@@ -143,9 +180,17 @@ class DeliverableEndpointsTest extends TestCase
             'due_date' => '2025-04-15 18:00:00',
         ]);
 
+        $rubric = Rubric::create([
+            'name' => 'Calidad',
+            'description' => 'Evalúa calidad',
+            'min_value' => 0,
+            'max_value' => 5,
+        ]);
+        $deliverable->rubrics()->attach($rubric);
+
         $response = $this->getJson("/api/pg/deliverables/{$deliverable->id}");
 
-        $deliverable->load('phase.period', 'files');
+        $deliverable->load('phase.period', 'files', 'rubrics');
 
         $response->assertOk()->assertExactJson($this->deliverableResource($deliverable));
     }
@@ -160,6 +205,14 @@ class DeliverableEndpointsTest extends TestCase
             'description' => 'Documento PDF',
             'due_date' => '2025-04-15 18:00:00',
         ]);
+
+        $initialRubric = Rubric::create([
+            'name' => 'Rúbrica inicial',
+            'description' => 'Config inicial',
+            'min_value' => 0,
+            'max_value' => 5,
+        ]);
+        $deliverable->rubrics()->attach($initialRubric);
 
         $fileA = File::create([
             'name' => 'propuesta.pdf',
@@ -176,17 +229,31 @@ class DeliverableEndpointsTest extends TestCase
             'path' => 'pg/uploads/anexos.zip',
         ]);
 
+        $rubricA = Rubric::create([
+            'name' => 'Contenido',
+            'description' => 'Evalúa contenido',
+            'min_value' => 0,
+            'max_value' => 10,
+        ]);
+        $rubricB = Rubric::create([
+            'name' => 'Presentación',
+            'description' => 'Evalúa presentación',
+            'min_value' => 0,
+            'max_value' => 10,
+        ]);
+
         $payload = [
             'name' => 'Entrega Final',
             'phase_id' => $otherPhase->id,
             'description' => 'Documento final',
             'due_date' => '2025-05-01 12:00:00',
             'file_ids' => [$fileA->id, $fileB->id],
+            'rubric_ids' => [$rubricA->id, $rubricB->id],
         ];
 
         $response = $this->putJson("/api/pg/deliverables/{$deliverable->id}", $payload);
 
-        $deliverable->refresh()->load('phase.period', 'files');
+        $deliverable->refresh()->load('phase.period', 'files', 'rubrics');
 
         $response->assertOk()->assertExactJson($this->deliverableResource($deliverable));
 
@@ -194,6 +261,7 @@ class DeliverableEndpointsTest extends TestCase
         $this->assertSame('Documento final', $deliverable->description);
         $this->assertSame('2025-05-01 12:00:00', $deliverable->due_date?->toDateTimeString());
         $this->assertEqualsCanonicalizing([$fileA->id, $fileB->id], $deliverable->files->pluck('id')->all());
+        $this->assertEqualsCanonicalizing([$rubricA->id, $rubricB->id], $deliverable->rubrics->pluck('id')->all());
     }
 
     public function test_destroy_removes_deliverable(): void

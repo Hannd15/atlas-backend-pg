@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'atlas_auth' => [
+        'url' => env('ATLAS_AUTH_URL'),
+        'timeout' => env('ATLAS_AUTH_TIMEOUT', 10),
+    ],
+
 ];
