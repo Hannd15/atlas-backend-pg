@@ -27,7 +27,7 @@ class SubmissionFileSeeder extends Seeder
         while (count($records) < 10) {
             $submission = $faker->randomElement($submissionIds);
             $file = $faker->randomElement($fileIds);
-            $key = $submission . '-' . $file;
+            $key = $submission.'-'.$file;
 
             if (isset($used[$key])) {
                 continue;

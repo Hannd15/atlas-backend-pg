@@ -27,7 +27,7 @@ class RubricDeliverableSeeder extends Seeder
         while (count($records) < 10) {
             $deliverable = $faker->randomElement($deliverableIds);
             $rubric = $faker->randomElement($rubricIds);
-            $key = $rubric . '-' . $deliverable;
+            $key = $rubric.'-'.$deliverable;
 
             if (isset($used[$key])) {
                 continue;

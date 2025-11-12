@@ -23,7 +23,7 @@ class RepositoryProposalSeeder extends Seeder
         for ($i = 0; $i < 10; $i++) {
             $records[] = [
                 'proposal_id' => $faker->optional()->randomElement($proposalIds),
-                'title' => 'Repository Proposal ' . strtoupper($faker->unique()->bothify('??##')),
+                'title' => 'Repository Proposal '.strtoupper($faker->unique()->bothify('??##')),
                 'description' => $faker->paragraph(),
                 'created_at' => now(),
                 'updated_at' => now(),

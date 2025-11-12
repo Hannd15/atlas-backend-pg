@@ -19,7 +19,7 @@ class RubricSeeder extends Seeder
             $max = $faker->numberBetween($min + 10, $min + 40);
 
             $records[] = [
-                'name' => 'Rubric ' . strtoupper($faker->unique()->bothify('??-##')),
+                'name' => 'Rubric '.strtoupper($faker->unique()->bothify('??-##')),
                 'description' => $faker->sentence(8),
                 'min_value' => $min,
                 'max_value' => $max,

@@ -27,7 +27,7 @@ class DeliverableFileSeeder extends Seeder
         while (count($records) < 10) {
             $deliverable = $faker->randomElement($deliverableIds);
             $file = $faker->randomElement($fileIds);
-            $key = $deliverable . '-' . $file;
+            $key = $deliverable.'-'.$file;
 
             if (isset($used[$key])) {
                 continue;

@@ -27,7 +27,7 @@ class GroupMemberSeeder extends Seeder
         while (count($records) < 10) {
             $group = $faker->randomElement($groupIds);
             $user = $faker->randomElement($userIds);
-            $key = $group . '-' . $user;
+            $key = $group.'-'.$user;
 
             if (isset($used[$key])) {
                 continue;

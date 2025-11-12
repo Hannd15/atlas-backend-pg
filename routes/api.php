@@ -59,6 +59,7 @@ Route::prefix('pg')->group(function () {
     Route::get('deliverable-files', [DeliverableFileController::class, 'index']);
     Route::post('deliverable-files', [DeliverableFileController::class, 'store']);
     Route::get('deliverable-files/{deliverable_id}/{file_id}', [DeliverableFileController::class, 'show']);
+    Route::put('deliverable-files/{deliverable_id}/{file_id}', [DeliverableFileController::class, 'update']);
     Route::delete('deliverable-files/{deliverable_id}/{file_id}', [DeliverableFileController::class, 'destroy']);
 
     // Users routes

@@ -27,7 +27,7 @@ class MeetingAttendeeSeeder extends Seeder
         while (count($records) < 10) {
             $meeting = $faker->randomElement($meetingIds);
             $user = $faker->randomElement($userIds);
-            $key = $meeting . '-' . $user;
+            $key = $meeting.'-'.$user;
 
             if (isset($used[$key])) {
                 continue;

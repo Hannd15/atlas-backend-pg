@@ -16,9 +16,9 @@ class ThematicLineSeeder extends Seeder
 
         for ($i = 0; $i < 10; $i++) {
             $records[] = [
-                'name' => 'Thematic Line ' . $faker->unique()->word(),
+                'name' => 'Thematic Line '.$faker->unique()->word(),
                 'description' => $faker->sentence(),
-                'trl_expected' => strtoupper($faker->bothify('TRL-#')), 
+                'trl_expected' => strtoupper($faker->bothify('TRL-#')),
                 'abet_criteria' => $faker->sentence(8),
                 'min_score' => $faker->numberBetween(60, 90),
                 'created_at' => now(),

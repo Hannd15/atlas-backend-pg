@@ -27,7 +27,7 @@ class RepositoryProposalFileSeeder extends Seeder
         while (count($records) < 10) {
             $repo = $faker->randomElement($repositoryIds);
             $file = $faker->randomElement($fileIds);
-            $key = $repo . '-' . $file;
+            $key = $repo.'-'.$file;
             if (isset($used[$key])) {
                 continue;
             }
