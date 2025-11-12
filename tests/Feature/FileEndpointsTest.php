@@ -44,7 +44,7 @@ class FileEndpointsTest extends TestCase
             'deliverables.phase.period',
             'submissions',
             'repositoryProjects',
-            'repositoryProposals',
+            'proposals',
         ])->orderByDesc('updated_at')->get();
 
         $response->assertOk()->assertExactJson($files->map(fn (File $item) => $this->fileResource($item))->values()->all());
@@ -67,7 +67,7 @@ class FileEndpointsTest extends TestCase
             'deliverables.phase.period',
             'submissions',
             'repositoryProjects',
-            'repositoryProposals',
+            'proposals',
         ])->orderBy('id')->get();
 
         $response->assertCreated()->assertExactJson($files->map(fn (File $item) => $this->fileResource($item))->values()->all());
@@ -89,7 +89,7 @@ class FileEndpointsTest extends TestCase
             'deliverables.phase.period',
             'submissions',
             'repositoryProjects',
-            'repositoryProposals',
+            'proposals',
         ]);
 
         $response->assertOk()->assertExactJson($this->fileResource($file));
@@ -113,7 +113,7 @@ class FileEndpointsTest extends TestCase
             'deliverables.phase.period',
             'submissions',
             'repositoryProjects',
-            'repositoryProposals',
+            'proposals',
         ]);
 
         $response->assertOk()->assertExactJson($this->fileResource($file));

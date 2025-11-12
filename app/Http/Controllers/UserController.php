@@ -41,10 +41,15 @@ class UserController extends Controller
      */
     public function index(): \Illuminate\Http\JsonResponse
     {
-        $users = User::with('eligiblePositions')->orderBy('updated_at', 'desc')->get();
+        $users = User::with(['eligiblePositions', 'proposals', 'preferredProposals'])->orderBy('updated_at', 'desc')->get();
 
         $users->each(function ($user) {
             $user->project_position_eligibility_names = $user->eligiblePositions->pluck('name')->implode(', ');
+            $user->proposal_names = $user->proposals->pluck('title')
+                ->merge($user->preferredProposals->pluck('title'))
+                ->filter()
+                ->unique()
+                ->implode(', ');
         });
 
         return response()->json($users);
@@ -87,9 +92,14 @@ class UserController extends Controller
      */
     public function show(User $user): \Illuminate\Http\JsonResponse
     {
-        $user->load('eligiblePositions');
+        $user->load('eligiblePositions', 'proposals', 'preferredProposals');
 
         $user->project_position_eligibility_ids = $user->eligiblePositions->pluck('id');
+        $user->proposal_names = $user->proposals->pluck('title')
+            ->merge($user->preferredProposals->pluck('title'))
+            ->filter()
+            ->unique()
+            ->implode(', ');
 
         return response()->json($user);
     }
@@ -157,8 +167,13 @@ class UserController extends Controller
         }
 
         // Reload and enrich with eligibility data
-        $user->load('eligiblePositions');
+        $user->load('eligiblePositions', 'proposals', 'preferredProposals');
         $user->project_position_eligibility_ids = $user->eligiblePositions->pluck('id');
+        $user->proposal_names = $user->proposals->pluck('title')
+            ->merge($user->preferredProposals->pluck('title'))
+            ->filter()
+            ->unique()
+            ->implode(', ');
 
         return response()->json($user);
     }
@@ -189,11 +204,16 @@ class UserController extends Controller
      */
     public function dropdown(): \Illuminate\Http\JsonResponse
     {
-        $users = User::with('eligiblePositions')->orderBy('name')->get()->map(function ($user) {
+        $users = User::with(['eligiblePositions', 'proposals', 'preferredProposals'])->orderBy('name')->get()->map(function ($user) {
             return [
                 'value' => $user->id,
                 'label' => $user->name,
                 'project_position_eligibility_names' => $user->eligiblePositions->pluck('name')->implode(', '),
+                'proposal_names' => $user->proposals->pluck('title')
+                    ->merge($user->preferredProposals->pluck('title'))
+                    ->filter()
+                    ->unique()
+                    ->implode(', '),
             ];
         })->values();
 

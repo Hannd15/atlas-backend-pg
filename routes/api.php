@@ -8,6 +8,7 @@ use App\Http\Controllers\PhaseController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectGroupController;
 use App\Http\Controllers\ProjectPositionController;
+use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\RubricController;
 use App\Http\Controllers\ThematicLineController;
 use App\Http\Controllers\UserController;
@@ -41,6 +42,10 @@ Route::prefix('pg')->group(function () {
     // Rubrics routes
     Route::get('rubrics/dropdown', [RubricController::class, 'dropdown']);
     Route::apiResource('rubrics', RubricController::class);
+
+    Route::middleware('auth.atlas')->group(function () {
+        Route::apiResource('proposals', ProposalController::class);
+    });
 
     // Projects routes
     Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);

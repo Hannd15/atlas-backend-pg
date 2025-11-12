@@ -140,7 +140,7 @@ trait PgApiResponseHelpers
             'deliverables.phase.period',
             'submissions',
             'repositoryProjects',
-            'repositoryProposals'
+            'proposals'
         );
 
         return [
@@ -172,11 +172,11 @@ trait PgApiResponseHelpers
                 'title' => $project->title,
             ])->values()->all(),
             'repository_project_ids' => $file->repositoryProjects->pluck('id')->values()->all(),
-            'repository_proposals' => $file->repositoryProposals->map(fn ($proposal) => [
+            'proposals' => $file->proposals->map(fn ($proposal) => [
                 'id' => $proposal->id,
                 'title' => $proposal->title,
             ])->values()->all(),
-            'repository_proposal_ids' => $file->repositoryProposals->pluck('id')->values()->all(),
+            'proposal_ids' => $file->proposals->pluck('id')->values()->all(),
             'created_at' => optional($file->created_at)->toDateTimeString(),
             'updated_at' => optional($file->updated_at)->toDateTimeString(),
         ];
@@ -196,6 +196,11 @@ trait PgApiResponseHelpers
     {
         $users->each(function (User $user): void {
             $user->project_position_eligibility_names = $user->eligiblePositions->pluck('name')->implode(', ');
+            $user->proposal_names = $user->proposals->pluck('title')
+                ->merge($user->preferredProposals->pluck('title'))
+                ->filter()
+                ->unique()
+                ->implode(', ');
         });
 
         return $users->map(fn (User $user) => $user->toArray())->all();
@@ -203,8 +208,13 @@ trait PgApiResponseHelpers
 
     protected function userShowResource(User $user): array
     {
-        $user->loadMissing('eligiblePositions');
+        $user->loadMissing('eligiblePositions', 'proposals', 'preferredProposals');
         $user->project_position_eligibility_ids = $user->eligiblePositions->pluck('id');
+        $user->proposal_names = $user->proposals->pluck('title')
+            ->merge($user->preferredProposals->pluck('title'))
+            ->filter()
+            ->unique()
+            ->implode(', ');
 
         return $user->toArray();
     }
@@ -216,6 +226,11 @@ trait PgApiResponseHelpers
                 'value' => $user->id,
                 'label' => $user->name,
                 'project_position_eligibility_names' => $user->eligiblePositions->pluck('name')->implode(', '),
+                'proposal_names' => $user->proposals->pluck('title')
+                    ->merge($user->preferredProposals->pluck('title'))
+                    ->filter()
+                    ->unique()
+                    ->implode(', '),
             ];
         })->values()->all();
     }

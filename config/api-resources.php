@@ -77,31 +77,6 @@ return [
         ],
     ],
 
-    'proposals' => [
-        'model' => App\Models\Proposal::class,
-        'tag' => 'Proposals',
-        'rules' => [
-            'store' => [
-                'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'status' => 'nullable|string|max:50',
-                'type' => 'nullable|string|max:100',
-                'proposer_id' => 'required|exists:users,id',
-                'preferred_director_id' => 'nullable|exists:users,id',
-                'thematic_line_id' => 'nullable|exists:thematic_lines,id',
-            ],
-            'update' => [
-                'title' => 'sometimes|string|max:255',
-                'description' => 'nullable|string',
-                'status' => 'nullable|string|max:50',
-                'type' => 'nullable|string|max:100',
-                'proposer_id' => 'sometimes|exists:users,id',
-                'preferred_director_id' => 'nullable|exists:users,id',
-                'thematic_line_id' => 'nullable|exists:thematic_lines,id',
-            ],
-        ],
-    ],
-
     'projects' => [
         'model' => App\Models\Project::class,
         'tag' => 'Projects',
@@ -357,34 +332,60 @@ return [
         ],
     ],
 
-    'repository-proposals' => [
-        'model' => App\Models\RepositoryProposal::class,
-        'tag' => 'Repository Proposals',
+    'proposals' => [
+        'model' => App\Models\Proposal::class,
+        'tag' => 'Proposals',
         'rules' => [
             'store' => [
-                'proposal_id' => 'nullable|exists:proposals,id',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
+                'thematic_line_id' => 'required|exists:thematic_lines,id',
+                'proposer_id' => 'required|exists:users,id',
+                'preferred_director_id' => 'nullable|exists:users,id',
+                'proposal_status_id' => 'nullable|exists:proposal_statuses,id',
+                'file_ids' => 'nullable|array',
+                'file_ids.*' => 'exists:files,id',
             ],
             'update' => [
-                'proposal_id' => 'nullable|exists:proposals,id',
                 'title' => 'sometimes|string|max:255',
-                'description' => 'nullable|string',
+                'description' => 'sometimes|nullable|string',
+                'thematic_line_id' => 'sometimes|exists:thematic_lines,id',
+                'proposer_id' => 'sometimes|exists:users,id',
+                'preferred_director_id' => 'sometimes|nullable|exists:users,id',
+                'proposal_status_id' => 'sometimes|nullable|exists:proposal_statuses,id',
+                'file_ids' => 'nullable|array',
+                'file_ids.*' => 'exists:files,id',
             ],
         ],
     ],
 
-    'repository-proposal-files' => [
-        'model' => App\Models\RepositoryProposalFile::class,
-        'tag' => 'Repository Proposal Files',
-        'composite_key' => ['repository_proposal_id', 'file_id'],
-        'immutable' => ['repository_proposal_id', 'file_id'],
+    'proposal-types' => [
+        'model' => App\Models\ProposalType::class,
+        'tag' => 'Proposal Types',
         'rules' => [
             'store' => [
-                'repository_proposal_id' => 'required|exists:repository_proposals,id',
-                'file_id' => 'required|exists:files,id',
+                'code' => 'required|string|max:255|unique:proposal_types,code',
+                'name' => 'required|string|max:255',
             ],
-            'update' => [],
+            'update' => [
+                'code' => 'sometimes|string|max:255',
+                'name' => 'sometimes|string|max:255',
+            ],
+        ],
+    ],
+
+    'proposal-statuses' => [
+        'model' => App\Models\ProposalStatus::class,
+        'tag' => 'Proposal Statuses',
+        'rules' => [
+            'store' => [
+                'code' => 'required|string|max:255|unique:proposal_statuses,code',
+                'name' => 'required|string|max:255',
+            ],
+            'update' => [
+                'code' => 'sometimes|string|max:255',
+                'name' => 'sometimes|string|max:255',
+            ],
         ],
     ],
 

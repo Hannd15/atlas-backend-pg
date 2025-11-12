@@ -42,8 +42,8 @@ class File extends Model
         return $this->belongsToMany(RepositoryProject::class, 'repository_project_files', 'file_id', 'repository_item_id');
     }
 
-    public function repositoryProposals(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function proposals(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(RepositoryProposal::class, 'repository_proposal_files', 'file_id', 'repository_proposal_id');
+        return $this->belongsToMany(Proposal::class, 'proposal_files');
     }
 }

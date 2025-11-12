@@ -3,6 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\ProjectPosition;
+use App\Models\Proposal;
+use App\Models\ProposalStatus;
+use App\Models\ProposalType;
+use App\Models\ThematicLine;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -30,35 +34,79 @@ class UserEndpointsTest extends TestCase
 
     public function test_index_returns_expected_payload(): void
     {
+        $line = ThematicLine::create(['name' => 'Investigación']);
+        $teacherType = ProposalType::firstOrCreate(['code' => 'made_by_teacher'], ['name' => 'Made by teacher']);
+        $studentType = ProposalType::firstOrCreate(['code' => 'made_by_student'], ['name' => 'Made by student']);
+        $pendingStatus = ProposalStatus::firstOrCreate(['code' => 'pending'], ['name' => 'Pending']);
+
         $director = ProjectPosition::create(['name' => 'Director']);
         $jurado = ProjectPosition::create(['name' => 'Jurado']);
 
         $userA = User::factory()->create(['name' => 'Alice Example', 'email' => 'alice@example.com']);
         $userA->eligiblePositions()->sync([$director->id, $jurado->id]);
 
+        Proposal::create([
+            'title' => 'Propuesta Docente',
+            'description' => 'Contenido',
+            'proposal_type_id' => $teacherType->id,
+            'proposal_status_id' => $pendingStatus->id,
+            'proposer_id' => $userA->id,
+            'preferred_director_id' => null,
+            'thematic_line_id' => $line->id,
+        ]);
+
         Carbon::setTestNow('2025-03-02 16:00:00');
         $userB = User::factory()->create(['name' => 'Bob Example', 'email' => 'bob@example.com']);
         $userB->eligiblePositions()->sync([$jurado->id]);
 
+        Proposal::create([
+            'title' => 'Propuesta Estudiantil',
+            'description' => 'Descripción',
+            'proposal_type_id' => $studentType->id,
+            'proposal_status_id' => $pendingStatus->id,
+            'proposer_id' => $userB->id,
+            'preferred_director_id' => $userA->id,
+            'thematic_line_id' => $line->id,
+        ]);
+
         $response = $this->getJson('/api/pg/users');
 
-        $users = User::with('eligiblePositions')->orderBy('updated_at', 'desc')->get();
+        $users = User::with(['eligiblePositions', 'proposals', 'preferredProposals'])->orderBy('updated_at', 'desc')->get();
 
         $response->assertOk()->assertExactJson($this->userIndexArray($users));
+
+        $primary = $users->firstWhere('id', $userA->id);
+        $this->assertNotNull($primary);
+        $this->assertSame('Propuesta Docente, Propuesta Estudiantil', $primary->proposal_names);
     }
 
     public function test_show_returns_expected_resource(): void
     {
+        $line = ThematicLine::create(['name' => 'Gestión']);
+        $teacherType = ProposalType::firstOrCreate(['code' => 'made_by_teacher'], ['name' => 'Made by teacher']);
+        $approvedStatus = ProposalStatus::firstOrCreate(['code' => 'approved'], ['name' => 'Approved']);
+
         $director = ProjectPosition::create(['name' => 'Director']);
 
         $user = User::factory()->create(['name' => 'Alice Example', 'email' => 'alice@example.com']);
         $user->eligiblePositions()->sync([$director->id]);
 
+        Proposal::create([
+            'title' => 'Propuesta Principal',
+            'description' => 'Contenido',
+            'proposal_type_id' => $teacherType->id,
+            'proposal_status_id' => $approvedStatus->id,
+            'proposer_id' => $user->id,
+            'preferred_director_id' => null,
+            'thematic_line_id' => $line->id,
+        ]);
+
         $response = $this->getJson("/api/pg/users/{$user->id}");
 
-        $user->load('eligiblePositions');
+        $user->load('eligiblePositions', 'proposals', 'preferredProposals');
 
         $response->assertOk()->assertExactJson($this->userShowResource($user));
+        $this->assertSame('Propuesta Principal', $user->proposal_names);
     }
 
     public function test_update_updates_fields_and_syncs_positions(): void
@@ -97,10 +145,27 @@ class UserEndpointsTest extends TestCase
         $userB = User::factory()->create(['name' => 'Bob Example', 'email' => 'bob@example.com']);
         $userB->eligiblePositions()->sync([$jurado->id]);
 
-        $users = User::with('eligiblePositions')->orderBy('name')->get();
+        $line = ThematicLine::create(['name' => 'Formación']);
+        $teacherType = ProposalType::firstOrCreate(['code' => 'made_by_teacher'], ['name' => 'Made by teacher']);
+        $pendingStatus = ProposalStatus::firstOrCreate(['code' => 'pending'], ['name' => 'Pending']);
+
+        Proposal::create([
+            'title' => 'Propuesta Jurado',
+            'proposal_type_id' => $teacherType->id,
+            'proposal_status_id' => $pendingStatus->id,
+            'proposer_id' => $userB->id,
+            'preferred_director_id' => null,
+            'thematic_line_id' => $line->id,
+        ]);
+
+        $users = User::with(['eligiblePositions', 'proposals', 'preferredProposals'])->orderBy('name')->get();
 
         $this->getJson('/api/pg/users/dropdown')
             ->assertOk()
             ->assertExactJson($this->userDropdownArray($users));
+
+        $dropdownUser = collect($this->userDropdownArray($users))->firstWhere('value', $userB->id);
+        $this->assertNotNull($dropdownUser);
+        $this->assertSame('Propuesta Jurado', $dropdownUser['proposal_names']);
     }
 }

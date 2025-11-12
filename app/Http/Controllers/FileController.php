@@ -57,8 +57,8 @@ use Illuminate\Support\Arr;
  *     @OA\Property(property="submission_ids", type="array", @OA\Items(type="integer", example=12)),
  *     @OA\Property(property="repository_projects", type="array", @OA\Items(type="object", @OA\Property(property="id", type="integer", example=3), @OA\Property(property="title", type="string", example="Sistema de seguimiento"))),
  *     @OA\Property(property="repository_project_ids", type="array", @OA\Items(type="integer", example=3)),
- *     @OA\Property(property="repository_proposals", type="array", @OA\Items(type="object", @OA\Property(property="id", type="integer", example=8), @OA\Property(property="title", type="string", example="Plataforma de aprendizaje"))),
- *     @OA\Property(property="repository_proposal_ids", type="array", @OA\Items(type="integer", example=8)),
+ *     @OA\Property(property="proposals", type="array", @OA\Items(type="object", @OA\Property(property="id", type="integer", example=8), @OA\Property(property="title", type="string", example="Plataforma de aprendizaje"))),
+ *     @OA\Property(property="proposal_ids", type="array", @OA\Items(type="integer", example=8)),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -93,7 +93,7 @@ class FileController extends Controller
             'deliverables.phase.period',
             'submissions',
             'repositoryProjects',
-            'repositoryProposals',
+            'proposals',
         ])->orderByDesc('updated_at')->get();
 
         return response()->json($files->map(fn (File $file) => $this->transformFile($file)));
@@ -125,7 +125,7 @@ class FileController extends Controller
      *                 @OA\Property(property="deliverable_ids", type="array", @OA\Items(type="integer", example=27)),
      *                 @OA\Property(property="submission_ids", type="array", @OA\Items(type="integer", example=12)),
      *                 @OA\Property(property="repository_project_ids", type="array", @OA\Items(type="integer", example=4)),
-     *                 @OA\Property(property="repository_proposal_ids", type="array", @OA\Items(type="integer", example=8))
+     *                 @OA\Property(property="proposal_ids", type="array", @OA\Items(type="integer", example=8))
      *             )
      *         )
      *     ),
@@ -158,8 +158,8 @@ class FileController extends Controller
             'submission_ids.*' => ['exists:submissions,id'],
             'repository_project_ids' => ['nullable', 'array'],
             'repository_project_ids.*' => ['exists:repository_projects,id'],
-            'repository_proposal_ids' => ['nullable', 'array'],
-            'repository_proposal_ids.*' => ['exists:repository_proposals,id'],
+            'proposal_ids' => ['nullable', 'array'],
+            'proposal_ids.*' => ['exists:proposals,id'],
         ]);
 
         $storedFiles = $this->fileStorageService->storeUploadedFiles($request->file('files'));
@@ -167,9 +167,9 @@ class FileController extends Controller
         $deliverableIds = collect($validated['deliverable_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
         $submissionIds = collect($validated['submission_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
         $repositoryProjectIds = collect($validated['repository_project_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
-        $repositoryProposalIds = collect($validated['repository_proposal_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
+        $proposalIds = collect($validated['proposal_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
 
-        $storedFiles->each(function (File $file) use ($deliverableIds, $submissionIds, $repositoryProjectIds, $repositoryProposalIds): void {
+        $storedFiles->each(function (File $file) use ($deliverableIds, $submissionIds, $repositoryProjectIds, $proposalIds): void {
             if (! empty($deliverableIds)) {
                 $file->deliverables()->syncWithoutDetaching($deliverableIds);
             }
@@ -182,8 +182,8 @@ class FileController extends Controller
                 $file->repositoryProjects()->syncWithoutDetaching($repositoryProjectIds);
             }
 
-            if (! empty($repositoryProposalIds)) {
-                $file->repositoryProposals()->syncWithoutDetaching($repositoryProposalIds);
+            if (! empty($proposalIds)) {
+                $file->proposals()->syncWithoutDetaching($proposalIds);
             }
         });
 
@@ -218,7 +218,7 @@ class FileController extends Controller
             'deliverables.phase.period',
             'submissions',
             'repositoryProjects',
-            'repositoryProposals',
+            'proposals',
         ]);
 
         return response()->json($this->transformFile($file));
@@ -249,7 +249,7 @@ class FileController extends Controller
      *             @OA\Property(property="deliverable_ids", type="array", @OA\Items(type="integer")),
      *             @OA\Property(property="submission_ids", type="array", @OA\Items(type="integer")),
      *             @OA\Property(property="repository_project_ids", type="array", @OA\Items(type="integer")),
-     *             @OA\Property(property="repository_proposal_ids", type="array", @OA\Items(type="integer"))
+     *             @OA\Property(property="proposal_ids", type="array", @OA\Items(type="integer"))
      *         )
      *     ),
      *
@@ -272,8 +272,8 @@ class FileController extends Controller
             'submission_ids.*' => ['exists:submissions,id'],
             'repository_project_ids' => ['nullable', 'array'],
             'repository_project_ids.*' => ['exists:repository_projects,id'],
-            'repository_proposal_ids' => ['nullable', 'array'],
-            'repository_proposal_ids.*' => ['exists:repository_proposals,id'],
+            'proposal_ids' => ['nullable', 'array'],
+            'proposal_ids.*' => ['exists:proposals,id'],
         ]);
 
         $file->update(Arr::only($validated, ['name', 'extension']));
@@ -284,7 +284,7 @@ class FileController extends Controller
             'deliverables.phase.period',
             'submissions',
             'repositoryProjects',
-            'repositoryProposals',
+            'proposals',
         ]);
 
         return response()->json($this->transformFile($file));
@@ -372,11 +372,11 @@ class FileController extends Controller
                 'title' => $repositoryProject->title,
             ])->values(),
             'repository_project_ids' => $file->repositoryProjects->pluck('id')->values(),
-            'repository_proposals' => $file->repositoryProposals->map(fn ($repositoryProposal) => [
-                'id' => $repositoryProposal->id,
-                'title' => $repositoryProposal->title,
+            'proposals' => $file->proposals->map(fn ($proposal) => [
+                'id' => $proposal->id,
+                'title' => $proposal->title,
             ])->values(),
-            'repository_proposal_ids' => $file->repositoryProposals->pluck('id')->values(),
+            'proposal_ids' => $file->proposals->pluck('id')->values(),
             'created_at' => optional($file->created_at)->toDateTimeString(),
             'updated_at' => optional($file->updated_at)->toDateTimeString(),
         ];
@@ -396,8 +396,8 @@ class FileController extends Controller
             $file->repositoryProjects()->sync(collect($payload['repository_project_ids'])->map(fn ($id) => (int) $id)->all());
         }
 
-        if (array_key_exists('repository_proposal_ids', $payload)) {
-            $file->repositoryProposals()->sync(collect($payload['repository_proposal_ids'])->map(fn ($id) => (int) $id)->all());
+        if (array_key_exists('proposal_ids', $payload)) {
+            $file->proposals()->sync(collect($payload['proposal_ids'])->map(fn ($id) => (int) $id)->all());
         }
     }
 }
