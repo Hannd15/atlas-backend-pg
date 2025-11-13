@@ -25,6 +25,11 @@ class RepositoryProjectSeeder extends Seeder
                 'project_id' => $faker->optional()->randomElement($projectIds),
                 'title' => 'Repository Project '.strtoupper($faker->unique()->bothify('##??')),
                 'description' => $faker->paragraph(),
+                'publish_date' => $faker->dateTimeBetween('-2 years', 'now'),
+                'keywords_es' => implode(', ', $faker->words(3)),
+                'keywords_en' => implode(', ', $faker->words(3)),
+                'abstract_es' => $faker->paragraph(3),
+                'abstract_en' => $faker->paragraph(3),
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

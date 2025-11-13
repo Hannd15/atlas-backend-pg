@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\GroupMember;
 use App\Models\Project;
 use App\Models\ProjectGroup;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,13 +20,26 @@ class ProjectEndpointsTest extends TestCase
             'status' => 'active',
         ]);
 
-        ProjectGroup::create([
+        $groupA = ProjectGroup::create([
             'project_id' => $project->id,
             'name' => 'Grupo A',
         ]);
-        ProjectGroup::create([
+        $groupB = ProjectGroup::create([
             'project_id' => $project->id,
             'name' => 'Grupo B',
+        ]);
+
+        $userOne = User::factory()->create(['name' => 'Ada Lovelace']);
+        $userTwo = User::factory()->create(['name' => 'Grace Hopper']);
+
+        GroupMember::create([
+            'group_id' => $groupA->id,
+            'user_id' => $userOne->id,
+        ]);
+
+        GroupMember::create([
+            'group_id' => $groupB->id,
+            'user_id' => $userTwo->id,
         ]);
 
         $response = $this->getJson('/api/pg/projects');
@@ -64,9 +79,16 @@ class ProjectEndpointsTest extends TestCase
             'status' => 'active',
         ]);
 
-        ProjectGroup::create([
+        $group = ProjectGroup::create([
             'project_id' => $project->id,
             'name' => 'Equipo 1',
+        ]);
+
+        $user = User::factory()->create(['name' => 'Linus Torvalds']);
+
+        GroupMember::create([
+            'group_id' => $group->id,
+            'user_id' => $user->id,
         ]);
 
         $response = $this->getJson("/api/pg/projects/{$project->id}");
@@ -136,9 +158,21 @@ class ProjectEndpointsTest extends TestCase
             'status' => $project->status,
             'proposal_id' => $project->proposal_id,
             'group_ids' => $project->groups->pluck('id')->values()->all(),
-            'group_names' => $project->groups->pluck('name')->implode(', '),
+            'member_names' => $this->memberNames($project),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
         ];
+    }
+
+    private function memberNames(Project $project): array
+    {
+        $project->loadMissing('groups.members.user');
+
+        return $project->groups
+            ->flatMap(fn ($group) => $group->members->map(fn ($member) => $member->user?->name))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 }

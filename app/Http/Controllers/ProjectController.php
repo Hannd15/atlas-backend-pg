@@ -64,7 +64,7 @@ class ProjectController extends Controller
             'status' => $project->status,
             'proposal_id' => $project->proposal_id,
             'group_ids' => $project->groups->pluck('id')->values()->all(),
-            'group_names' => $project->groups->pluck('name')->implode(', '),
+            'member_names' => $this->memberNames($project),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
         ];
@@ -78,9 +78,21 @@ class ProjectController extends Controller
             'status' => $project->status,
             'proposal_id' => $project->proposal_id,
             'group_ids' => $project->groups->pluck('id')->values()->all(),
-            'group_names' => $project->groups->pluck('name')->implode(', '),
+            'member_names' => $this->memberNames($project),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
         ];
+    }
+
+    protected function memberNames(Project $project): array
+    {
+        return $project->groups
+            ->flatMap(function ($group) {
+                return $group->members->map(fn ($member) => $member->user?->name);
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,7 +15,19 @@ class RepositoryProject extends Model
         'title',
         'description',
         'url',
+        'publish_date',
+        'keywords_es',
+        'keywords_en',
+        'abstract_es',
+        'abstract_en',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'publish_date' => 'date',
+        ];
+    }
 
     public function project()
     {
@@ -24,5 +37,15 @@ class RepositoryProject extends Model
     public function files()
     {
         return $this->belongsToMany(File::class, 'repository_project_files', 'repository_item_id', 'file_id');
+    }
+
+    public function scopeWithDetails(Builder $query): Builder
+    {
+        return $query->with([
+            'files',
+            'project.groups.members.user',
+            'project.staff.user',
+            'project.proposal.thematicLine',
+        ]);
     }
 }

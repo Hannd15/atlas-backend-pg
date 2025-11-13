@@ -9,6 +9,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectGroupController;
 use App\Http\Controllers\ProjectPositionController;
 use App\Http\Controllers\ProposalController;
+use App\Http\Controllers\RepositoryProjectController;
 use App\Http\Controllers\RubricController;
 use App\Http\Controllers\ThematicLineController;
 use App\Http\Controllers\UserController;
@@ -50,6 +51,10 @@ Route::prefix('pg')->group(function () {
     // Projects routes
     Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
     Route::apiResource('projects', ProjectController::class);
+
+    // Repository Projects routes
+    Route::get('repository-projects', [RepositoryProjectController::class, 'index']);
+    Route::get('repository-projects/{repositoryProject}', [RepositoryProjectController::class, 'show']);
 
     // Project Groups routes
     Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
