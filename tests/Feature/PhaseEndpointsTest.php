@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicPeriod;
-use App\Models\AcademicPeriodState;
 use App\Models\Phase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -99,10 +98,6 @@ class PhaseEndpointsTest extends TestCase
             'name' => '2025-2',
             'start_date' => '2025-09-01',
             'end_date' => '2026-01-31',
-            'state_id' => AcademicPeriodState::create([
-                'name' => 'Next',
-                'description' => 'Next period',
-            ])->id,
         ]);
 
         $payload = [
@@ -166,16 +161,10 @@ class PhaseEndpointsTest extends TestCase
 
     private function createPeriod(): AcademicPeriod
     {
-        $state = AcademicPeriodState::first() ?? AcademicPeriodState::create([
-            'name' => 'Active',
-            'description' => 'State',
-        ]);
-
         return AcademicPeriod::create([
             'name' => '2025-1',
             'start_date' => '2025-01-01',
             'end_date' => '2025-06-30',
-            'state_id' => $state->id,
         ]);
     }
 }

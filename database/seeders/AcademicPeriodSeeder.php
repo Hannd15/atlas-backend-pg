@@ -16,7 +16,7 @@ class AcademicPeriodSeeder extends Seeder
         $faker = fake();
         $periods = [];
 
-        $defaultState = AcademicPeriodState::query()->first();
+        $defaultStateId = AcademicPeriodState::activeId();
 
         for ($i = 0; $i < 10; $i++) {
             $start = $faker->dateTimeBetween('-2 years', '+1 year');
@@ -26,7 +26,7 @@ class AcademicPeriodSeeder extends Seeder
                 'name' => 'Academic Period '.Str::upper($faker->unique()->bothify('??-####')),
                 'start_date' => $start->format('Y-m-d'),
                 'end_date' => $end->format('Y-m-d'),
-                'state_id' => AcademicPeriodState::inRandomOrder()->value('id') ?? $defaultState?->id,
+                'state_id' => $defaultStateId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

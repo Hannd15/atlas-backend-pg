@@ -31,16 +31,10 @@ class AcademicPeriodEndpointsTest extends TestCase
 
     public function test_index_returns_transformed_academic_periods(): void
     {
-        $state = AcademicPeriodState::create([
-            'name' => 'Active',
-            'description' => 'Currently running.',
-        ]);
-
         $period = AcademicPeriod::create([
             'name' => '2025-1',
             'start_date' => '2025-01-15',
             'end_date' => '2025-06-30',
-            'state_id' => $state->id,
         ]);
 
         $phaseOne = $period->phases()->create([
@@ -74,47 +68,43 @@ class AcademicPeriodEndpointsTest extends TestCase
 
         $response->assertOk()
             ->assertExactJson([
-                $this->academicPeriodResource($period->fresh()),
+                [
+                    'id' => $period->id,
+                    'name' => $period->name,
+                    'state_name' => AcademicPeriodState::NAME_ACTIVO,
+                ],
             ]);
     }
 
     public function test_store_creates_period_with_default_phases(): void
     {
-        AcademicPeriodState::create([
-            'name' => 'Draft',
-            'description' => 'Pending start.',
-        ]);
-
         $payload = [
-            'name' => '2026-1',
-            'start_date' => '2026-01-10',
-            'end_date' => '2026-06-25',
+            'name' => '2026-2',
+            'start_date' => '2026-07-01',
+            'end_date' => '2026-12-15',
         ];
+
+        Carbon::setTestNow('2025-07-01 12:00:00');
 
         $response = $this->postJson('/api/pg/academic-periods', $payload);
 
-        $period = AcademicPeriod::first();
+        $period = AcademicPeriod::where('name', '2026-2')->firstOrFail();
 
         $response->assertCreated()
             ->assertExactJson($this->academicPeriodResource($period));
 
+        $period->refresh();
+
         $this->assertCount(2, $period->phases);
-        $this->assertEquals('Proyecto de grado I', $period->phases[0]->name);
-        $this->assertEquals('Proyecto de grado II', $period->phases[1]->name);
+        $this->assertSame(AcademicPeriodState::NAME_ACTIVO, $period->state->name);
     }
 
     public function test_show_returns_transformed_period(): void
     {
-        $state = AcademicPeriodState::create([
-            'name' => 'Active',
-            'description' => 'Currently running.',
-        ]);
-
         $period = AcademicPeriod::create([
             'name' => '2025-2',
             'start_date' => '2025-07-01',
             'end_date' => '2025-12-15',
-            'state_id' => $state->id,
         ]);
 
         $period->phases()->create([
@@ -136,21 +126,10 @@ class AcademicPeriodEndpointsTest extends TestCase
 
     public function test_update_applies_payload_to_period_and_phases(): void
     {
-        $draft = AcademicPeriodState::create([
-            'name' => 'Draft',
-            'description' => 'Pending start.',
-        ]);
-
-        $active = AcademicPeriodState::create([
-            'name' => 'Active',
-            'description' => 'Running.',
-        ]);
-
         $period = AcademicPeriod::create([
             'name' => '2026-1',
             'start_date' => '2026-01-01',
             'end_date' => '2026-06-30',
-            'state_id' => $draft->id,
         ]);
 
         [$phaseOne, $phaseTwo] = [
@@ -166,63 +145,32 @@ class AcademicPeriodEndpointsTest extends TestCase
             ]),
         ];
 
-        $file = File::create([
-            'name' => 'entrega.pdf',
-            'extension' => 'pdf',
-            'url' => 'https://storage.test/files/entrega.pdf',
-            'disk' => 'public',
-            'path' => 'pg/uploads/entrega.pdf',
-        ]);
-
         $payload = [
             'name' => '2026-2',
             'start_date' => '2026-07-01',
             'end_date' => '2026-12-15',
-            'state_id' => $active->id,
-            'phases' => [
-                'phase_one' => [
-                    'name' => 'First Phase',
-                    'deliverables' => [
-                        [
-                            'name' => 'Entrega Final',
-                            'description' => 'Documento final',
-                            'due_date' => '2026-09-30 23:59:00',
-                            'file_ids' => [$file->id],
-                        ],
-                    ],
-                ],
-                'phase_two' => [
-                    'name' => 'Second Phase',
-                    'deliverables' => [],
-                ],
-            ],
         ];
 
         $response = $this->putJson("/api/pg/academic-periods/{$period->id}", $payload);
 
         $period->refresh();
+        $phaseOne->refresh();
+        $phaseTwo->refresh();
 
         $response->assertOk()
             ->assertExactJson($this->academicPeriodResource($period));
 
         $this->assertEquals('2026-2', $period->name);
-        $this->assertEquals('First Phase', $phaseOne->fresh()->name);
-        $this->assertEquals('Second Phase', $phaseTwo->fresh()->name);
-        $this->assertCount(1, $phaseOne->deliverables);
+        $this->assertEquals('Phase A', $phaseOne->name);
+        $this->assertEquals('Phase B', $phaseTwo->name);
     }
 
     public function test_destroy_removes_period(): void
     {
-        $state = AcademicPeriodState::create([
-            'name' => 'Draft',
-            'description' => 'Pending',
-        ]);
-
         $period = AcademicPeriod::create([
             'name' => '2027-1',
             'start_date' => '2027-01-01',
             'end_date' => '2027-06-30',
-            'state_id' => $state->id,
         ]);
 
         $period->phases()->create([
@@ -245,22 +193,15 @@ class AcademicPeriodEndpointsTest extends TestCase
 
     public function test_dropdown_returns_value_label_pairs(): void
     {
-        $state = AcademicPeriodState::create([
-            'name' => 'Draft',
-            'description' => 'Pending',
-        ]);
-
         $first = AcademicPeriod::create([
             'name' => '2028-1',
             'start_date' => '2028-01-01',
             'end_date' => '2028-06-30',
-            'state_id' => $state->id,
         ]);
         $second = AcademicPeriod::create([
             'name' => '2029-1',
             'start_date' => '2029-01-01',
             'end_date' => '2029-06-30',
-            'state_id' => $state->id,
         ]);
 
         $this->getJson('/api/pg/academic-periods/dropdown')
@@ -268,6 +209,19 @@ class AcademicPeriodEndpointsTest extends TestCase
             ->assertExactJson([
                 ['value' => $second->id, 'label' => '2029-1'],
                 ['value' => $first->id, 'label' => '2028-1'],
+            ]);
+    }
+
+    public function test_state_dropdown_returns_value_label_pairs(): void
+    {
+        $active = AcademicPeriodState::ensureActive();
+        $finished = AcademicPeriodState::ensureFinished();
+
+        $this->getJson('/api/pg/academic-period-states/dropdown')
+            ->assertOk()
+            ->assertExactJson([
+                ['value' => $active->id, 'label' => $active->name],
+                ['value' => $finished->id, 'label' => $finished->name],
             ]);
     }
 }

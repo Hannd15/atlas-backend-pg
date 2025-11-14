@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicPeriod;
-use App\Models\AcademicPeriodState;
 use App\Models\Deliverable;
 use App\Models\DeliverableFile;
 use App\Models\File;
@@ -162,16 +161,10 @@ class DeliverableFileEndpointsTest extends TestCase
      */
     private function createDeliverableAndFile(): array
     {
-        $state = AcademicPeriodState::first() ?? AcademicPeriodState::create([
-            'name' => 'Active',
-            'description' => 'State',
-        ]);
-
         $period = AcademicPeriod::create([
             'name' => '2025-1',
             'start_date' => '2025-01-01',
             'end_date' => '2025-06-30',
-            'state_id' => $state->id,
         ]);
 
         $phase = $period->phases()->create([

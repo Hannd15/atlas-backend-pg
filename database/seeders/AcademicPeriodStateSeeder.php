@@ -10,9 +10,8 @@ class AcademicPeriodStateSeeder extends Seeder
     public function run(): void
     {
         $states = [
-            ['name' => 'Draft', 'description' => 'Academic period is being prepared.'],
-            ['name' => 'Active', 'description' => 'Academic period is currently running.'],
-            ['name' => 'Closed', 'description' => 'Academic period has ended.'],
+            ['name' => 'Activo', 'description' => 'El periodo académico está en curso.'],
+            ['name' => 'Terminado', 'description' => 'El periodo académico ha finalizado.'],
         ];
 
         foreach ($states as $state) {

@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('pg')->group(function () {
     // Academic Periods routes
+    Route::get('academic-period-states/dropdown', [AcademicPeriodController::class, 'stateDropdown']);
     Route::get('academic-periods/dropdown', [AcademicPeriodController::class, 'dropdown']);
     Route::apiResource('academic-periods', AcademicPeriodController::class);
 

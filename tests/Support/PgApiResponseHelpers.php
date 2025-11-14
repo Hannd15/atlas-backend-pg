@@ -16,10 +16,6 @@ trait PgApiResponseHelpers
 {
     protected function academicPeriodResource(AcademicPeriod $period): array
     {
-        $period->loadMissing('state', 'phases.deliverables.files');
-
-        [$phaseOne, $phaseTwo] = $this->orderedPhases($period);
-
         return [
             'id' => $period->id,
             'name' => $period->name,
@@ -30,49 +26,8 @@ trait PgApiResponseHelpers
                 'name' => $period->state->name,
                 'description' => $period->state->description,
             ] : null,
-            'phases' => [
-                'phase_one' => $this->phaseResource($phaseOne),
-                'phase_two' => $this->phaseResource($phaseTwo),
-            ],
             'created_at' => optional($period->created_at)->toDateTimeString(),
             'updated_at' => optional($period->updated_at)->toDateTimeString(),
-        ];
-    }
-
-    /**
-     * @return array{0: Phase, 1: Phase}
-     */
-    protected function orderedPhases(AcademicPeriod $period): array
-    {
-        $period->loadMissing('phases.deliverables.files');
-
-        $phases = $period->phases->sortBy('id')->values();
-
-        return [$phases->get(0), $phases->get(1)];
-    }
-
-    protected function phaseResource(Phase $phase): array
-    {
-        $phase->loadMissing('deliverables.files', 'deliverables.rubrics');
-
-        return [
-            'id' => $phase->id,
-            'name' => $phase->name,
-            'start_date' => optional($phase->start_date)->toDateString(),
-            'end_date' => optional($phase->end_date)->toDateString(),
-            'deliverables' => $phase->deliverables->map(fn (Deliverable $deliverable) => [
-                'id' => $deliverable->id,
-                'name' => $deliverable->name,
-                'description' => $deliverable->description,
-                'due_date' => optional($deliverable->due_date)->toDateTimeString(),
-                'files' => $deliverable->files->map(fn (File $file) => [
-                    'id' => $file->id,
-                    'name' => $file->name,
-                    'extension' => $file->extension,
-                    'url' => $file->url,
-                ])->values()->all(),
-                'rubric_names' => $deliverable->rubrics->pluck('name')->implode(', '),
-            ])->values()->all(),
         ];
     }
 
