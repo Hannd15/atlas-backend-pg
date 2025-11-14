@@ -13,6 +13,7 @@ use App\Models\RepositoryProject;
 use App\Models\ThematicLine;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -71,9 +72,12 @@ class RepositoryProjectEndpointsTest extends TestCase
             'keywords_en' => 'energy, renewable',
             'abstract_es' => 'Resumen en español.',
             'abstract_en' => 'English abstract.',
+            'file_ids' => [$existingFile->id],
         ];
 
-        $response = $this->post('/api/pg/repository-projects', $payload, [
+        $uploadedFile = UploadedFile::fake()->create('nuevo-informe.pdf', 120, 'application/pdf');
+
+        $response = $this->post('/api/pg/repository-projects', array_merge($payload, ['files' => [$uploadedFile]]), [
             'Accept' => 'application/json',
         ]);
 
@@ -91,6 +95,14 @@ class RepositoryProjectEndpointsTest extends TestCase
             'url' => 'https://example.com/repositorio-energia',
             'publish_date' => '2025-06-01 00:00:00',
         ]);
+
+        $fileIds = $repositoryProject->files->pluck('id');
+        $this->assertCount(2, $fileIds);
+        $this->assertTrue($fileIds->contains($existingFile->id));
+
+        $newFile = File::where('id', '!=', $existingFile->id)->latest('id')->first();
+        $this->assertNotNull($newFile);
+        $this->assertTrue(Storage::disk('public')->exists($newFile->path));
     }
 
     public function test_update_modifies_repository_project_metadata_and_files(): void
@@ -100,6 +112,16 @@ class RepositoryProjectEndpointsTest extends TestCase
 
         [$repositoryProject] = $this->createRepositoryProjectGraph();
         $originalProjectId = $repositoryProject->project_id;
+
+        $existingReplacementFile = File::create([
+            'name' => 'resumen.pdf',
+            'extension' => 'pdf',
+            'url' => 'https://files.test/resumen.pdf',
+            'disk' => 'public',
+            'path' => 'repository/resumen.pdf',
+        ]);
+
+        $uploadedFile = UploadedFile::fake()->create('actualizado.pdf', 200, 'application/pdf');
 
         $response = $this->post("/api/pg/repository-projects/{$repositoryProject->id}", [
             '_method' => 'PUT',
@@ -111,6 +133,8 @@ class RepositoryProjectEndpointsTest extends TestCase
             'keywords_en' => 'research, updated',
             'abstract_es' => 'Resumen actualizado del proyecto.',
             'abstract_en' => 'Updated project abstract.',
+            'file_ids' => [$existingReplacementFile->id],
+            'files' => [$uploadedFile],
         ], [
             'Accept' => 'application/json',
         ]);
@@ -123,6 +147,14 @@ class RepositoryProjectEndpointsTest extends TestCase
         $this->assertSame('Repositorio actualizado para publicación.', $repositoryProject->description);
         $this->assertSame('https://example.com/repositorio-actualizado', $repositoryProject->url);
         $this->assertSame('2025-06-15', optional($repositoryProject->publish_date)->toDateString());
+
+        $fileIds = $repositoryProject->files->pluck('id');
+        $this->assertCount(2, $fileIds);
+        $this->assertTrue($fileIds->contains($existingReplacementFile->id));
+
+        $newFile = File::whereNotIn('id', [$existingReplacementFile->id])->latest('id')->first();
+        $this->assertNotNull($newFile);
+        $this->assertTrue(Storage::disk('public')->exists($newFile->path));
 
         $this->assertEquals($originalProjectId, $repositoryProject->project_id);
     }

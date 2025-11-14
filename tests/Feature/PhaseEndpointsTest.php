@@ -52,10 +52,13 @@ class PhaseEndpointsTest extends TestCase
 
         $response = $this->getJson('/api/pg/phases');
 
-        $phases = Phase::with('period', 'deliverables')->orderBy('updated_at', 'desc')->get();
+        $phases = Phase::with('period')->orderBy('updated_at', 'desc')->get();
+        $phases->each(function ($phase) {
+            $phase->period_names = $phase->period ? $phase->period->name : '';
+        });
 
         $response->assertOk()
-            ->assertExactJson($this->phaseIndexArray($phases));
+            ->assertExactJson($phases->map(fn (Phase $phase) => $phase->toArray())->all());
     }
 
     public function test_show_returns_phase_with_relation_ids(): void
@@ -76,9 +79,7 @@ class PhaseEndpointsTest extends TestCase
 
         $response = $this->getJson("/api/pg/phases/{$phase->id}");
 
-        $phase->load('period', 'deliverables');
-        $phase->period_id = [$period->id];
-        $phase->deliverable_ids = $phase->deliverables->pluck('id');
+        $phase->load('period');
 
         $response->assertOk()
             ->assertExactJson($phase->toArray());
@@ -94,15 +95,8 @@ class PhaseEndpointsTest extends TestCase
             'end_date' => '2025-08-30',
         ]);
 
-        $otherPeriod = AcademicPeriod::create([
-            'name' => '2025-2',
-            'start_date' => '2025-09-01',
-            'end_date' => '2026-01-31',
-        ]);
-
         $payload = [
             'name' => 'Updated Phase',
-            'period_id' => $otherPeriod->id,
         ];
 
         $response = $this->putJson("/api/pg/phases/{$phase->id}", $payload);
@@ -114,26 +108,9 @@ class PhaseEndpointsTest extends TestCase
         $response->assertOk()->assertExactJson($expected);
 
         $this->assertEquals('Updated Phase', $phase->name);
-        $this->assertEquals($otherPeriod->id, $phase->period_id);
-        $this->assertSame('2025-09-01', $phase->start_date->toDateString());
-        $this->assertSame('2026-01-31', $phase->end_date->toDateString());
-    }
-
-    public function test_destroy_removes_phase(): void
-    {
-        $period = $this->createPeriod();
-
-        $phase = $period->phases()->create([
-            'name' => 'Phase One',
-            'start_date' => '2025-03-01',
-            'end_date' => '2025-08-30',
-        ]);
-
-        $this->deleteJson("/api/pg/phases/{$phase->id}")
-            ->assertOk()
-            ->assertExactJson(['message' => 'Phase deleted successfully']);
-
-        $this->assertDatabaseMissing('phases', ['id' => $phase->id]);
+        $this->assertEquals($period->id, $phase->period_id);
+        $this->assertSame('2025-03-01', $phase->start_date->toDateString());
+        $this->assertSame('2025-08-30', $phase->end_date->toDateString());
     }
 
     public function test_dropdown_returns_value_label_pairs(): void

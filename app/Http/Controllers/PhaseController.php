@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdatePhaseRequest;
 use App\Models\Phase;
-use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 
 /**
  * @OA\Tag(
@@ -109,11 +108,13 @@ class PhaseController extends Controller
      *
      *     @OA\RequestBody(
      *         required=true,
-     *         description="Phase update payload",
+     *         description="Phase update payload. When updating dates, they must be within the academic period and cannot overlap with other phases.",
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="name", type="string", example="Proyecto de grado I")
+     *             @OA\Property(property="name", type="string", example="Proyecto de grado I"),
+     *             @OA\Property(property="start_date", type="string", format="date", example="2025-01-15"),
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-06-30")
      *         )
      *     ),
      *
@@ -128,20 +129,18 @@ class PhaseController extends Controller
      *         response=404,
      *         description="Phase not found"
      *     ),
-     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error"
      *     )
      * )
      */
-    public function update(Request $request, Phase $phase): \Illuminate\Http\JsonResponse
+    public function update(UpdatePhaseRequest $request, Phase $phase): \Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         $phase->update($validated);
+        $phase->load('period');
 
         return response()->json($phase);
     }
@@ -168,7 +167,6 @@ class PhaseController extends Controller
      *     )
      * )
      */
-    
     public function dropdown(): \Illuminate\Http\JsonResponse
     {
         $phases = Phase::all()->map(function ($phase) {

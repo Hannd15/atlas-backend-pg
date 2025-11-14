@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Proposal\StoreProposalRequest;
 use App\Http\Requests\Proposal\UpdateProposalRequest;
+use App\Models\File;
 use App\Models\Proposal;
 use App\Models\ProposalStatus;
 use App\Models\ProposalType;
 use App\Services\AtlasAuthService;
+use App\Services\FileStorageService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
@@ -30,7 +33,14 @@ use Illuminate\Support\Str;
  *     @OA\Property(property="thematic_line_id", type="integer", example=4),
  *     @OA\Property(property="proposer_id", type="integer", example=12),
  *     @OA\Property(property="preferred_director_id", type="integer", nullable=true, example=32),
- *     @OA\Property(property="proposal_status_id", type="integer", nullable=true, example=2)
+ *     @OA\Property(property="proposal_status_id", type="integer", nullable=true, example=2),
+ *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer", example=77)),
+ *     @OA\Property(
+ *         property="files",
+ *         type="array",
+ *
+ *         @OA\Items(type="string", format="binary")
+ *     )
  * )
  *
  * @OA\Schema(
@@ -68,6 +78,7 @@ use Illuminate\Support\Str;
 class ProposalController extends Controller
 {
     public function __construct(
+        protected FileStorageService $fileStorageService,
         protected AtlasAuthService $atlasAuthService
     ) {}
 
@@ -104,7 +115,7 @@ class ProposalController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *
-     *         @OA\MediaType(mediaType="application/json", @OA\Schema(ref="#/components/schemas/ProposalPayload"))
+     *         @OA\MediaType(mediaType="multipart/form-data", @OA\Schema(ref="#/components/schemas/ProposalPayload"))
      *     ),
      *
      *     @OA\Response(response=201, description="Proposal created", @OA\JsonContent(ref="#/components/schemas/ProposalResource")),
@@ -127,6 +138,13 @@ class ProposalController extends Controller
             'preferred_director_id' => $validated['preferred_director_id'] ?? null,
             'thematic_line_id' => $validated['thematic_line_id'],
         ]);
+
+        $this->syncExistingFiles($proposal, $request->fileIds() ?? []);
+
+        $storedFiles = $this->storeUploadedFiles($request);
+        if ($storedFiles->isNotEmpty()) {
+            $proposal->files()->syncWithoutDetaching($storedFiles->pluck('id')->all());
+        }
 
         $proposal->load($this->defaultRelations());
 
@@ -160,7 +178,7 @@ class ProposalController extends Controller
      *
      *     @OA\Parameter(name="proposal", in="path", required=true, @OA\Schema(type="integer")),
      *
-     *     @OA\RequestBody(@OA\MediaType(mediaType="application/json", @OA\Schema(ref="#/components/schemas/ProposalPayload"))),
+     *     @OA\RequestBody(@OA\MediaType(mediaType="multipart/form-data", @OA\Schema(ref="#/components/schemas/ProposalPayload"))),
      *
      *     @OA\Response(response=200, description="Proposal updated", @OA\JsonContent(ref="#/components/schemas/ProposalResource")),
      *     @OA\Response(response=404, description="Proposal not found")
@@ -178,6 +196,19 @@ class ProposalController extends Controller
             'preferred_director_id',
             'thematic_line_id',
         ]));
+
+        $existingFileIds = $proposal->files()->pluck('files.id')->all();
+
+        $fileIds = $request->fileIds();
+        if ($fileIds !== null) {
+            $proposal->files()->sync($fileIds);
+            $this->deleteRemovedFiles($proposal, $existingFileIds, $fileIds);
+        }
+
+        $storedFiles = $this->storeUploadedFiles($request);
+        if ($storedFiles->isNotEmpty()) {
+            $proposal->files()->syncWithoutDetaching($storedFiles->pluck('id')->all());
+        }
 
         $proposal->load($this->defaultRelations());
 
@@ -198,6 +229,14 @@ class ProposalController extends Controller
      */
     public function destroy(Proposal $proposal): JsonResponse
     {
+        $fileIds = $proposal->files()->pluck('files.id')->all();
+
+        $proposal->files()->detach();
+
+        foreach ($fileIds as $fileId) {
+            $this->deleteFileIfOrphaned($proposal, (int) $fileId);
+        }
+
         $proposal->delete();
 
         return response()->json(['message' => 'Proposal deleted successfully']);
@@ -380,5 +419,52 @@ class ProposalController extends Controller
         }
 
         return $defaultStatusId;
+    }
+
+    protected function storeUploadedFiles(StoreProposalRequest|UpdateProposalRequest $request): Collection
+    {
+        $files = $request->uploadedFiles();
+
+        if (empty($files)) {
+            return collect();
+        }
+
+        return $this->fileStorageService->storeUploadedFiles($files);
+    }
+
+    protected function syncExistingFiles(Proposal $proposal, array $fileIds): void
+    {
+        if (empty($fileIds)) {
+            return;
+        }
+
+        $proposal->files()->syncWithoutDetaching($fileIds);
+    }
+
+    protected function deleteRemovedFiles(Proposal $proposal, array $previousIds, array $currentIds): void
+    {
+        $removed = array_diff($previousIds, $currentIds);
+
+        foreach ($removed as $fileId) {
+            $this->deleteFileIfOrphaned($proposal, (int) $fileId);
+        }
+    }
+
+    protected function deleteFileIfOrphaned(Proposal $proposal, int $fileId): void
+    {
+        $file = File::find($fileId);
+
+        if (! $file) {
+            return;
+        }
+
+        $attachedToDeliverables = $file->deliverables()->exists();
+        $attachedToSubmissions = $file->submissions()->exists();
+        $attachedToRepositoryProjects = $file->repositoryProjects()->exists();
+        $attachedToProposals = $file->proposals()->exists();
+
+        if (! $attachedToDeliverables && ! $attachedToSubmissions && ! $attachedToRepositoryProjects && ! $attachedToProposals) {
+            $file->delete();
+        }
     }
 }
