@@ -23,10 +23,6 @@ class StoreRepositoryProjectRequest extends FormRequest
             'keywords_en' => ['nullable', 'string'],
             'abstract_es' => ['nullable', 'string'],
             'abstract_en' => ['nullable', 'string'],
-            'file_ids' => ['nullable', 'array'],
-            'file_ids.*' => ['integer', 'exists:files,id'],
-            'files' => ['nullable', 'array'],
-            'files.*' => ['file'],
         ];
     }
 }

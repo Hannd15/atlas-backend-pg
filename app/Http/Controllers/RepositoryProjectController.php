@@ -5,10 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\RepositoryProject\StoreRepositoryProjectRequest;
 use App\Http\Requests\RepositoryProject\UpdateRepositoryProjectRequest;
 use App\Models\RepositoryProject;
-use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\DB;
 
 /**
  * @OA\Tag(
@@ -29,14 +27,13 @@ use Illuminate\Support\Facades\DB;
  *     @OA\Property(property="keywords_es", type="string", nullable=true),
  *     @OA\Property(property="keywords_en", type="string", nullable=true),
  *     @OA\Property(property="abstract_es", type="string", nullable=true),
- *     @OA\Property(property="abstract_en", type="string", nullable=true),
- *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer", example=88)),
- *     @OA\Property(property="files", type="array", @OA\Items(type="string", format="binary"))
+ *     @OA\Property(property="abstract_en", type="string", nullable=true)
  * )
  *
  * @OA\Schema(
  *     schema="RepositoryProjectIndexResource",
  *     type="object",
+ *
  *     @OA\Property(property="id", type="integer", example=9),
  *     @OA\Property(property="title", type="string", example="Proyecto de grado"),
  *     @OA\Property(property="authors", type="string", nullable=true, example="Ana Pérez, Juan López"),
@@ -74,10 +71,6 @@ use Illuminate\Support\Facades\DB;
  */
 class RepositoryProjectController extends Controller
 {
-    public function __construct(
-        protected FileStorageService $fileStorageService
-    ) {}
-
     /**
      * @OA\Get(
      *     path="/api/pg/repository-projects",
@@ -88,7 +81,7 @@ class RepositoryProjectController extends Controller
      *         response=200,
      *         description="Array of repository projects",
      *
-    *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/RepositoryProjectIndexResource"))
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/RepositoryProjectIndexResource"))
      *     )
      * )
      */
@@ -101,11 +94,11 @@ class RepositoryProjectController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/repository-projects/{repository_project}",
+     *     path="/api/pg/repository-projects/{repositoryProject}",
      *     summary="Show a repository project",
      *     tags={"Repository Projects"},
      *
-     *     @OA\Parameter(name="repository_project", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="repositoryProject", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(response=200, description="Repository project detail", @OA\JsonContent(ref="#/components/schemas/RepositoryProjectResource")),
      *     @OA\Response(response=404, description="Repository project not found")
@@ -143,36 +136,19 @@ class RepositoryProjectController extends Controller
     {
         $validated = $request->validated();
 
-        $repositoryProject = DB::transaction(function () use ($validated, $request) {
-            $attributes = Arr::only($validated, [
-                'project_id',
-                'title',
-                'description',
-                'url',
-                'publish_date',
-                'keywords_es',
-                'keywords_en',
-                'abstract_es',
-                'abstract_en',
-            ]);
+        $attributes = Arr::only($validated, [
+            'project_id',
+            'title',
+            'description',
+            'url',
+            'publish_date',
+            'keywords_es',
+            'keywords_en',
+            'abstract_es',
+            'abstract_en',
+        ]);
 
-            $repositoryProject = RepositoryProject::create($attributes);
-
-            $fileIds = collect($validated['file_ids'] ?? [])
-                ->filter(fn ($id) => $id !== null)
-                ->map(fn ($id) => (int) $id);
-
-            if ($request->hasFile('files')) {
-                $storedFiles = $this->fileStorageService->storeUploadedFiles($request->file('files'));
-                $fileIds = $fileIds->merge($storedFiles->pluck('id'));
-            }
-
-            if ($fileIds->isNotEmpty()) {
-                $repositoryProject->files()->sync($fileIds->unique()->values()->all());
-            }
-
-            return $repositoryProject;
-        });
+        $repositoryProject = RepositoryProject::create($attributes);
 
         $repositoryProject->loadMissing(
             'files',
@@ -186,11 +162,11 @@ class RepositoryProjectController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/pg/repository-projects/{repository_project}",
+     *     path="/api/pg/repository-projects/{repositoryProject}",
      *     summary="Update a repository project",
      *     tags={"Repository Projects"},
      *
-     *     @OA\Parameter(name="repository_project", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="repositoryProject", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\RequestBody(@OA\MediaType(mediaType="multipart/form-data", @OA\Schema(ref="#/components/schemas/RepositoryProjectPayload"))),
      *
@@ -202,40 +178,20 @@ class RepositoryProjectController extends Controller
     {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($repositoryProject, $validated, $request) {
-            $attributes = Arr::only($validated, [
-                'title',
-                'description',
-                'url',
-                'publish_date',
-                'keywords_es',
-                'keywords_en',
-                'abstract_es',
-                'abstract_en',
-            ]);
+        $attributes = Arr::only($validated, [
+            'title',
+            'description',
+            'url',
+            'publish_date',
+            'keywords_es',
+            'keywords_en',
+            'abstract_es',
+            'abstract_en',
+        ]);
 
-            if (! empty($attributes)) {
-                $repositoryProject->update($attributes);
-            }
-
-            $fileIds = null;
-
-            if (array_key_exists('file_ids', $validated)) {
-                $fileIds = collect($validated['file_ids'] ?? [])
-                    ->filter(fn ($id) => $id !== null)
-                    ->map(fn ($id) => (int) $id);
-            }
-
-            if ($request->hasFile('files')) {
-                $storedFiles = $this->fileStorageService->storeUploadedFiles($request->file('files'));
-                $fileIds = ($fileIds ?? $repositoryProject->files->pluck('id'))
-                    ->merge($storedFiles->pluck('id'));
-            }
-
-            if ($fileIds !== null) {
-                $repositoryProject->files()->sync($fileIds->unique()->values()->all());
-            }
-        });
+        if (! empty($attributes)) {
+            $repositoryProject->update($attributes);
+        }
 
         $repositoryProject->loadMissing(
             'files',

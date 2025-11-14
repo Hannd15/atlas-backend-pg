@@ -22,10 +22,6 @@ class UpdateRepositoryProjectRequest extends FormRequest
             'keywords_en' => ['sometimes', 'nullable', 'string'],
             'abstract_es' => ['sometimes', 'nullable', 'string'],
             'abstract_en' => ['sometimes', 'nullable', 'string'],
-            'file_ids' => ['sometimes', 'nullable', 'array'],
-            'file_ids.*' => ['integer', 'exists:files,id'],
-            'files' => ['sometimes', 'nullable', 'array'],
-            'files.*' => ['file'],
         ];
     }
 }

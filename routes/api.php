@@ -10,6 +10,7 @@ use App\Http\Controllers\ProjectGroupController;
 use App\Http\Controllers\ProjectPositionController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\RepositoryProjectController;
+use App\Http\Controllers\RepositoryProjectFileController;
 use App\Http\Controllers\RubricController;
 use App\Http\Controllers\ThematicLineController;
 use App\Http\Controllers\UserController;
@@ -63,6 +64,11 @@ Route::prefix('pg')->group(function () {
     Route::post('repository-projects', [RepositoryProjectController::class, 'store']);
     Route::get('repository-projects/{repositoryProject}', [RepositoryProjectController::class, 'show']);
     Route::put('repository-projects/{repositoryProject}', [RepositoryProjectController::class, 'update']);
+
+    // Repository Project Files routes
+    Route::get('repository-project-files', [RepositoryProjectFileController::class, 'getAll']);
+    Route::get('repository-projects/{repositoryProject}/files', [RepositoryProjectFileController::class, 'index']);
+    Route::post('repository-projects/{repositoryProject}/files', [RepositoryProjectFileController::class, 'store']);
 
     // Project Groups routes
     Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
