@@ -34,6 +34,7 @@ Route::prefix('pg')->group(function () {
     Route::apiResource('deliverables', DeliverableController::class);
 
     // Deliverable Files routes (scoped under deliverables - index and store only)
+    Route::get('deliverable-files', [DeliverableFileController::class, 'getAll']);
     Route::get('deliverables/{deliverable_id}/files', [DeliverableFileController::class, 'index']);
     Route::post('deliverables/{deliverable_id}/files', [DeliverableFileController::class, 'store']);
 

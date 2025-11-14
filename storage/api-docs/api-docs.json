@@ -502,6 +502,52 @@
                 }
             }
         },
+        "/api/pg/deliverable-files": {
+            "get": {
+                "tags": [
+                    "Deliverable Files"
+                ],
+                "summary": "Get all deliverable files with related information",
+                "operationId": "fdda56e4f69f81aa2365c485f2f11178",
+                "responses": {
+                    "200": {
+                        "description": "List of all deliverable files with deliverable, phase, and period names",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 90
+                                            },
+                                            "file_name": {
+                                                "type": "string",
+                                                "example": "propuesta.pdf"
+                                            },
+                                            "deliverable_name": {
+                                                "type": "string",
+                                                "example": "Entrega 1"
+                                            },
+                                            "phase_name": {
+                                                "type": "string",
+                                                "example": "Proyecto de grado I"
+                                            },
+                                            "period_name": {
+                                                "type": "string",
+                                                "example": "2025-1"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/pg/deliverables/{deliverable_id}/files": {
             "get": {
                 "tags": [

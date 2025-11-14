@@ -34,6 +34,50 @@ class DeliverableFileController extends Controller
 {
     /**
      * @OA\Get(
+     *     path="/api/pg/deliverable-files",
+     *     summary="Get all deliverable files with related information",
+     *     tags={"Deliverable Files"},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of all deliverable files with deliverable, phase, and period names",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *                 type="object",
+     *
+     *                 @OA\Property(property="id", type="integer", example=90),
+     *                 @OA\Property(property="file_name", type="string", example="propuesta.pdf"),
+     *                 @OA\Property(property="deliverable_name", type="string", example="Entrega 1"),
+     *                 @OA\Property(property="phase_name", type="string", example="Proyecto de grado I"),
+     *                 @OA\Property(property="period_name", type="string", example="2025-1")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getAll(): \Illuminate\Http\JsonResponse
+    {
+        $files = \App\Models\DeliverableFile::with([
+            'file',
+            'deliverable.phase.period',
+        ])->get();
+
+        $result = $files->map(fn ($deliverableFile) => [
+            'id' => $deliverableFile->file_id,
+            'file_name' => $deliverableFile->file->name,
+            'deliverable_name' => $deliverableFile->deliverable->name,
+            'phase_name' => $deliverableFile->deliverable->phase->name,
+            'period_name' => $deliverableFile->deliverable->phase->period->name,
+        ]);
+
+        return response()->json($result);
+    }
+
+    /**
+     * @OA\Get(
      *     path="/api/pg/deliverables/{deliverable_id}/files",
      *     summary="Get all files associated with a deliverable",
      *     tags={"Deliverable Files"},
