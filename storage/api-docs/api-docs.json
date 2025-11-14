@@ -1764,7 +1764,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/RepositoryProjectResource"
+                                        "$ref": "#/components/schemas/RepositoryProjectIndexResource"
                                     }
                                 }
                             }
@@ -3262,6 +3262,55 @@
                 },
                 "type": "object"
             },
+            "RepositoryProjectIndexResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 9
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Proyecto de grado"
+                    },
+                    "authors": {
+                        "type": "string",
+                        "example": "Ana Pérez, Juan López",
+                        "nullable": true
+                    },
+                    "advisors": {
+                        "type": "string",
+                        "example": "Dr. Gómez, Dra. Ruiz",
+                        "nullable": true
+                    },
+                    "keywords_es": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "thematic_line": {
+                        "type": "string",
+                        "example": "IoT",
+                        "nullable": true
+                    },
+                    "publish_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "abstract_es": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
             "RepositoryProjectResource": {
                 "properties": {
                     "id": {
@@ -3286,16 +3335,14 @@
                         "nullable": true
                     },
                     "authors": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
+                        "type": "string",
+                        "example": "Ana Pérez, Juan López",
+                        "nullable": true
                     },
                     "advisors": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
+                        "type": "string",
+                        "example": "Dr. Gómez, Dra. Ruiz",
+                        "nullable": true
                     },
                     "keywords_es": {
                         "type": "string",

@@ -35,6 +35,21 @@ use Illuminate\Support\Facades\DB;
  * )
  *
  * @OA\Schema(
+ *     schema="RepositoryProjectIndexResource",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=9),
+ *     @OA\Property(property="title", type="string", example="Proyecto de grado"),
+ *     @OA\Property(property="authors", type="string", nullable=true, example="Ana Pérez, Juan López"),
+ *     @OA\Property(property="advisors", type="string", nullable=true, example="Dr. Gómez, Dra. Ruiz"),
+ *     @OA\Property(property="keywords_es", type="string", nullable=true),
+ *     @OA\Property(property="thematic_line", type="string", nullable=true, example="IoT"),
+ *     @OA\Property(property="publish_date", type="string", format="date", nullable=true),
+ *     @OA\Property(property="abstract_es", type="string", nullable=true),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ *
+ * @OA\Schema(
  *     schema="RepositoryProjectResource",
  *     type="object",
  *
@@ -43,8 +58,8 @@ use Illuminate\Support\Facades\DB;
  *     @OA\Property(property="title", type="string", example="Proyecto de grado"),
  *     @OA\Property(property="repository_title", type="string", nullable=true),
  *     @OA\Property(property="description", type="string", nullable=true),
- *     @OA\Property(property="authors", type="array", @OA\Items(type="string")),
- *     @OA\Property(property="advisors", type="array", @OA\Items(type="string")),
+ *     @OA\Property(property="authors", type="string", nullable=true, example="Ana Pérez, Juan López"),
+ *     @OA\Property(property="advisors", type="string", nullable=true, example="Dr. Gómez, Dra. Ruiz"),
  *     @OA\Property(property="keywords_es", type="string", nullable=true),
  *     @OA\Property(property="keywords_en", type="string", nullable=true),
  *     @OA\Property(property="thematic_line", type="string", nullable=true, example="IoT"),
@@ -73,7 +88,7 @@ class RepositoryProjectController extends Controller
      *         response=200,
      *         description="Array of repository projects",
      *
-     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/RepositoryProjectResource"))
+    *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/RepositoryProjectIndexResource"))
      *     )
      * )
      */
@@ -263,40 +278,42 @@ class RepositoryProjectController extends Controller
         );
     }
 
-    protected function authorNames(RepositoryProject $repositoryProject): array
+    protected function authorNames(RepositoryProject $repositoryProject): string
     {
         $project = $repositoryProject->project;
 
         if (! $project) {
-            return [];
+            return '';
         }
 
         $project->loadMissing('groups.members.user');
 
-        return $project->groups
+        $values = $project->groups
             ->flatMap(fn ($group) => $group->members->map(fn ($member) => $member->user?->name))
             ->filter()
             ->unique()
-            ->values()
-            ->all();
+            ->values();
+
+        return $values->isEmpty() ? null : $values->implode(', ');
     }
 
-    protected function advisorNames(RepositoryProject $repositoryProject): array
+    protected function advisorNames(RepositoryProject $repositoryProject): string
     {
         $project = $repositoryProject->project;
 
         if (! $project) {
-            return [];
+            return '';
         }
 
         $project->loadMissing('staff.user');
 
-        return $project->staff
+        $values = $project->staff
             ->filter(fn ($staff) => $staff->status === null || $staff->status === 'active')
             ->map(fn ($staff) => $staff->user?->name)
             ->filter()
             ->unique()
-            ->values()
-            ->all();
+            ->values();
+
+        return $values->isEmpty() ? null : $values->implode(', ');
     }
 }

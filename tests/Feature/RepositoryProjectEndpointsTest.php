@@ -270,36 +270,42 @@ class RepositoryProjectEndpointsTest extends TestCase
         );
     }
 
-    private function aggregateAuthorNames(RepositoryProject $repositoryProject): array
+    private function aggregateAuthorNames(RepositoryProject $repositoryProject): ?string
     {
         $project = $repositoryProject->project;
 
         if (! $project) {
-            return [];
+            return '';
         }
 
-        return $project->groups
+        $project->loadMissing('groups.members.user');
+
+        $values = $project->groups
             ->flatMap(fn ($group) => $group->members->map(fn ($member) => $member->user?->name))
             ->filter()
             ->unique()
-            ->values()
-            ->all();
+            ->values();
+
+        return $values->isEmpty() ? null : $values->implode(', ');
     }
 
-    private function aggregateAdvisorNames(RepositoryProject $repositoryProject): array
+    private function aggregateAdvisorNames(RepositoryProject $repositoryProject): ?string
     {
         $project = $repositoryProject->project;
 
         if (! $project) {
-            return [];
+            return '';
         }
 
-        return $project->staff
+        $project->loadMissing('staff.user');
+
+        $values = $project->staff
             ->filter(fn ($staff) => $staff->status === null || $staff->status === 'active')
             ->map(fn ($staff) => $staff->user?->name)
             ->filter()
             ->unique()
-            ->values()
-            ->all();
+            ->values();
+
+        return $values->isEmpty() ? null : $values->implode(', ');
     }
 }
