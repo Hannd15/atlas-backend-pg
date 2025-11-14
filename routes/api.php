@@ -29,13 +29,17 @@ Route::prefix('pg')->group(function () {
     Route::put('phases/{phase}', [PhaseController::class, 'update']);
     Route::delete('phases/{phase}', [PhaseController::class, 'destroy']);
 
-    // Deliverables routes
+    // Deliverables routes with nested file operations
     Route::get('deliverables/dropdown', [DeliverableController::class, 'dropdown']);
     Route::apiResource('deliverables', DeliverableController::class);
 
-    // Files routes
+    // Deliverable Files routes (scoped under deliverables - index and store only)
+    Route::get('deliverables/{deliverable_id}/files', [DeliverableFileController::class, 'index']);
+    Route::post('deliverables/{deliverable_id}/files', [DeliverableFileController::class, 'store']);
+
+    // Files routes (handles show/update/delete for all files)
     Route::get('files/dropdown', [FileController::class, 'dropdown']);
-    Route::apiResource('files', FileController::class);
+    Route::apiResource('files', FileController::class)->except('store', 'create');
 
     // Thematic Lines routes
     Route::get('thematic-lines/dropdown', [ThematicLineController::class, 'dropdown']);
@@ -62,13 +66,6 @@ Route::prefix('pg')->group(function () {
     // Project Groups routes
     Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
     Route::apiResource('project-groups', ProjectGroupController::class);
-
-    // Deliverable Files routes (composite key)
-    Route::get('deliverable-files', [DeliverableFileController::class, 'index']);
-    Route::post('deliverable-files', [DeliverableFileController::class, 'store']);
-    Route::get('deliverable-files/{deliverable_id}/{file_id}', [DeliverableFileController::class, 'show']);
-    Route::put('deliverable-files/{deliverable_id}/{file_id}', [DeliverableFileController::class, 'update']);
-    Route::delete('deliverable-files/{deliverable_id}/{file_id}', [DeliverableFileController::class, 'destroy']);
 
     // Users routes
     Route::get('users/dropdown', [UserController::class, 'dropdown']);

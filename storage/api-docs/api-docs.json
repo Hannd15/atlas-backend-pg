@@ -347,7 +347,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/DeliverableCreatePayload"
                             }
@@ -420,7 +420,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "properties": {
                                     "phase_id": {
@@ -440,17 +440,10 @@
                                         "format": "date-time",
                                         "nullable": true
                                     },
-                                    "file_ids": {
+                                    "rubric_ids": {
                                         "type": "array",
                                         "items": {
                                             "type": "integer"
-                                        }
-                                    },
-                                    "files": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "format": "binary"
                                         }
                                     }
                                 },
@@ -509,16 +502,27 @@
                 }
             }
         },
-        "/api/pg/deliverable-files": {
+        "/api/pg/deliverables/{deliverable_id}/files": {
             "get": {
                 "tags": [
                     "Deliverable Files"
                 ],
-                "summary": "Get all deliverable-file associations",
-                "operationId": "a98bc04dabe0e82011214630bc603f37",
+                "summary": "Get all files associated with a deliverable",
+                "operationId": "a77a2f7c1dde0264dd4533f4afc76aa2",
+                "parameters": [
+                    {
+                        "name": "deliverable_id",
+                        "in": "path",
+                        "description": "Deliverable ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "List of deliverable-file associations with related names",
+                        "description": "List of files associated with the deliverable",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -529,6 +533,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Deliverable not found"
                     }
                 }
             },
@@ -536,105 +543,13 @@
                 "tags": [
                     "Deliverable Files"
                 ],
-                "summary": "Create a new deliverable-file association",
-                "operationId": "72d938293fa0e691f76105770add76b4",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "deliverable_id",
-                                    "file_id"
-                                ],
-                                "properties": {
-                                    "deliverable_id": {
-                                        "type": "integer",
-                                        "example": 1
-                                    },
-                                    "file_id": {
-                                        "type": "integer",
-                                        "example": 1
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Deliverable-file association created successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/DeliverableFileResource"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error"
-                    }
-                }
-            }
-        },
-        "/api/pg/deliverable-files/{deliverable_id}/{file_id}": {
-            "get": {
-                "tags": [
-                    "Deliverable Files"
-                ],
-                "summary": "Get a specific deliverable-file association",
-                "operationId": "337b83fc2d455a195056879d6d1d1072",
+                "summary": "Upload and associate a file with a deliverable",
+                "operationId": "c96bd6de8b300457005b8ad0d2bcfd2f",
                 "parameters": [
                     {
                         "name": "deliverable_id",
                         "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "file_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Deliverable-file association details with related names",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/DeliverableFileResource"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Deliverable Files"
-                ],
-                "summary": "Update a deliverable-file association",
-                "operationId": "ac8f29a08241e168bc0140e214a56539",
-                "parameters": [
-                    {
-                        "name": "deliverable_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "file_id",
-                        "in": "path",
+                        "description": "Deliverable ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -642,15 +557,14 @@
                     }
                 ],
                 "requestBody": {
-                    "required": false,
+                    "required": true,
                     "content": {
                         "multipart/form-data": {
                             "schema": {
+                                "required": [
+                                    "file"
+                                ],
                                 "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "maxLength": 255
-                                    },
                                     "file": {
                                         "type": "string",
                                         "format": "binary"
@@ -662,8 +576,8 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Deliverable-file association updated successfully",
+                    "201": {
+                        "description": "File uploaded and associated successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -674,36 +588,6 @@
                     },
                     "422": {
                         "description": "Validation error"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Deliverable Files"
-                ],
-                "summary": "Delete a deliverable-file association",
-                "operationId": "e2885067cfda0c474fe95604da859f6f",
-                "parameters": [
-                    {
-                        "name": "deliverable_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "file_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Deliverable-file association deleted successfully"
                     }
                 }
             }
@@ -717,93 +601,17 @@
                 "operationId": "224cc93ba558bac42ca6feb764cf1516",
                 "responses": {
                     "200": {
-                        "description": "List of stored files with related deliverables and repository entities",
+                        "description": "List of files",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/StoredFileResource"
+                                        "$ref": "#/components/schemas/FileResource"
                                     }
                                 }
                             }
                         }
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Files"
-                ],
-                "summary": "Create a new file",
-                "operationId": "19ef7dd81d5b1bd0f2882c838cfb5138",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "multipart/form-data": {
-                            "schema": {
-                                "required": [
-                                    "files"
-                                ],
-                                "properties": {
-                                    "files": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "format": "binary"
-                                        },
-                                        "minItems": 1
-                                    },
-                                    "deliverable_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer",
-                                            "example": 27
-                                        }
-                                    },
-                                    "submission_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer",
-                                            "example": 12
-                                        }
-                                    },
-                                    "repository_project_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer",
-                                            "example": 4
-                                        }
-                                    },
-                                    "proposal_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer",
-                                            "example": 8
-                                        }
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "File created successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/StoredFileResource"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error"
                     }
                 }
             }
@@ -857,7 +665,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "properties": {
                                     "name": {
@@ -866,32 +674,9 @@
                                     "extension": {
                                         "type": "string"
                                     },
-                                    "url": {
-                                        "type": "string"
-                                    },
-                                    "deliverable_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer"
-                                        }
-                                    },
-                                    "submission_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer"
-                                        }
-                                    },
-                                    "repository_project_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer"
-                                        }
-                                    },
-                                    "proposal_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer"
-                                        }
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
                                     }
                                 },
                                 "type": "object"
@@ -929,7 +714,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "File deleted successfully"
                     }
                 }
@@ -944,7 +729,27 @@
                 "operationId": "0b48ddf4cf380fd0cd8254477b9a4c5c",
                 "responses": {
                     "200": {
-                        "description": "List of files formatted for dropdowns"
+                        "description": "List of files formatted for dropdowns",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 90
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "propuesta.pdf"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1691,7 +1496,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/ProposalPayload"
                             }
@@ -1766,7 +1571,7 @@
                 ],
                 "requestBody": {
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/ProposalPayload"
                             }
@@ -2716,45 +2521,15 @@
                         "example": "2025-03-15T23:59:00",
                         "nullable": true
                     },
-                    "phase": {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 5
-                            },
-                            "name": {
-                                "type": "string",
-                                "example": "Proyecto de grado I"
-                            },
-                            "period": {
-                                "properties": {
-                                    "id": {
-                                        "type": "integer",
-                                        "example": 2
-                                    },
-                                    "name": {
-                                        "type": "string",
-                                        "example": "2025-1"
-                                    }
-                                },
-                                "type": "object",
-                                "nullable": true
-                            }
-                        },
-                        "type": "object",
-                        "nullable": true
+                    "phase_id": {
+                        "type": "integer",
+                        "example": 5
                     },
-                    "files": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/DeliverableFileResource"
-                        }
-                    },
-                    "file_ids": {
+                    "rubric_ids": {
                         "type": "array",
                         "items": {
                             "type": "integer",
-                            "example": 12
+                            "example": 7
                         }
                     },
                     "created_at": {
@@ -2795,22 +2570,6 @@
                         "example": "2025-03-15T23:59:00",
                         "nullable": true
                     },
-                    "file_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 42
-                        },
-                        "nullable": true
-                    },
-                    "files": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "binary"
-                        },
-                        "nullable": true
-                    },
                     "rubric_ids": {
                         "type": "array",
                         "items": {
@@ -2824,29 +2583,33 @@
             },
             "DeliverableFileResource": {
                 "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 90
+                    },
                     "deliverable_id": {
                         "type": "integer",
                         "example": 27
                     },
-                    "file_id": {
-                        "type": "integer",
-                        "example": 90
-                    },
-                    "deliverable_name": {
-                        "type": "string",
-                        "example": "Entrega 1"
-                    },
-                    "phase_name": {
-                        "type": "string",
-                        "example": "Proyecto de grado I"
-                    },
-                    "academic_period_name": {
-                        "type": "string",
-                        "example": "2025-1"
-                    },
-                    "file_name": {
+                    "name": {
                         "type": "string",
                         "example": "propuesta.pdf"
+                    },
+                    "extension": {
+                        "type": "string",
+                        "example": "pdf"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://storage.test/pg/uploads/2025/propuesta.pdf"
+                    },
+                    "disk": {
+                        "type": "string",
+                        "example": "public"
+                    },
+                    "path": {
+                        "type": "string",
+                        "example": "pg/uploads/2025/01/15/propuesta.pdf"
                     },
                     "created_at": {
                         "type": "string",
@@ -2859,43 +2622,23 @@
                 },
                 "type": "object"
             },
-            "FileDeliverableSummary": {
+            "FileResource": {
                 "properties": {
                     "id": {
                         "type": "integer",
-                        "example": 40
+                        "example": 90
                     },
                     "name": {
                         "type": "string",
-                        "example": "Entrega 1"
+                        "example": "propuesta.pdf"
                     },
-                    "phase": {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 5
-                            },
-                            "name": {
-                                "type": "string",
-                                "example": "Proyecto de grado I"
-                            },
-                            "period": {
-                                "properties": {
-                                    "id": {
-                                        "type": "integer",
-                                        "example": 3
-                                    },
-                                    "name": {
-                                        "type": "string",
-                                        "example": "2025-1"
-                                    }
-                                },
-                                "type": "object",
-                                "nullable": true
-                            }
-                        },
-                        "type": "object",
-                        "nullable": true
+                    "extension": {
+                        "type": "string",
+                        "example": "pdf"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://storage.test/pg/uploads/2025/propuesta.pdf"
                     }
                 },
                 "type": "object"
@@ -2926,29 +2669,11 @@
                         "type": "string",
                         "example": "pg/uploads/2025/01/15/propuesta.pdf"
                     },
-                    "deliverables": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/FileDeliverableSummary"
-                        }
-                    },
                     "deliverable_ids": {
                         "type": "array",
                         "items": {
                             "type": "integer",
                             "example": 40
-                        }
-                    },
-                    "submissions": {
-                        "type": "array",
-                        "items": {
-                            "properties": {
-                                "id": {
-                                    "type": "integer",
-                                    "example": 12
-                                }
-                            },
-                            "type": "object"
                         }
                     },
                     "submission_ids": {
@@ -2958,43 +2683,11 @@
                             "example": 12
                         }
                     },
-                    "repository_projects": {
-                        "type": "array",
-                        "items": {
-                            "properties": {
-                                "id": {
-                                    "type": "integer",
-                                    "example": 3
-                                },
-                                "title": {
-                                    "type": "string",
-                                    "example": "Sistema de seguimiento"
-                                }
-                            },
-                            "type": "object"
-                        }
-                    },
                     "repository_project_ids": {
                         "type": "array",
                         "items": {
                             "type": "integer",
                             "example": 3
-                        }
-                    },
-                    "proposals": {
-                        "type": "array",
-                        "items": {
-                            "properties": {
-                                "id": {
-                                    "type": "integer",
-                                    "example": 8
-                                },
-                                "title": {
-                                    "type": "string",
-                                    "example": "Plataforma de aprendizaje"
-                                }
-                            },
-                            "type": "object"
                         }
                     },
                     "proposal_ids": {
@@ -3198,20 +2891,6 @@
                         "type": "integer",
                         "example": 2,
                         "nullable": true
-                    },
-                    "file_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 77
-                        }
-                    },
-                    "files": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "binary"
-                        }
                     }
                 },
                 "type": "object"
@@ -3675,7 +3354,7 @@
         },
         {
             "name": "Deliverable Files",
-            "description": "API endpoints for managing deliverable-file associations"
+            "description": "API endpoints for uploading and listing files associated with deliverables"
         },
         {
             "name": "Files",

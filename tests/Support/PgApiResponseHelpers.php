@@ -105,32 +105,9 @@ trait PgApiResponseHelpers
             'url' => $file->url,
             'disk' => $file->disk,
             'path' => $file->path,
-            'deliverables' => $file->deliverables->map(fn (Deliverable $deliverable) => [
-                'id' => $deliverable->id,
-                'name' => $deliverable->name,
-                'phase' => $deliverable->phase ? [
-                    'id' => $deliverable->phase->id,
-                    'name' => $deliverable->phase->name,
-                    'period' => $deliverable->phase->period ? [
-                        'id' => $deliverable->phase->period->id,
-                        'name' => $deliverable->phase->period->name,
-                    ] : null,
-                ] : null,
-            ])->values()->all(),
             'deliverable_ids' => $file->deliverables->pluck('id')->values()->all(),
-            'submissions' => $file->submissions->map(fn ($submission) => [
-                'id' => $submission->id,
-            ])->values()->all(),
             'submission_ids' => $file->submissions->pluck('id')->values()->all(),
-            'repository_projects' => $file->repositoryProjects->map(fn ($project) => [
-                'id' => $project->id,
-                'title' => $project->title,
-            ])->values()->all(),
             'repository_project_ids' => $file->repositoryProjects->pluck('id')->values()->all(),
-            'proposals' => $file->proposals->map(fn ($proposal) => [
-                'id' => $proposal->id,
-                'title' => $proposal->title,
-            ])->values()->all(),
             'proposal_ids' => $file->proposals->pluck('id')->values()->all(),
             'created_at' => optional($file->created_at)->toDateTimeString(),
             'updated_at' => optional($file->updated_at)->toDateTimeString(),

@@ -2,30 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DeliverableFile;
+use App\Models\Deliverable;
 use App\Models\File;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 /**
  * @OA\Tag(
  *     name="Deliverable Files",
- *     description="API endpoints for managing deliverable-file associations"
+ *     description="API endpoints for uploading and listing files associated with deliverables"
  * )
  *
  * @OA\Schema(
  *     schema="DeliverableFileResource",
  *     type="object",
  *
+ *     @OA\Property(property="id", type="integer", example=90),
  *     @OA\Property(property="deliverable_id", type="integer", example=27),
- *     @OA\Property(property="file_id", type="integer", example=90),
- *     @OA\Property(property="deliverable_name", type="string", example="Entrega 1"),
- *     @OA\Property(property="phase_name", type="string", example="Proyecto de grado I"),
- *     @OA\Property(property="academic_period_name", type="string", example="2025-1"),
- *     @OA\Property(property="file_name", type="string", example="propuesta.pdf"),
+ *     @OA\Property(property="name", type="string", example="propuesta.pdf"),
+ *     @OA\Property(property="extension", type="string", example="pdf"),
+ *     @OA\Property(property="url", type="string", example="https://storage.test/pg/uploads/2025/propuesta.pdf"),
+ *     @OA\Property(property="disk", type="string", example="public"),
+ *     @OA\Property(property="path", type="string", example="pg/uploads/2025/01/15/propuesta.pdf"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -34,153 +34,76 @@ class DeliverableFileController extends Controller
 {
     /**
      * @OA\Get(
-     *     path="/api/pg/deliverable-files",
-     *     summary="Get all deliverable-file associations",
+     *     path="/api/pg/deliverables/{deliverable_id}/files",
+     *     summary="Get all files associated with a deliverable",
      *     tags={"Deliverable Files"},
+     *
+     *     @OA\Parameter(
+     *         name="deliverable_id",
+     *         in="path",
+     *         required=true,
+     *         description="Deliverable ID",
+     *
+     *         @OA\Schema(type="integer")
+     *     ),
      *
      *     @OA\Response(
      *         response=200,
-     *         description="List of deliverable-file associations with related names",
+     *         description="List of files associated with the deliverable",
      *
      *         @OA\JsonContent(
      *             type="array",
      *
      *             @OA\Items(ref="#/components/schemas/DeliverableFileResource")
      *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Deliverable not found"
      *     )
      * )
      */
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(int $deliverableId): \Illuminate\Http\JsonResponse
     {
-        $deliverableFiles = DeliverableFile::with(['deliverable.phase.period', 'file'])->orderByDesc('updated_at')->get();
+        $deliverable = \App\Models\Deliverable::findOrFail($deliverableId);
+        $files = $deliverable->files()->orderByDesc('updated_at')->get();
 
-        return response()->json($deliverableFiles->map(fn (DeliverableFile $deliverableFile) => $this->transformDeliverableFile($deliverableFile)));
+        return response()->json($files->map(fn (File $file) => $this->transformFileForDeliverable($file, $deliverableId)));
     }
 
     /**
      * @OA\Post(
-     *     path="/api/pg/deliverable-files",
-     *     summary="Create a new deliverable-file association",
-     *     tags={"Deliverable Files"},
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *
-     *         @OA\JsonContent(
-     *             required={"deliverable_id","file_id"},
-     *
-     *             @OA\Property(property="deliverable_id", type="integer", example=1),
-     *             @OA\Property(property="file_id", type="integer", example=1)
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=201,
-     *         description="Deliverable-file association created successfully",
-     *
-     *         @OA\JsonContent(ref="#/components/schemas/DeliverableFileResource")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error"
-     *     )
-     * )
-     */
-    public function store(Request $request): \Illuminate\Http\JsonResponse
-    {
-        $request->validate([
-            'deliverable_id' => 'required|exists:deliverables,id',
-            'file_id' => 'required|exists:files,id',
-        ]);
-
-        $deliverableFile = DeliverableFile::create($request->only('deliverable_id', 'file_id'));
-
-        $deliverableFile->load('deliverable.phase.period', 'file');
-
-        return response()->json($this->transformDeliverableFile($deliverableFile), 201);
-    }
-
-    /**
-     * @OA\Get(
-     *     path="/api/pg/deliverable-files/{deliverable_id}/{file_id}",
-     *     summary="Get a specific deliverable-file association",
+     *     path="/api/pg/deliverables/{deliverable_id}/files",
+     *     summary="Upload and associate a file with a deliverable",
      *     tags={"Deliverable Files"},
      *
      *     @OA\Parameter(
      *         name="deliverable_id",
      *         in="path",
      *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
-     *
-     *     @OA\Parameter(
-     *         name="file_id",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Deliverable-file association details with related names",
-     *
-     *         @OA\JsonContent(ref="#/components/schemas/DeliverableFileResource")
-     *     )
-     * )
-     */
-    public function show(int $deliverableId, int $fileId): \Illuminate\Http\JsonResponse
-    {
-        $deliverableFile = DeliverableFile::where('deliverable_id', $deliverableId)
-            ->where('file_id', $fileId)
-            ->firstOrFail();
-
-        $deliverableFile->load('deliverable.phase.period', 'file');
-
-        return response()->json($this->transformDeliverableFile($deliverableFile));
-    }
-
-    /**
-     * @OA\Put(
-     *     path="/api/pg/deliverable-files/{deliverable_id}/{file_id}",
-     *     summary="Update a deliverable-file association",
-     *     tags={"Deliverable Files"},
-     *
-     *     @OA\Parameter(
-     *         name="deliverable_id",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
-     *
-     *     @OA\Parameter(
-     *         name="file_id",
-     *         in="path",
-     *         required=true,
+     *         description="Deliverable ID",
      *
      *         @OA\Schema(type="integer")
      *     ),
      *
      *     @OA\RequestBody(
-     *         required=false,
+     *         required=true,
      *
      *         @OA\MediaType(
      *             mediaType="multipart/form-data",
      *
      *             @OA\Schema(
+     *                 required={"file"},
      *
-     *                 @OA\Property(property="name", type="string", maxLength=255),
      *                 @OA\Property(property="file", type="string", format="binary")
      *             )
      *         )
      *     ),
      *
      *     @OA\Response(
-     *         response=200,
-     *         description="Deliverable-file association updated successfully",
+     *         response=201,
+     *         description="File uploaded and associated successfully",
      *
      *         @OA\JsonContent(ref="#/components/schemas/DeliverableFileResource")
      *     ),
@@ -191,138 +114,59 @@ class DeliverableFileController extends Controller
      *     )
      * )
      */
-    public function update(Request $request, int $deliverableId, int $fileId): \Illuminate\Http\JsonResponse
+    public function store(Request $request, int $deliverableId): \Illuminate\Http\JsonResponse
     {
-        $deliverableFile = DeliverableFile::where('deliverable_id', $deliverableId)
-            ->where('file_id', $fileId)
-            ->firstOrFail();
+        $deliverable = \App\Models\Deliverable::findOrFail($deliverableId);
 
         $validated = $request->validate([
-            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'file' => ['sometimes', 'nullable', 'file'],
+            'file' => 'required|file',
+            'name' => 'sometimes|nullable|string|max:255',
         ]);
 
-        $file = $deliverableFile->file()->firstOrFail();
-
-        if (array_key_exists('name', $validated) && $validated['name'] !== null) {
-            $file->name = $validated['name'];
+        $uploadedFile = $validated['file'];
+        $configuredDisk = config('filesystems.default', 'public');
+        if (! config()->has('filesystems.disks.'.$configuredDisk)) {
+            $configuredDisk = 'public';
         }
 
-        if (array_key_exists('file', $validated) && $validated['file'] instanceof UploadedFile) {
-            $uploadedFile = $validated['file'];
+        $disk = method_exists(Storage::disk($configuredDisk), 'url') ? $configuredDisk : 'public';
+        $directory = Carbon::now()->format('pg/uploads/Y/m/d');
+        $path = $uploadedFile->store($directory, $disk);
 
-            $configuredDisk = config('filesystems.default', 'public');
-            if (! config()->has('filesystems.disks.'.$configuredDisk)) {
-                $configuredDisk = 'public';
-            }
+        /** @var FilesystemAdapter $adapter */
+        $adapter = Storage::disk($disk);
+        $url = method_exists($adapter, 'url') ? $adapter->url($path) : $adapter->path($path);
 
-            $disk = method_exists(Storage::disk($configuredDisk), 'url') ? $configuredDisk : 'public';
-            $directory = Carbon::now()->format('pg/uploads/Y/m/d');
-            $path = $uploadedFile->store($directory, $disk);
+        $name = $validated['name'] ?? $uploadedFile->getClientOriginalName();
 
-            if ($file->path && $file->disk) {
-                Storage::disk($file->disk)->delete($file->path);
-            }
+        $file = File::create([
+            'name' => $name,
+            'extension' => $uploadedFile->getClientOriginalExtension(),
+            'url' => $url,
+            'disk' => $disk,
+            'path' => $path,
+        ]);
 
-            /** @var FilesystemAdapter $adapter */
-            $adapter = Storage::disk($disk);
-            $url = method_exists($adapter, 'url') ? $adapter->url($path) : $adapter->path($path);
+        $deliverable->files()->attach($file->id);
 
-            $file->disk = $disk;
-            $file->path = $path;
-            $file->extension = $uploadedFile->getClientOriginalExtension();
-            $file->url = $url;
-
-            if (! array_key_exists('name', $validated) || $validated['name'] === null) {
-                $file->name = $uploadedFile->getClientOriginalName();
-            }
-        }
-
-        if ($file->isDirty()) {
-            $file->save();
-        }
-
-        $deliverableFile->load('deliverable.phase.period', 'file');
-
-        return response()->json($this->transformDeliverableFile($deliverableFile));
+        return response()->json($this->transformFileForDeliverable($file, $deliverableId), 201);
     }
 
     /**
-     * @OA\Delete(
-     *     path="/api/pg/deliverable-files/{deliverable_id}/{file_id}",
-     *     summary="Delete a deliverable-file association",
-     *     tags={"Deliverable Files"},
-     *
-     *     @OA\Parameter(
-     *         name="deliverable_id",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
-     *
-     *     @OA\Parameter(
-     *         name="file_id",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Deliverable-file association deleted successfully"
-     *     )
-     * )
+     * Transform a file for deliverable response.
      */
-    public function destroy(int $deliverableId, int $fileId): \Illuminate\Http\JsonResponse
+    private function transformFileForDeliverable(File $file, int $deliverableId): array
     {
-        $deliverableFile = DeliverableFile::where('deliverable_id', $deliverableId)
-            ->where('file_id', $fileId)
-            ->firstOrFail();
-
-        DeliverableFile::where('deliverable_id', $deliverableId)
-            ->where('file_id', $fileId)
-            ->delete();
-
-        $this->deleteFileIfOrphaned($fileId);
-
-        return response()->json(['message' => 'Deliverable-file association deleted successfully']);
-    }
-
-    protected function deleteFileIfOrphaned(int $fileId): void
-    {
-        $file = File::find($fileId);
-
-        if (! $file) {
-            return;
-        }
-
-        $attachedToDeliverables = $file->deliverables()->exists();
-        $attachedToSubmissions = $file->submissions()->exists();
-        $attachedToRepositoryProjects = $file->repositoryProjects()->exists();
-        $attachedToProposals = $file->proposals()->exists();
-
-        if (! $attachedToDeliverables && ! $attachedToSubmissions && ! $attachedToRepositoryProjects && ! $attachedToProposals) {
-            $file->delete();
-        }
-    }
-
-    protected function transformDeliverableFile(DeliverableFile $deliverableFile): array
-    {
-        $deliverable = $deliverableFile->deliverable;
-        $phase = $deliverable?->phase;
-        $period = $phase?->period;
-
         return [
-            'deliverable_id' => $deliverableFile->deliverable_id,
-            'file_id' => $deliverableFile->file_id,
-            'deliverable_name' => $deliverable?->name,
-            'phase_name' => $phase?->name,
-            'academic_period_name' => $period?->name,
-            'file_name' => $deliverableFile->file?->name,
-            'created_at' => optional($deliverableFile->created_at)->toDateTimeString(),
-            'updated_at' => optional($deliverableFile->updated_at)->toDateTimeString(),
+            'id' => $file->id,
+            'name' => $file->name,
+            'extension' => $file->extension,
+            'url' => $file->url,
+            'disk' => $file->disk,
+            'path' => $file->path,
+            'deliverable_id' => $deliverableId,
+            'created_at' => $file->created_at,
+            'updated_at' => $file->updated_at,
         ];
     }
 }

@@ -9,7 +9,6 @@ use App\Models\ProposalType;
 use App\Models\ThematicLine;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -93,15 +92,6 @@ class ProposalEndpointsTest extends TestCase
         $line = ThematicLine::create(['name' => 'Línea Investigación']);
         $proposer = User::factory()->create();
         $director = User::factory()->create();
-        $existingFile = File::create([
-            'name' => 'antecedentes.pdf',
-            'extension' => 'pdf',
-            'url' => 'https://files.test/antecedentes.pdf',
-            'disk' => 'public',
-            'path' => 'pg/uploads/antecedentes.pdf',
-        ]);
-
-        $uploaded = UploadedFile::fake()->create('propuesta.pdf', 200, 'application/pdf');
 
         $this->fakeAuth(['id' => $director->id, 'roles' => ['Director']]);
 
@@ -112,28 +102,18 @@ class ProposalEndpointsTest extends TestCase
             'proposer_id' => $proposer->id,
             'preferred_director_id' => $director->id,
             'proposal_status_id' => $statusId,
-            'file_ids' => [$existingFile->id],
-            'files' => [$uploaded],
         ], $this->authHeaders());
 
         $response->assertCreated();
 
-        $proposal = Proposal::with('files', 'type')->firstOrFail();
-        $fileIds = $proposal->files->pluck('id')->values()->all();
-        $fileNames = $proposal->files->pluck('name')->values()->all();
+        $proposal = Proposal::with('type')->firstOrFail();
 
         $this->assertSame('made_by_teacher', $proposal->type->code);
-        $this->assertContains($existingFile->id, $fileIds);
-        $this->assertContains('antecedentes.pdf', $fileNames);
+        $this->assertSame('Nueva propuesta docente', $proposal->title);
 
         $response->assertJsonFragment([
             'title' => 'Nueva propuesta docente',
-            'file_ids' => $fileIds,
-            'file_names' => $fileNames,
         ]);
-
-        $storedFile = File::whereNot('id', $existingFile->id)->firstOrFail();
-        $this->assertTrue(Storage::disk('public')->exists($storedFile->path));
     }
 
     public function test_store_assigns_student_type_based_on_role(): void
@@ -159,7 +139,7 @@ class ProposalEndpointsTest extends TestCase
         $this->assertSame('made_by_student', $proposal->type->code);
     }
 
-    public function test_update_syncs_files_and_deletes_removed_attachments(): void
+    public function test_update_ignores_file_management(): void
     {
         $statusId = $this->proposalStatusId('pending');
         $line = ThematicLine::create(['name' => 'Línea Desarrollo']);
@@ -176,84 +156,75 @@ class ProposalEndpointsTest extends TestCase
             'thematic_line_id' => $line->id,
         ]);
 
-        $fileToKeep = File::create([
-            'name' => 'resumen.pdf',
-            'extension' => 'pdf',
-            'url' => 'https://files.test/resumen.pdf',
-            'disk' => 'public',
-            'path' => 'pg/uploads/resumen.pdf',
-        ]);
-
-        $fileToRemove = File::create([
-            'name' => 'borrador.docx',
-            'extension' => 'docx',
-            'url' => 'https://files.test/borrador.docx',
-            'disk' => 'public',
-            'path' => 'pg/uploads/borrador.docx',
-        ]);
-        Storage::disk('public')->put($fileToRemove->path, 'draft');
-
-        $proposal->files()->sync([$fileToKeep->id, $fileToRemove->id]);
-
         $this->fakeAuth(['id' => $director->id, 'roles' => ['Director']]);
-
-        $newUpload = UploadedFile::fake()->create('anexo.pdf', 150, 'application/pdf');
 
         $response = $this->put('/api/pg/proposals/'.$proposal->id, [
             'title' => 'Propuesta actualizada',
             'description' => 'Contenido actualizado',
-            'file_ids' => [$fileToKeep->id],
-            'files' => [$newUpload],
         ], $this->authHeaders());
 
         $response->assertOk();
 
-        $proposal->refresh()->load('files');
-
-        $fileIds = $proposal->files->pluck('id')->all();
-        $this->assertContains($fileToKeep->id, $fileIds);
-        $this->assertDatabaseMissing('files', ['id' => $fileToRemove->id]);
-        $this->assertFalse(Storage::disk('public')->exists($fileToRemove->path));
+        $proposal->refresh();
 
         $response->assertJsonFragment([
             'title' => 'Propuesta actualizada',
-            'file_ids' => $fileIds,
+            'description' => 'Contenido actualizado',
         ]);
     }
 
-    public function test_show_returns_file_arrays_in_matching_order(): void
+    public function test_show_returns_proposal_details(): void
     {
-        $proposal = $this->createProposalWithFiles();
+        $line = ThematicLine::create(['name' => 'Línea Tecnología']);
+        $proposer = User::factory()->create(['name' => 'Laura Mejía']);
 
-        $this->fakeAuth(['id' => $proposal->proposer_id, 'roles' => ['Director']]);
+        $proposal = Proposal::create([
+            'title' => 'Propuesta de Investigación',
+            'description' => 'Una propuesta detallada',
+            'proposal_type_id' => $this->proposalTypeId('made_by_teacher'),
+            'proposal_status_id' => $this->proposalStatusId('pending'),
+            'proposer_id' => $proposer->id,
+            'thematic_line_id' => $line->id,
+        ]);
+
+        $this->fakeAuth(['id' => $proposer->id, 'roles' => ['Director']]);
 
         $response = $this->getJson('/api/pg/proposals/'.$proposal->id, $this->authHeaders());
 
         $response->assertOk();
-        $payload = $response->json();
 
-        $this->assertSame($payload['file_ids'][0], $proposal->files->first()->id);
-        $this->assertSame($payload['file_names'][0], $proposal->files->first()->name);
-        $this->assertSame($payload['file_ids'][1], $proposal->files->get(1)->id);
-        $this->assertSame($payload['file_names'][1], $proposal->files->get(1)->name);
+        $response->assertJsonStructure([
+            'id',
+            'title',
+            'description',
+            'proposal_type',
+            'proposal_status',
+            'proposer',
+            'preferred_director',
+            'thematic_line',
+        ]);
     }
 
-    public function test_destroy_deletes_proposal_and_orphaned_files(): void
+    public function test_destroy_deletes_proposal(): void
     {
-        $proposal = $this->createProposalWithFiles();
-        $file = $proposal->files->first();
-        Storage::disk('public')->put($file->path, 'content');
+        $line = ThematicLine::create(['name' => 'Línea Desarrollo']);
+        $proposer = User::factory()->create();
 
-        $this->fakeAuth(['id' => $proposal->proposer_id, 'roles' => ['Director']]);
+        $proposal = Proposal::create([
+            'title' => 'Propuesta a eliminar',
+            'proposal_type_id' => $this->proposalTypeId('made_by_teacher'),
+            'proposal_status_id' => $this->proposalStatusId('pending'),
+            'proposer_id' => $proposer->id,
+            'thematic_line_id' => $line->id,
+        ]);
+
+        $this->fakeAuth(['id' => $proposer->id, 'roles' => ['Director']]);
 
         $this->deleteJson('/api/pg/proposals/'.$proposal->id, [], $this->authHeaders())
             ->assertOk()
             ->assertExactJson(['message' => 'Proposal deleted successfully']);
 
         $this->assertDatabaseMissing('proposals', ['id' => $proposal->id]);
-        $this->assertDatabaseMissing('proposal_files', ['proposal_id' => $proposal->id]);
-        $this->assertDatabaseMissing('files', ['id' => $file->id]);
-        $this->assertFalse(Storage::disk('public')->exists($file->path));
     }
 
     protected function fakeAuth(array $userPayload): void
