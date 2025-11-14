@@ -89,9 +89,15 @@ class DeliverableController extends Controller
      */
     public function index(): \Illuminate\Http\JsonResponse
     {
-        $deliverables = Deliverable::with(['phase.period', 'files', 'rubrics'])->orderByDesc('updated_at')->get();
+        $deliverables = Deliverable::with('phase')->orderByDesc('updated_at')->get();
 
-        return response()->json($deliverables->map(fn (Deliverable $deliverable) => $this->transformDeliverable($deliverable)));
+        return response()->json($deliverables->map(fn (Deliverable $deliverable) => [
+            'id' => $deliverable->id,
+            'name' => $deliverable->name,
+            'description' => $deliverable->description,
+            'due_date' => optional($deliverable->due_date)->toDateTimeString(),
+            'phase_name' => $deliverable->phase?->name,
+        ]));
     }
 
     /**
