@@ -68,11 +68,6 @@
                                         "type": "string",
                                         "format": "date",
                                         "example": "2025-06-30"
-                                    },
-                                    "state_id": {
-                                        "type": "integer",
-                                        "example": 1,
-                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -165,11 +160,6 @@
                                         "type": "string",
                                         "format": "date",
                                         "example": "2025-06-30"
-                                    },
-                                    "state_id": {
-                                        "type": "integer",
-                                        "example": 2,
-                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -245,6 +235,38 @@
                 "responses": {
                     "200": {
                         "description": "List of academic periods formatted for dropdowns",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer"
+                                            },
+                                            "label": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/academic-period-states/dropdown": {
+            "get": {
+                "tags": [
+                    "Academic Periods"
+                ],
+                "summary": "Get academic period states for dropdown",
+                "operationId": "c6e3ac5b7ebb343137dadbcbeebac457",
+                "responses": {
+                    "200": {
+                        "description": "List of academic period states formatted for dropdowns",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2547,7 +2569,7 @@
                     },
                     "state_name": {
                         "type": "string",
-                        "example": "Active",
+                        "example": "Activo",
                         "nullable": true
                     }
                 },
@@ -2581,11 +2603,11 @@
                             },
                             "name": {
                                 "type": "string",
-                                "example": "Draft"
+                                "example": "Activo"
                             },
                             "description": {
                                 "type": "string",
-                                "example": "Academic period is being prepared."
+                                "example": "El periodo académico está en curso."
                             }
                         },
                         "type": "object",
