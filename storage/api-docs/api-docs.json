@@ -24,7 +24,7 @@
                 "operationId": "f0d7c0cc8f0c91e548e25d41d815d55d",
                 "responses": {
                     "200": {
-                        "description": "List of academic periods with nested phases and deliverables",
+                        "description": "List of academic periods with their state name",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -39,52 +39,10 @@
                                                 "type": "string",
                                                 "example": "2025-1"
                                             },
-                                            "start_date": {
+                                            "state_name": {
                                                 "type": "string",
-                                                "format": "date",
-                                                "example": "2025-01-15"
-                                            },
-                                            "end_date": {
-                                                "type": "string",
-                                                "format": "date",
-                                                "example": "2025-06-30"
-                                            },
-                                            "state": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "name": {
-                                                        "type": "string",
-                                                        "example": "Active"
-                                                    },
-                                                    "description": {
-                                                        "type": "string",
-                                                        "example": "Academic period is currently running."
-                                                    }
-                                                },
-                                                "type": "object",
+                                                "example": "Active",
                                                 "nullable": true
-                                            },
-                                            "phases": {
-                                                "properties": {
-                                                    "phase_one": {
-                                                        "$ref": "#/components/schemas/AcademicPeriodPhaseResource"
-                                                    },
-                                                    "phase_two": {
-                                                        "$ref": "#/components/schemas/AcademicPeriodPhaseResource"
-                                                    }
-                                                },
-                                                "type": "object"
-                                            },
-                                            "created_at": {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            "updated_at": {
-                                                "type": "string",
-                                                "format": "date-time"
                                             }
                                         },
                                         "type": "object"

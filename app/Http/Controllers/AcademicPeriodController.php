@@ -88,7 +88,7 @@ class AcademicPeriodController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="List of academic periods with nested phases and deliverables",
+     *         description="List of academic periods with their state name",
      *
      *         @OA\JsonContent(
      *             type="array",
@@ -98,21 +98,7 @@ class AcademicPeriodController extends Controller
      *
      *                 @OA\Property(property="id", type="integer", example=3),
      *                 @OA\Property(property="name", type="string", example="2025-1"),
-     *                 @OA\Property(property="start_date", type="string", format="date", example="2025-01-15"),
-     *                 @OA\Property(property="end_date", type="string", format="date", example="2025-06-30"),
-     *                 @OA\Property(property="state", type="object", nullable=true,
-     *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="name", type="string", example="Active"),
-     *                     @OA\Property(property="description", type="string", example="Academic period is currently running."),
-     *                 ),
-     *                 @OA\Property(
-     *                     property="phases",
-     *                     type="object",
-     *                     @OA\Property(property="phase_one", ref="#/components/schemas/AcademicPeriodPhaseResource"),
-     *                     @OA\Property(property="phase_two", ref="#/components/schemas/AcademicPeriodPhaseResource"),
-     *                 ),
-     *                 @OA\Property(property="created_at", type="string", format="date-time"),
-     *                 @OA\Property(property="updated_at", type="string", format="date-time")
+     *                 @OA\Property(property="state_name", type="string", example="Active", nullable=true)
      *             )
      *         )
      *     )
@@ -120,12 +106,9 @@ class AcademicPeriodController extends Controller
      */
     public function index(): \Illuminate\Http\JsonResponse
     {
-        $academicPeriods = AcademicPeriod::with([
-            'state',
-            'phases.deliverables.files',
-        ])->orderByDesc('start_date')->orderByDesc('id')->get();
+        $academicPeriods = AcademicPeriod::with('state')->orderByDesc('start_date')->orderByDesc('id')->get();
 
-        return response()->json($academicPeriods->map(fn (AcademicPeriod $period) => $this->transformPeriod($period)));
+        return response()->json($academicPeriods->map(fn (AcademicPeriod $period) => $this->transformPeriodSummary($period)));
     }
 
     /**
@@ -644,6 +627,17 @@ class AcademicPeriodController extends Controller
     /**
      * Shape the academic period response with nested phases and deliverables.
      */
+    protected function transformPeriodSummary(AcademicPeriod $period): array
+    {
+        $period->loadMissing('state');
+
+        return [
+            'id' => $period->id,
+            'name' => $period->name,
+            'state_name' => $period->state?->name,
+        ];
+    }
+
     protected function transformPeriod(AcademicPeriod $period): array
     {
         $period->loadMissing('state', 'phases.deliverables.files');
