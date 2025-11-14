@@ -2671,23 +2671,16 @@
                         "format": "date",
                         "example": "2025-06-30"
                     },
-                    "state": {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "name": {
-                                "type": "string",
-                                "example": "Activo"
-                            },
-                            "description": {
-                                "type": "string",
-                                "example": "El periodo académico está en curso."
-                            }
-                        },
-                        "type": "object",
-                        "nullable": true
+                    "state_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "phase_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 5
+                        }
                     },
                     "created_at": {
                         "type": "string",

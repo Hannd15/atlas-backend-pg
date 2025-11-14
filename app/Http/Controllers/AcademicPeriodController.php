@@ -30,14 +30,8 @@ use Illuminate\Http\JsonResponse;
  *     @OA\Property(property="name", type="string", example="2025-1"),
  *     @OA\Property(property="start_date", type="string", format="date", example="2025-01-15"),
  *     @OA\Property(property="end_date", type="string", format="date", example="2025-06-30"),
- *     @OA\Property(
- *         property="state",
- *         type="object",
- *         nullable=true,
- *         @OA\Property(property="id", type="integer", example=1),
- *         @OA\Property(property="name", type="string", example="Activo"),
- *         @OA\Property(property="description", type="string", example="El periodo académico está en curso.")
- *     ),
+ *     @OA\Property(property="state_id", type="integer", example=1),
+ *     @OA\Property(property="phase_ids", type="array", @OA\Items(type="integer", example=5)),
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2025-01-01T12:00:00"),
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-01-15T18:30:00")
  * )
@@ -152,9 +146,18 @@ class AcademicPeriodController extends Controller
      */
     public function show(AcademicPeriod $academicPeriod): JsonResponse
     {
-        $academicPeriod->load('state');
+        $academicPeriod->load('phases');
 
-        return response()->json($this->transformPeriod($academicPeriod));
+        return response()->json([
+            'id' => $academicPeriod->id,
+            'name' => $academicPeriod->name,
+            'start_date' => optional($academicPeriod->start_date)->toDateString(),
+            'end_date' => optional($academicPeriod->end_date)->toDateString(),
+            'state_id' => $academicPeriod->state_id,
+            'phase_ids' => $academicPeriod->phases->pluck('id')->values()->all(),
+            'created_at' => optional($academicPeriod->created_at)->toDateTimeString(),
+            'updated_at' => optional($academicPeriod->updated_at)->toDateTimeString(),
+        ]);
     }
 
     /**
