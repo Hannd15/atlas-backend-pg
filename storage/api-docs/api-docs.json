@@ -298,13 +298,39 @@
                 "operationId": "7ae26f21055ed76fad4e7bb42aaca919",
                 "responses": {
                     "200": {
-                        "description": "List of deliverables with phase and file relationships",
+                        "description": "List of deliverables with essential metadata",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/DeliverableResource"
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 12
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "example": "Entrega 1"
+                                            },
+                                            "description": {
+                                                "type": "string",
+                                                "example": "Documento PDF con la propuesta",
+                                                "nullable": true
+                                            },
+                                            "due_date": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "example": "2025-03-15T23:59:00",
+                                                "nullable": true
+                                            },
+                                            "phase_name": {
+                                                "type": "string",
+                                                "example": "Proyecto de grado I",
+                                                "nullable": true
+                                            }
+                                        },
+                                        "type": "object"
                                     }
                                 }
                             }
@@ -932,7 +958,17 @@
                 "operationId": "b25436f36fed519cb23ebc9e2e9fe4d8",
                 "responses": {
                     "200": {
-                        "description": "List of phases with period and deliverable names"
+                        "description": "List of all phases with period information",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PhaseResource"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -948,6 +984,7 @@
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "Phase ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -956,7 +993,17 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Phase details with relation IDs"
+                        "description": "Phase details with period relationship",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PhaseResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Phase not found"
                     }
                 }
             },
@@ -970,6 +1017,7 @@
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "Phase ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -977,30 +1025,15 @@
                     }
                 ],
                 "requestBody": {
+                    "description": "Phase update payload",
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "properties": {
                                     "name": {
-                                        "type": "string"
-                                    },
-                                    "start_date": {
                                         "type": "string",
-                                        "format": "date"
-                                    },
-                                    "end_date": {
-                                        "type": "string",
-                                        "format": "date"
-                                    },
-                                    "period_id": {
-                                        "type": "integer"
-                                    },
-                                    "deliverable_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer"
-                                        }
+                                        "example": "Proyecto de grado I"
                                     }
                                 },
                                 "type": "object"
@@ -1010,7 +1043,20 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Phase updated successfully"
+                        "description": "Phase updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PhaseResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Phase not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 }
             },
@@ -1024,6 +1070,7 @@
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "Phase ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -1032,7 +1079,23 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Phase deleted successfully"
+                        "description": "Phase deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Phase deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Phase not found"
                     }
                 }
             }
@@ -1046,7 +1109,27 @@
                 "operationId": "755caaf39b8cf85852e62911d12b3e41",
                 "responses": {
                     "200": {
-                        "description": "List of phases formatted for dropdowns"
+                        "description": "List of phases formatted for dropdowns",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Proyecto de grado I"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -2946,6 +3029,47 @@
                 },
                 "type": "object"
             },
+            "PhaseResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Proyecto de grado I"
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-01-15"
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-06-30"
+                    },
+                    "period_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "period_names": {
+                        "type": "string",
+                        "example": "2025-1"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-01-01T12:00:00"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-01-15T18:30:00"
+                    }
+                },
+                "type": "object"
+            },
             "ProjectResource": {
                 "properties": {
                     "id": {
@@ -3587,7 +3711,7 @@
         },
         {
             "name": "Phases",
-            "description": "API endpoints for managing phases (read-only, phases are auto-created with academic periods)"
+            "description": "API endpoints for managing phases (phases are auto-created with academic periods and tied to them immutably)"
         },
         {
             "name": "Projects",

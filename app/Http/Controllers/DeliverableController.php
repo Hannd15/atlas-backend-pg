@@ -77,12 +77,18 @@ class DeliverableController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="List of deliverables with phase and file relationships",
+     *         description="List of deliverables with essential metadata",
      *
      *         @OA\JsonContent(
      *             type="array",
      *
-     *             @OA\Items(ref="#/components/schemas/DeliverableResource")
+     *             @OA\Items(
+     *                 @OA\Property(property="id", type="integer", example=12),
+     *                 @OA\Property(property="name", type="string", example="Entrega 1"),
+     *                 @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
+     *                 @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
+     *                 @OA\Property(property="phase_name", type="string", nullable=true, example="Proyecto de grado I")
+     *             )
      *         )
      *     )
      * )
