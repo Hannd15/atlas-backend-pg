@@ -2175,6 +2175,142 @@
                 }
             }
         },
+        "/api/pg/rubrics/{rubric}/thematic-lines/{thematicLine}": {
+            "post": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Attach a thematic line to a rubric",
+                "operationId": "f9f4c178980ccc4cc25f78e90310c376",
+                "parameters": [
+                    {
+                        "name": "rubric",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "thematicLine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Thematic line attached to rubric"
+                    },
+                    "404": {
+                        "description": "Rubric or thematic line not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Detach a thematic line from a rubric",
+                "operationId": "602ca6b6389be0d45dc0ee101dfb1491",
+                "parameters": [
+                    {
+                        "name": "rubric",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "thematicLine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Thematic line detached from rubric"
+                    },
+                    "404": {
+                        "description": "Rubric or thematic line not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/rubrics/{rubric}/deliverables/{deliverable}": {
+            "post": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Attach a deliverable to a rubric",
+                "operationId": "a3e9133d2ac043873a04d1b310f937c5",
+                "parameters": [
+                    {
+                        "name": "rubric",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Deliverable attached to rubric"
+                    },
+                    "404": {
+                        "description": "Rubric or deliverable not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Detach a deliverable from a rubric",
+                "operationId": "9ef95c0dbef13f84f0dcf97f3f7def5c",
+                "parameters": [
+                    {
+                        "name": "rubric",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deliverable detached from rubric"
+                    },
+                    "404": {
+                        "description": "Rubric or deliverable not found"
+                    }
+                }
+            }
+        },
         "/api/pg/thematic-lines": {
             "get": {
                 "tags": [
@@ -2727,13 +2863,6 @@
                         "type": "integer",
                         "example": 5
                     },
-                    "rubric_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 7
-                        }
-                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -2770,14 +2899,6 @@
                         "type": "string",
                         "format": "date-time",
                         "example": "2025-03-15T23:59:00",
-                        "nullable": true
-                    },
-                    "rubric_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 7
-                        },
                         "nullable": true
                     }
                 },
@@ -3527,13 +3648,6 @@
                     "description": {
                         "type": "string",
                         "nullable": true
-                    },
-                    "rubric_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 5
-                        }
                     }
                 },
                 "type": "object"
@@ -3551,16 +3665,6 @@
                     "description": {
                         "type": "string",
                         "nullable": true
-                    },
-                    "rubric_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
-                    },
-                    "rubric_names": {
-                        "type": "string",
-                        "example": "Rubrica 1, Rubrica 2"
                     },
                     "created_at": {
                         "type": "string",

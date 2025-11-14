@@ -57,6 +57,7 @@ class RubricController extends Controller
      *             type="array",
      *
      *             @OA\Items(
+     *
      *                 @OA\Property(property="id", type="integer", example=6),
      *                 @OA\Property(property="name", type="string", example="Rubrica Final"),
      *                 @OA\Property(property="description", type="string", nullable=true),
@@ -196,15 +197,92 @@ class RubricController extends Controller
         return response()->json($rubrics);
     }
 
-    protected function syncRelations(Rubric $rubric, ?array $thematicLineIds, ?array $deliverableIds): void
+    /**
+     * @OA\Post(
+     *     path="/api/pg/rubrics/{rubric}/thematic-lines/{thematicLine}",
+     *     summary="Attach a thematic line to a rubric",
+     *     tags={"Rubrics"},
+     *
+     *     @OA\Parameter(name="rubric", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="thematicLine", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=201, description="Thematic line attached to rubric"),
+     *     @OA\Response(response=404, description="Rubric or thematic line not found")
+     * )
+     */
+    public function attachThematicLine(Rubric $rubric, int $thematicLineId): JsonResponse
     {
-        if ($thematicLineIds !== null) {
-            $rubric->thematicLines()->sync($thematicLineIds);
-        }
+        $rubric->thematicLines()->attach($thematicLineId);
 
-        if ($deliverableIds !== null) {
-            $rubric->deliverables()->sync($deliverableIds);
-        }
+        $rubric->load('thematicLines', 'deliverables');
+
+        return response()->json($this->transformForShow($rubric), 201);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/pg/rubrics/{rubric}/thematic-lines/{thematicLine}",
+     *     summary="Detach a thematic line from a rubric",
+     *     tags={"Rubrics"},
+     *
+     *     @OA\Parameter(name="rubric", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="thematicLine", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=200, description="Thematic line detached from rubric"),
+     *     @OA\Response(response=404, description="Rubric or thematic line not found")
+     * )
+     */
+    public function detachThematicLine(Rubric $rubric, int $thematicLineId): JsonResponse
+    {
+        $rubric->thematicLines()->detach($thematicLineId);
+
+        $rubric->load('thematicLines', 'deliverables');
+
+        return response()->json($this->transformForShow($rubric));
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/pg/rubrics/{rubric}/deliverables/{deliverable}",
+     *     summary="Attach a deliverable to a rubric",
+     *     tags={"Rubrics"},
+     *
+     *     @OA\Parameter(name="rubric", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=201, description="Deliverable attached to rubric"),
+     *     @OA\Response(response=404, description="Rubric or deliverable not found")
+     * )
+     */
+    public function attachDeliverable(Rubric $rubric, int $deliverableId): JsonResponse
+    {
+        $rubric->deliverables()->attach($deliverableId);
+
+        $rubric->load('thematicLines', 'deliverables');
+
+        return response()->json($this->transformForShow($rubric), 201);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/pg/rubrics/{rubric}/deliverables/{deliverable}",
+     *     summary="Detach a deliverable from a rubric",
+     *     tags={"Rubrics"},
+     *
+     *     @OA\Parameter(name="rubric", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=200, description="Deliverable detached from rubric"),
+     *     @OA\Response(response=404, description="Rubric or deliverable not found")
+     * )
+     */
+    public function detachDeliverable(Rubric $rubric, int $deliverableId): JsonResponse
+    {
+        $rubric->deliverables()->detach($deliverableId);
+
+        $rubric->load('thematicLines', 'deliverables');
+
+        return response()->json($this->transformForShow($rubric));
     }
 
     protected function transformForIndex(Rubric $rubric): array

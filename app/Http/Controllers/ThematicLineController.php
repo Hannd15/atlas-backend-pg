@@ -19,8 +19,7 @@ use Illuminate\Http\JsonResponse;
  *     required={"name"},
  *
  *     @OA\Property(property="name", type="string", example="IoT"),
- *     @OA\Property(property="description", type="string", nullable=true),
- *     @OA\Property(property="rubric_ids", type="array", @OA\Items(type="integer", example=5))
+ *     @OA\Property(property="description", type="string", nullable=true)
  * )
  *
  * @OA\Schema(
@@ -30,8 +29,6 @@ use Illuminate\Http\JsonResponse;
  *     @OA\Property(property="id", type="integer", example=4),
  *     @OA\Property(property="name", type="string", example="IoT"),
  *     @OA\Property(property="description", type="string", nullable=true),
- *     @OA\Property(property="rubric_ids", type="array", @OA\Items(type="integer")),
- *     @OA\Property(property="rubric_names", type="string", example="Rubrica 1, Rubrica 2"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -54,7 +51,7 @@ class ThematicLineController extends Controller
      */
     public function index(): JsonResponse
     {
-        $thematicLines = ThematicLine::with('rubrics')->orderByDesc('updated_at')->get();
+        $thematicLines = ThematicLine::orderByDesc('updated_at')->get();
 
         return response()->json($thematicLines->map(fn (ThematicLine $thematicLine) => $this->transformForIndex($thematicLine)));
     }
@@ -75,11 +72,7 @@ class ThematicLineController extends Controller
     {
         $thematicLine = ThematicLine::create($request->safe()->only(['name', 'description']));
 
-        if (($rubricIds = $request->rubricIds()) !== null) {
-            $thematicLine->rubrics()->sync($rubricIds);
-        }
-
-        return response()->json($this->transformForShow($thematicLine->load('rubrics')), 201);
+        return response()->json($this->transformForShow($thematicLine), 201);
     }
 
     /**
@@ -96,8 +89,6 @@ class ThematicLineController extends Controller
      */
     public function show(ThematicLine $thematicLine): JsonResponse
     {
-        $thematicLine->load('rubrics');
-
         return response()->json($this->transformForShow($thematicLine));
     }
 
@@ -118,12 +109,6 @@ class ThematicLineController extends Controller
     public function update(UpdateThematicLineRequest $request, ThematicLine $thematicLine): JsonResponse
     {
         $thematicLine->update($request->safe()->only(['name', 'description']));
-
-        if (($rubricIds = $request->rubricIds()) !== null) {
-            $thematicLine->rubrics()->sync($rubricIds);
-        }
-
-        $thematicLine->load('rubrics');
 
         return response()->json($this->transformForShow($thematicLine));
     }
@@ -185,8 +170,6 @@ class ThematicLineController extends Controller
             'id' => $thematicLine->id,
             'name' => $thematicLine->name,
             'description' => $thematicLine->description,
-            'rubric_names' => $thematicLine->rubrics->pluck('name')->implode(', '),
-            'rubric_ids' => $thematicLine->rubrics->pluck('id')->values()->all(),
             'created_at' => optional($thematicLine->created_at)->toDateTimeString(),
             'updated_at' => optional($thematicLine->updated_at)->toDateTimeString(),
         ];
@@ -198,8 +181,6 @@ class ThematicLineController extends Controller
             'id' => $thematicLine->id,
             'name' => $thematicLine->name,
             'description' => $thematicLine->description,
-            'rubric_ids' => $thematicLine->rubrics->pluck('id')->values()->all(),
-            'rubric_names' => $thematicLine->rubrics->pluck('name')->implode(', '),
             'created_at' => optional($thematicLine->created_at)->toDateTimeString(),
             'updated_at' => optional($thematicLine->updated_at)->toDateTimeString(),
         ];

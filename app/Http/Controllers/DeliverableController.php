@@ -21,7 +21,6 @@ use Illuminate\Support\Facades\Validator;
  *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
  *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
  *     @OA\Property(property="phase_id", type="integer", example=5),
- *     @OA\Property(property="rubric_ids", type="array", @OA\Items(type="integer", example=7)),
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2025-01-01T12:00:00"),
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-01-15T18:30:00")
  * )
@@ -34,8 +33,7 @@ use Illuminate\Support\Facades\Validator;
  *     @OA\Property(property="phase_id", type="integer", example=5),
  *     @OA\Property(property="name", type="string", example="Entrega 1"),
  *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
- *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
- *     @OA\Property(property="rubric_ids", type="array", nullable=true, @OA\Items(type="integer", example=7))
+ *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00")
  * )
  */
 class DeliverableController extends Controller
@@ -114,8 +112,6 @@ class DeliverableController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
-            'rubric_ids' => 'nullable|array',
-            'rubric_ids.*' => 'exists:rubrics,id',
         ]);
 
         if ($validator->fails()) {
@@ -123,12 +119,6 @@ class DeliverableController extends Controller
         }
 
         $deliverable = Deliverable::create($validator->validated());
-
-        if (array_key_exists('rubric_ids', $validator->validated()) && $validator->validated()['rubric_ids'] !== null) {
-            $deliverable->rubrics()->sync($this->resolveRubricIds($validator->validated()['rubric_ids'])->all());
-        }
-
-        $deliverable->load('rubrics');
 
         return response()->json($this->transformDeliverable($deliverable), 201);
     }
@@ -157,7 +147,7 @@ class DeliverableController extends Controller
      */
     public function show(Deliverable $deliverable): \Illuminate\Http\JsonResponse
     {
-        $deliverable->load('phase.period', 'files', 'rubrics');
+        $deliverable->load('phase.period', 'files');
 
         return response()->json($this->transformDeliverable($deliverable));
     }
@@ -208,17 +198,9 @@ class DeliverableController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
             'due_date' => 'sometimes|nullable|date',
-            'rubric_ids' => 'nullable|array',
-            'rubric_ids.*' => 'exists:rubrics,id',
         ]);
 
         $deliverable->update($request->only('phase_id', 'name', 'description', 'due_date'));
-
-        if ($request->has('rubric_ids') && $request->input('rubric_ids') !== null) {
-            $deliverable->rubrics()->sync($this->resolveRubricIds($request->input('rubric_ids'))->all());
-        }
-
-        $deliverable->load('rubrics');
 
         return response()->json($this->transformDeliverable($deliverable));
     }
@@ -272,15 +254,6 @@ class DeliverableController extends Controller
         return response()->json($deliverables);
     }
 
-    protected function resolveRubricIds(array $rubricIds): \Illuminate\Support\Collection
-    {
-        return collect($rubricIds)
-            ->filter(fn ($id) => $id !== null)
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values();
-    }
-
     protected function transformDeliverable(Deliverable $deliverable): array
     {
         return [
@@ -289,7 +262,6 @@ class DeliverableController extends Controller
             'description' => $deliverable->description,
             'due_date' => optional($deliverable->due_date)->toDateTimeString(),
             'phase_id' => $deliverable->phase_id,
-            'rubric_ids' => $deliverable->rubrics->pluck('id')->values()->all(),
             'created_at' => optional($deliverable->created_at)->toDateTimeString(),
             'updated_at' => optional($deliverable->updated_at)->toDateTimeString(),
         ];

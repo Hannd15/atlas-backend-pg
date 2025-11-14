@@ -51,6 +51,10 @@ Route::prefix('pg')->group(function () {
     // Rubrics routes
     Route::get('rubrics/dropdown', [RubricController::class, 'dropdown']);
     Route::apiResource('rubrics', RubricController::class);
+    Route::post('rubrics/{rubric}/thematic-lines/{thematicLine}', [RubricController::class, 'attachThematicLine']);
+    Route::delete('rubrics/{rubric}/thematic-lines/{thematicLine}', [RubricController::class, 'detachThematicLine']);
+    Route::post('rubrics/{rubric}/deliverables/{deliverable}', [RubricController::class, 'attachDeliverable']);
+    Route::delete('rubrics/{rubric}/deliverables/{deliverable}', [RubricController::class, 'detachDeliverable']);
 
     Route::middleware('auth.atlas')->group(function () {
         Route::apiResource('proposals', ProposalController::class);
