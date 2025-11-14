@@ -21,9 +21,7 @@ use Illuminate\Http\JsonResponse;
  *     @OA\Property(property="name", type="string", example="Rubrica Final"),
  *     @OA\Property(property="description", type="string", nullable=true),
  *     @OA\Property(property="min_value", type="integer", nullable=true, example=0),
- *     @OA\Property(property="max_value", type="integer", nullable=true, example=100),
- *     @OA\Property(property="thematic_line_ids", type="array", @OA\Items(type="integer", example=4)),
- *     @OA\Property(property="deliverable_ids", type="array", @OA\Items(type="integer", example=12))
+ *     @OA\Property(property="max_value", type="integer", nullable=true, example=100)
  * )
  *
  * @OA\Schema(
@@ -53,9 +51,21 @@ class RubricController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="Array of rubrics",
+     *         description="Array of rubrics with essential metadata",
      *
-     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/RubricResource"))
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *                 @OA\Property(property="id", type="integer", example=6),
+     *                 @OA\Property(property="name", type="string", example="Rubrica Final"),
+     *                 @OA\Property(property="description", type="string", nullable=true),
+     *                 @OA\Property(property="min_value", type="integer", nullable=true, example=0),
+     *                 @OA\Property(property="max_value", type="integer", nullable=true, example=100),
+     *                 @OA\Property(property="thematic_line_names", type="string", example="Investigación, IoT"),
+     *                 @OA\Property(property="deliverable_names", type="string", example="Entrega 1, Entrega 2")
+     *             )
+     *         )
      *     )
      * )
      */
@@ -63,7 +73,15 @@ class RubricController extends Controller
     {
         $rubrics = Rubric::with('thematicLines', 'deliverables')->orderByDesc('updated_at')->get();
 
-        return response()->json($rubrics->map(fn (Rubric $rubric) => $this->transformForIndex($rubric)));
+        return response()->json($rubrics->map(fn (Rubric $rubric) => [
+            'id' => $rubric->id,
+            'name' => $rubric->name,
+            'description' => $rubric->description,
+            'min_value' => $rubric->min_value,
+            'max_value' => $rubric->max_value,
+            'thematic_line_names' => $rubric->thematicLines->pluck('name')->implode(', '),
+            'deliverable_names' => $rubric->deliverables->pluck('name')->implode(', '),
+        ]));
     }
 
     /**
@@ -81,8 +99,6 @@ class RubricController extends Controller
     public function store(StoreRubricRequest $request): JsonResponse
     {
         $rubric = Rubric::create($request->safe()->only(['name', 'description', 'min_value', 'max_value']));
-
-        $this->syncRelations($rubric, $request->thematicLineIds(), $request->deliverableIds());
 
         return response()->json($this->transformForShow($rubric->load('thematicLines', 'deliverables')), 201);
     }
@@ -123,8 +139,6 @@ class RubricController extends Controller
     public function update(UpdateRubricRequest $request, Rubric $rubric): JsonResponse
     {
         $rubric->update($request->safe()->only(['name', 'description', 'min_value', 'max_value']));
-
-        $this->syncRelations($rubric, $request->thematicLineIds(), $request->deliverableIds());
 
         $rubric->load('thematicLines', 'deliverables');
 

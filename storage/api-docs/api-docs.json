@@ -1059,45 +1059,6 @@
                         "description": "Validation error"
                     }
                 }
-            },
-            "delete": {
-                "tags": [
-                    "Phases"
-                ],
-                "summary": "Delete a phase",
-                "operationId": "171ea40de8aa01391a64015a7200abc0",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "Phase ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Phase deleted successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Phase deleted successfully"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Phase not found"
-                    }
-                }
             }
         },
         "/api/pg/phases/dropdown": {
@@ -1994,13 +1955,45 @@
                 "operationId": "8c3a8926b77f3cef7bc92a827a406ab9",
                 "responses": {
                     "200": {
-                        "description": "Array of rubrics",
+                        "description": "Array of rubrics with essential metadata",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/RubricResource"
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 6
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "example": "Rubrica Final"
+                                            },
+                                            "description": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "min_value": {
+                                                "type": "integer",
+                                                "example": 0,
+                                                "nullable": true
+                                            },
+                                            "max_value": {
+                                                "type": "integer",
+                                                "example": 100,
+                                                "nullable": true
+                                            },
+                                            "thematic_line_names": {
+                                                "type": "string",
+                                                "example": "Investigación, IoT"
+                                            },
+                                            "deliverable_names": {
+                                                "type": "string",
+                                                "example": "Entrega 1, Entrega 2"
+                                            }
+                                        },
+                                        "type": "object"
                                     }
                                 }
                             }
@@ -3561,20 +3554,6 @@
                         "type": "integer",
                         "example": 100,
                         "nullable": true
-                    },
-                    "thematic_line_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 4
-                        }
-                    },
-                    "deliverable_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 12
-                        }
                     }
                 },
                 "type": "object"
