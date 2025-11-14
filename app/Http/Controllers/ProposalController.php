@@ -17,6 +17,64 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
+/**
+ * @OA\Tag(
+ *     name="Proposals",
+ *     description="Endpoints for viewing and managing research proposals"
+ * )
+ *
+ * @OA\Schema(
+ *     schema="ProposalPayload",
+ *     type="object",
+ *     required={"title","thematic_line_id","proposer_id"},
+ *
+ *     @OA\Property(property="title", type="string", example="Sistema de monitoreo"),
+ *     @OA\Property(property="description", type="string", nullable=true),
+ *     @OA\Property(property="thematic_line_id", type="integer", example=4),
+ *     @OA\Property(property="proposer_id", type="integer", example=12),
+ *     @OA\Property(property="preferred_director_id", type="integer", nullable=true, example=32),
+ *     @OA\Property(property="proposal_status_id", type="integer", nullable=true, example=2),
+ *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer", example=77)),
+ *     @OA\Property(
+ *         property="files",
+ *         type="array",
+ *
+ *         @OA\Items(type="string", format="binary")
+ *     )
+ * )
+ *
+ * @OA\Schema(
+ *     schema="ProposalResource",
+ *     type="object",
+ *
+ *     @OA\Property(property="id", type="integer", example=15),
+ *     @OA\Property(property="title", type="string", example="Sistema de monitoreo"),
+ *     @OA\Property(property="description", type="string", nullable=true),
+ *     @OA\Property(
+ *         property="proposal_type",
+ *         type="object",
+ *         nullable=true,
+ *         @OA\Property(property="id", type="integer", example=2),
+ *         @OA\Property(property="code", type="string", example="made_by_teacher"),
+ *         @OA\Property(property="name", type="string", example="Docente")
+ *     ),
+ *     @OA\Property(
+ *         property="proposal_status",
+ *         type="object",
+ *         nullable=true,
+ *         @OA\Property(property="id", type="integer", example=4),
+ *         @OA\Property(property="code", type="string", example="pending"),
+ *         @OA\Property(property="name", type="string", example="Pendiente")
+ *     ),
+ *     @OA\Property(property="proposer", type="object", nullable=true, @OA\Property(property="id", type="integer", example=9), @OA\Property(property="name", type="string", example="Laura Mejía")),
+ *     @OA\Property(property="preferred_director", type="object", nullable=true, @OA\Property(property="id", type="integer", example=23), @OA\Property(property="name", type="string", example="Ing. Carlos")),
+ *     @OA\Property(property="thematic_line", type="object", nullable=true, @OA\Property(property="id", type="integer", example=3), @OA\Property(property="name", type="string", example="IoT")),
+ *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer")),
+ *     @OA\Property(property="file_names", type="array", @OA\Items(type="string")),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class ProposalController extends Controller
 {
     public function __construct(
@@ -24,6 +82,20 @@ class ProposalController extends Controller
         protected AtlasAuthService $atlasAuthService
     ) {}
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/proposals",
+     *     summary="List proposals created by teachers",
+     *     tags={"Proposals"},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Proposals list",
+     *
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/ProposalResource"))
+     *     )
+     * )
+     */
     public function index(): JsonResponse
     {
         $proposals = Proposal::with($this->defaultRelations())
@@ -34,6 +106,22 @@ class ProposalController extends Controller
         return response()->json($proposals->map(fn (Proposal $proposal) => $this->transformForIndex($proposal)));
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/pg/proposals",
+     *     summary="Create a proposal",
+     *     tags={"Proposals"},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\MediaType(mediaType="multipart/form-data", @OA\Schema(ref="#/components/schemas/ProposalPayload"))
+     *     ),
+     *
+     *     @OA\Response(response=201, description="Proposal created", @OA\JsonContent(ref="#/components/schemas/ProposalResource")),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function store(StoreProposalRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -63,6 +151,18 @@ class ProposalController extends Controller
         return response()->json($this->transformForShow($proposal), 201);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/proposals/{proposal}",
+     *     summary="Show a proposal",
+     *     tags={"Proposals"},
+     *
+     *     @OA\Parameter(name="proposal", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=200, description="Proposal detail", @OA\JsonContent(ref="#/components/schemas/ProposalResource")),
+     *     @OA\Response(response=404, description="Proposal not found")
+     * )
+     */
     public function show(Proposal $proposal): JsonResponse
     {
         $proposal->load($this->defaultRelations());
@@ -70,6 +170,20 @@ class ProposalController extends Controller
         return response()->json($this->transformForShow($proposal));
     }
 
+    /**
+     * @OA\Put(
+     *     path="/api/pg/proposals/{proposal}",
+     *     summary="Update a proposal",
+     *     tags={"Proposals"},
+     *
+     *     @OA\Parameter(name="proposal", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\RequestBody(@OA\MediaType(mediaType="multipart/form-data", @OA\Schema(ref="#/components/schemas/ProposalPayload"))),
+     *
+     *     @OA\Response(response=200, description="Proposal updated", @OA\JsonContent(ref="#/components/schemas/ProposalResource")),
+     *     @OA\Response(response=404, description="Proposal not found")
+     * )
+     */
     public function update(UpdateProposalRequest $request, Proposal $proposal): JsonResponse
     {
         $validated = $request->validated();
@@ -101,6 +215,18 @@ class ProposalController extends Controller
         return response()->json($this->transformForShow($proposal));
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/api/pg/proposals/{proposal}",
+     *     summary="Delete a proposal",
+     *     tags={"Proposals"},
+     *
+     *     @OA\Parameter(name="proposal", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=200, description="Proposal deleted"),
+     *     @OA\Response(response=404, description="Proposal not found")
+     * )
+     */
     public function destroy(Proposal $proposal): JsonResponse
     {
         $fileIds = $proposal->files()->pluck('files.id')->all();

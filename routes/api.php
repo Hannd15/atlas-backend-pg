@@ -54,7 +54,9 @@ Route::prefix('pg')->group(function () {
 
     // Repository Projects routes
     Route::get('repository-projects', [RepositoryProjectController::class, 'index']);
+    Route::post('repository-projects', [RepositoryProjectController::class, 'store']);
     Route::get('repository-projects/{repositoryProject}', [RepositoryProjectController::class, 'show']);
+    Route::put('repository-projects/{repositoryProject}', [RepositoryProjectController::class, 'update']);
 
     // Project Groups routes
     Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
@@ -79,7 +81,5 @@ Route::prefix('pg')->group(function () {
 
     // User Project Eligibilities routes
     Route::get('user-project-eligibilities/by-user', [UserProjectEligibilityController::class, 'byUser']);
-    Route::get('user-project-eligibilities/by-user/dropdown', [UserProjectEligibilityController::class, 'byUserDropdown']);
     Route::get('user-project-eligibilities/by-position', [UserProjectEligibilityController::class, 'byPosition']);
-    Route::get('user-project-eligibilities/by-position/dropdown', [UserProjectEligibilityController::class, 'byPositionDropdown']);
 });

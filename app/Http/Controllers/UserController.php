@@ -195,8 +195,7 @@ class UserController extends Controller
      *                 type="object",
      *
      *                 @OA\Property(property="value", type="integer", example=5),
-     *                 @OA\Property(property="label", type="string", example="Jane Doe"),
-     *                 @OA\Property(property="project_position_eligibility_names", type="string", example="Director, Jurado")
+     *                 @OA\Property(property="label", type="string", example="Jane Doe")
      *             )
      *         )
      *     )
@@ -204,18 +203,10 @@ class UserController extends Controller
      */
     public function dropdown(): \Illuminate\Http\JsonResponse
     {
-        $users = User::with(['eligiblePositions', 'proposals', 'preferredProposals'])->orderBy('name')->get()->map(function ($user) {
-            return [
-                'value' => $user->id,
-                'label' => $user->name,
-                'project_position_eligibility_names' => $user->eligiblePositions->pluck('name')->implode(', '),
-                'proposal_names' => $user->proposals->pluck('title')
-                    ->merge($user->preferredProposals->pluck('title'))
-                    ->filter()
-                    ->unique()
-                    ->implode(', '),
-            ];
-        })->values();
+        $users = User::orderBy('name')->get()->map(fn (User $user) => [
+            'value' => $user->id,
+            'label' => $user->name,
+        ])->values();
 
         return response()->json($users);
     }

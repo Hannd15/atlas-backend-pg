@@ -967,6 +967,66 @@
                     }
                 }
             },
+            "put": {
+                "tags": [
+                    "Deliverable Files"
+                ],
+                "summary": "Update a deliverable-file association",
+                "operationId": "ac8f29a08241e168bc0140e214a56539",
+                "parameters": [
+                    {
+                        "name": "deliverable_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "file_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Deliverable-file association updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DeliverableFileResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
             "delete": {
                 "tags": [
                     "Deliverable Files"
@@ -1065,7 +1125,7 @@
                                             "example": 4
                                         }
                                     },
-                                    "repository_proposal_ids": {
+                                    "proposal_ids": {
                                         "type": "array",
                                         "items": {
                                             "type": "integer",
@@ -1177,7 +1237,7 @@
                                             "type": "integer"
                                         }
                                     },
-                                    "repository_proposal_ids": {
+                                    "proposal_ids": {
                                         "type": "array",
                                         "items": {
                                             "type": "integer"
@@ -1367,6 +1427,418 @@
                 }
             }
         },
+        "/api/pg/projects": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Get all projects",
+                "operationId": "c2196c0c84bc15b75105199b161dbca2",
+                "responses": {
+                    "200": {
+                        "description": "List of projects with related group/member metadata",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProjectResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Create a new project",
+                "operationId": "1cd2b1a507a5b21ac836632b071fb6f9",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title",
+                                    "status"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Nuevo proyecto"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "draft"
+                                    },
+                                    "proposal_id": {
+                                        "type": "integer",
+                                        "example": 8,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Project created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/projects/{id}": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Get a specific project",
+                "operationId": "0e23dd22a8267d1b63872e27b9bb0a21",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Project not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Update a project",
+                "operationId": "4e07ed33b36cf089bcce90d1e702902e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string"
+                                    },
+                                    "proposal_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Project updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Project not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Delete a project",
+                "operationId": "181f27ca5f9ca83afb6eafc916c4cc9a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project deleted successfully"
+                    },
+                    "404": {
+                        "description": "Project not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/projects/dropdown": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Get projects for dropdowns",
+                "operationId": "d45fdc66296b033777b18903fd6c31c3",
+                "responses": {
+                    "200": {
+                        "description": "List of projects formatted for dropdowns",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 3
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Sistema de monitoreo"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/project-groups": {
+            "get": {
+                "tags": [
+                    "Project Groups"
+                ],
+                "summary": "List project groups",
+                "operationId": "449a33fed4ae3ede275d4302563ba072",
+                "responses": {
+                    "200": {
+                        "description": "Array of project groups",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProjectGroupResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Project Groups"
+                ],
+                "summary": "Create a project group",
+                "operationId": "396e43b4c1989f70ff0de213d9007a84",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProjectGroupPayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Project group created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectGroupResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/project-groups/{project_group}": {
+            "get": {
+                "tags": [
+                    "Project Groups"
+                ],
+                "summary": "Show a project group",
+                "operationId": "f99a4f292afff6be59b3bde7b09e9975",
+                "parameters": [
+                    {
+                        "name": "project_group",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project group details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectGroupResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Project group not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Project Groups"
+                ],
+                "summary": "Update a project group",
+                "operationId": "487e442ee32ad73e0f9455ba21ff2311",
+                "parameters": [
+                    {
+                        "name": "project_group",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProjectGroupPayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Project group updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectGroupResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Project group not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Project Groups"
+                ],
+                "summary": "Delete a project group",
+                "operationId": "aba1a0084142e416eaad1fc554a265e8",
+                "parameters": [
+                    {
+                        "name": "project_group",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project group deleted"
+                    },
+                    "404": {
+                        "description": "Project group not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/project-groups/dropdown": {
+            "get": {
+                "tags": [
+                    "Project Groups"
+                ],
+                "summary": "Project groups dropdown",
+                "operationId": "fb5e90fb21a857b8bb374a61730c8310",
+                "responses": {
+                    "200": {
+                        "description": "Pairs of value/label",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 3
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Grupo Alfa"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/pg/project-positions": {
             "get": {
                 "tags": [
@@ -1462,6 +1934,13 @@
                                 "properties": {
                                     "name": {
                                         "type": "string"
+                                    },
+                                    "eligible_user_ids": {
+                                        "description": "Array of user IDs eligible for this position. Empty array clears all eligibilities. Null or missing field leaves current assignments untouched.",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
                                     }
                                 },
                                 "type": "object"
@@ -1508,6 +1987,673 @@
                 "responses": {
                     "200": {
                         "description": "List of project positions formatted for dropdowns"
+                    }
+                }
+            }
+        },
+        "/api/pg/proposals": {
+            "get": {
+                "tags": [
+                    "Proposals"
+                ],
+                "summary": "List proposals created by teachers",
+                "operationId": "52466dc6786bbbcb893f905936f65acc",
+                "responses": {
+                    "200": {
+                        "description": "Proposals list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProposalResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Proposals"
+                ],
+                "summary": "Create a proposal",
+                "operationId": "6927fb6176ad7e1c282b6b269d2f83a2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalPayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Proposal created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/proposals/{proposal}": {
+            "get": {
+                "tags": [
+                    "Proposals"
+                ],
+                "summary": "Show a proposal",
+                "operationId": "356ef0b20c08854a6e91e2bed38f50f2",
+                "parameters": [
+                    {
+                        "name": "proposal",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proposal detail",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Proposal not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Proposals"
+                ],
+                "summary": "Update a proposal",
+                "operationId": "e5a897a62dc865223d769bcc81795958",
+                "parameters": [
+                    {
+                        "name": "proposal",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalPayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Proposal updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Proposal not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Proposals"
+                ],
+                "summary": "Delete a proposal",
+                "operationId": "2f0412ed0c9db5f6b66e55ffbe73a2df",
+                "parameters": [
+                    {
+                        "name": "proposal",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proposal deleted"
+                    },
+                    "404": {
+                        "description": "Proposal not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/repository-projects": {
+            "get": {
+                "tags": [
+                    "Repository Projects"
+                ],
+                "summary": "List repository projects",
+                "operationId": "4f4847a5dadd0780e21980a28c299cd4",
+                "responses": {
+                    "200": {
+                        "description": "Array of repository projects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RepositoryProjectResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Repository Projects"
+                ],
+                "summary": "Create a repository project",
+                "operationId": "d03929d1f81c7bd338f73eeabec4c96a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RepositoryProjectPayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Repository project created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RepositoryProjectResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/repository-projects/{repository_project}": {
+            "get": {
+                "tags": [
+                    "Repository Projects"
+                ],
+                "summary": "Show a repository project",
+                "operationId": "9201af4c67701aa75b663e91bd16507a",
+                "parameters": [
+                    {
+                        "name": "repository_project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Repository project detail",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RepositoryProjectResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Repository project not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Repository Projects"
+                ],
+                "summary": "Update a repository project",
+                "operationId": "049b0182078c350213db4a783b102859",
+                "parameters": [
+                    {
+                        "name": "repository_project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RepositoryProjectPayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Repository project updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RepositoryProjectResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Repository project not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/rubrics": {
+            "get": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "List rubrics",
+                "operationId": "8c3a8926b77f3cef7bc92a827a406ab9",
+                "responses": {
+                    "200": {
+                        "description": "Array of rubrics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RubricResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Create a rubric",
+                "operationId": "c3356e1f813cdbfa005fcb8203248bfa",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RubricPayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Rubric created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RubricResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/rubrics/{rubric}": {
+            "get": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Show a rubric",
+                "operationId": "52547c4ce7ed7c66bda10408a4a635f4",
+                "parameters": [
+                    {
+                        "name": "rubric",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rubric detail",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RubricResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rubric not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Update a rubric",
+                "operationId": "75e8c3e8f6ea60d00cdba7641e16205d",
+                "parameters": [
+                    {
+                        "name": "rubric",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RubricPayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Rubric updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RubricResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rubric not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Delete a rubric",
+                "operationId": "9aa6c760e400ae6d13995a79f8a9ee24",
+                "parameters": [
+                    {
+                        "name": "rubric",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rubric deleted"
+                    },
+                    "404": {
+                        "description": "Rubric not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/rubrics/dropdown": {
+            "get": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Rubrics dropdown",
+                "operationId": "b046430de2b00845899da343a1c6ce73",
+                "responses": {
+                    "200": {
+                        "description": "Pairs ready for select inputs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 6
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Rubrica Final"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/thematic-lines": {
+            "get": {
+                "tags": [
+                    "Thematic Lines"
+                ],
+                "summary": "List thematic lines",
+                "operationId": "165b84e4ea0ace1a86608c795d0354ce",
+                "responses": {
+                    "200": {
+                        "description": "Array of thematic lines",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ThematicLineResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Thematic Lines"
+                ],
+                "summary": "Create a thematic line",
+                "operationId": "ce633a85ec83b331920da7b352bf474f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ThematicLinePayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Thematic line created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ThematicLineResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/thematic-lines/{thematic_line}": {
+            "get": {
+                "tags": [
+                    "Thematic Lines"
+                ],
+                "summary": "Show a thematic line",
+                "operationId": "b1c14657d97c9d296a5b360ef182a074",
+                "parameters": [
+                    {
+                        "name": "thematic_line",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Thematic line detail",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ThematicLineResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Thematic line not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Thematic Lines"
+                ],
+                "summary": "Update a thematic line",
+                "operationId": "60976bff6a14486c928e1314d752683f",
+                "parameters": [
+                    {
+                        "name": "thematic_line",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ThematicLinePayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Thematic line updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ThematicLineResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Thematic line not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Thematic Lines"
+                ],
+                "summary": "Delete a thematic line",
+                "operationId": "79788b7644246b6edf8450cc32557fd2",
+                "parameters": [
+                    {
+                        "name": "thematic_line",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Thematic line deleted"
+                    },
+                    "404": {
+                        "description": "Thematic line not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/thematic-lines/dropdown": {
+            "get": {
+                "tags": [
+                    "Thematic Lines"
+                ],
+                "summary": "Thematic lines dropdown",
+                "operationId": "1551d14e9caa81c7cc74ae3f5bbdb2f5",
+                "responses": {
+                    "200": {
+                        "description": "Pairs ready for selects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 4
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "IoT"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1683,122 +2829,103 @@
                 "operationId": "81dfd57b411a5700af5e4b9a6a132a82",
                 "responses": {
                     "200": {
-                        "description": "List of users formatted for dropdowns"
-                    }
-                }
-            }
-        },
-        "/api/pg/user-project-eligibilities": {
-            "get": {
-                "tags": [
-                    "User Project Eligibilities"
-                ],
-                "summary": "Get all user project eligibilities",
-                "operationId": "79ecbb8c0a6a19dfb9f8f351d8387b99",
-                "responses": {
-                    "200": {
-                        "description": "List of user project eligibilities with user and position names"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "User Project Eligibilities"
-                ],
-                "summary": "Create a new user project eligibility",
-                "operationId": "38ac9652bc15fc7630b3724f8b4d812e",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "user_id",
-                                    "project_position_id"
-                                ],
-                                "properties": {
-                                    "user_id": {
-                                        "type": "integer",
-                                        "example": 1
-                                    },
-                                    "project_position_id": {
-                                        "type": "integer",
-                                        "example": 1
+                        "description": "List of users formatted for dropdowns",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 5
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Jane Doe"
+                                            }
+                                        },
+                                        "type": "object"
                                     }
-                                },
-                                "type": "object"
+                                }
                             }
                         }
                     }
-                },
-                "responses": {
-                    "201": {
-                        "description": "User project eligibility created successfully"
-                    },
-                    "422": {
-                        "description": "Validation error"
-                    }
                 }
             }
         },
-        "/api/pg/user-project-eligibilities/{user_id}/{project_position_id}": {
+        "/api/pg/user-project-eligibilities/by-user": {
             "get": {
                 "tags": [
                     "User Project Eligibilities"
                 ],
-                "summary": "Get a specific user project eligibility",
-                "operationId": "49e1b25d11a6640e7432606495e2c47a",
-                "parameters": [
-                    {
-                        "name": "user_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "project_position_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
+                "summary": "Get user eligibility summaries",
+                "operationId": "63cccd2d6fb2783946748642ad161741",
                 "responses": {
                     "200": {
-                        "description": "User project eligibility details with relation IDs"
+                        "description": "List of users with comma-separated eligible project positions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "user_id": {
+                                                "type": "integer",
+                                                "example": 5
+                                            },
+                                            "user_name": {
+                                                "type": "string",
+                                                "example": "Jane Doe"
+                                            },
+                                            "project_position_names": {
+                                                "type": "string",
+                                                "example": "Director, Jurado"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-            },
-            "delete": {
+            }
+        },
+        "/api/pg/user-project-eligibilities/by-position": {
+            "get": {
                 "tags": [
                     "User Project Eligibilities"
                 ],
-                "summary": "Delete a user project eligibility",
-                "operationId": "fdaa0ff2e200304230fdd3f3e8b871fe",
-                "parameters": [
-                    {
-                        "name": "user_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "project_position_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
+                "summary": "Get project position eligibility summaries",
+                "operationId": "8aefc4e9814e3cf5983a4d70732fb904",
                 "responses": {
                     "200": {
-                        "description": "User project eligibility deleted successfully"
+                        "description": "List of project positions with comma-separated eligible users",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "project_position_id": {
+                                                "type": "integer",
+                                                "example": 3
+                                            },
+                                            "project_position_name": {
+                                                "type": "string",
+                                                "example": "Director"
+                                            },
+                                            "user_names": {
+                                                "type": "string",
+                                                "example": "Jane Doe, John Smith"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -2210,7 +3337,7 @@
                             "example": 3
                         }
                     },
-                    "repository_proposals": {
+                    "proposals": {
                         "type": "array",
                         "items": {
                             "properties": {
@@ -2226,12 +3353,585 @@
                             "type": "object"
                         }
                     },
-                    "repository_proposal_ids": {
+                    "proposal_ids": {
                         "type": "array",
                         "items": {
                             "type": "integer",
                             "example": 8
                         }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ProjectResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Plataforma IoT"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "active"
+                    },
+                    "proposal_id": {
+                        "type": "integer",
+                        "example": 5,
+                        "nullable": true
+                    },
+                    "group_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 7
+                        }
+                    },
+                    "member_names": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "example": "Laura Proposer"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ProjectGroupPayload": {
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "Grupo Alfa"
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 7,
+                        "nullable": true
+                    },
+                    "member_user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 25
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ProjectGroupResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Grupo Alfa"
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 7,
+                        "nullable": true
+                    },
+                    "project_name": {
+                        "type": "string",
+                        "example": "Sistema IoT",
+                        "nullable": true
+                    },
+                    "member_user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 25
+                        }
+                    },
+                    "member_user_names": {
+                        "type": "string",
+                        "example": "Ana López, Juan Pérez"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ProposalPayload": {
+                "required": [
+                    "title",
+                    "thematic_line_id",
+                    "proposer_id"
+                ],
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "example": "Sistema de monitoreo"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "thematic_line_id": {
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "proposer_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "preferred_director_id": {
+                        "type": "integer",
+                        "example": 32,
+                        "nullable": true
+                    },
+                    "proposal_status_id": {
+                        "type": "integer",
+                        "example": 2,
+                        "nullable": true
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 77
+                        }
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ProposalResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Sistema de monitoreo"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "proposal_type": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 2
+                            },
+                            "code": {
+                                "type": "string",
+                                "example": "made_by_teacher"
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Docente"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "proposal_status": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 4
+                            },
+                            "code": {
+                                "type": "string",
+                                "example": "pending"
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Pendiente"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "proposer": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 9
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Laura Mejía"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "preferred_director": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 23
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Ing. Carlos"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "thematic_line": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 3
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "IoT"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "file_names": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "RepositoryProjectPayload": {
+                "required": [
+                    "title"
+                ],
+                "properties": {
+                    "project_id": {
+                        "type": "integer",
+                        "example": 11,
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Sistema de monitoreo"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "https://repositorio.edu/proyectos/123",
+                        "nullable": true
+                    },
+                    "publish_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-05-30",
+                        "nullable": true
+                    },
+                    "keywords_es": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "keywords_en": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "abstract_es": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "abstract_en": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 88
+                        }
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "RepositoryProjectResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 9
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 11,
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Proyecto de grado"
+                    },
+                    "repository_title": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "authors": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "advisors": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "keywords_es": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "keywords_en": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "thematic_line": {
+                        "type": "string",
+                        "example": "IoT",
+                        "nullable": true
+                    },
+                    "publish_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "abstract_es": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "abstract_en": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "file_names": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "RubricPayload": {
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "Rubrica Final"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "min_value": {
+                        "type": "integer",
+                        "example": 0,
+                        "nullable": true
+                    },
+                    "max_value": {
+                        "type": "integer",
+                        "example": 100,
+                        "nullable": true
+                    },
+                    "thematic_line_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 4
+                        }
+                    },
+                    "deliverable_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 12
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "RubricResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 6
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Rubrica Final"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "min_value": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "max_value": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "thematic_line_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "thematic_line_names": {
+                        "type": "string",
+                        "example": "Investigación, IoT"
+                    },
+                    "deliverable_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "deliverable_names": {
+                        "type": "string",
+                        "example": "Entrega 1, Entrega 2"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ThematicLinePayload": {
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "IoT"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "rubric_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 5
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ThematicLineResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "IoT"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "rubric_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "rubric_names": {
+                        "type": "string",
+                        "example": "Rubrica 1, Rubrica 2"
                     },
                     "created_at": {
                         "type": "string",
@@ -2268,8 +3968,32 @@
             "description": "API endpoints for managing phases (read-only, phases are auto-created with academic periods)"
         },
         {
+            "name": "Projects",
+            "description": "API endpoints for managing projects and their groups"
+        },
+        {
+            "name": "Project Groups",
+            "description": "Manage project groups and their members"
+        },
+        {
             "name": "Project Positions",
             "description": "API endpoints for managing project positions"
+        },
+        {
+            "name": "Proposals",
+            "description": "Endpoints for viewing and managing research proposals"
+        },
+        {
+            "name": "Repository Projects",
+            "description": "Expose research projects available in the institutional repository"
+        },
+        {
+            "name": "Rubrics",
+            "description": "CRUD endpoints for rubrics and their associations"
+        },
+        {
+            "name": "Thematic Lines",
+            "description": "Categorize proposals and rubrics by thematic line"
         },
         {
             "name": "Users",
