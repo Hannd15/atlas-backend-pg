@@ -124,7 +124,7 @@ class DeliverableEndpointsTest extends TestCase
         ]);
     }
 
-    public function test_store_accepts_batch_payload(): void
+    public function test_store_rejects_batch_payload(): void
     {
         [$phase] = $this->createPhaseWithPeriod();
 
@@ -163,11 +163,8 @@ class DeliverableEndpointsTest extends TestCase
 
         $response = $this->postJson('/api/pg/deliverables', $payload);
 
-        $deliverables = Deliverable::with('phase.period', 'files', 'rubrics')->orderBy('id')->get();
-
-        $response->assertCreated()->assertExactJson($deliverables->map(fn (Deliverable $item) => $this->deliverableResource($item))->values()->all());
-
-        $this->assertCount(2, $deliverables);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['phase_id', 'name']);
     }
 
     public function test_show_returns_expected_resource(): void
