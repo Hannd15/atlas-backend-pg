@@ -199,6 +199,39 @@ class FileController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/pg/files/{id}/download",
+     *     summary="Download a file",
+     *     tags={"Files"},
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="File content streamed for download"
+     *     ),
+     *     @OA\Response(response=404, description="File not found")
+     * )
+     */
+    public function download(File $file): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        if (! $file->path || ! $file->disk) {
+            abort(404, 'File not stored properly.');
+        }
+
+        $disk = \Illuminate\Support\Facades\Storage::disk($file->disk);
+        $path = $disk->path($file->path);
+
+        return response()->download($path, $file->name);
+    }
+
+    /**
      * @OA\Delete(
      *     path="/api/pg/files/{id}",
      *     summary="Delete a file",

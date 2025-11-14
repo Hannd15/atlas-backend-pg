@@ -766,6 +766,33 @@
                 }
             }
         },
+        "/api/pg/files/{id}/download": {
+            "get": {
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Download a file",
+                "operationId": "7597a6d3f735dd8e9503bf4735927423",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File content streamed for download"
+                    },
+                    "404": {
+                        "description": "File not found"
+                    }
+                }
+            }
+        },
         "/api/pg/files/dropdown": {
             "get": {
                 "tags": [
@@ -1732,16 +1759,16 @@
                 }
             }
         },
-        "/api/pg/repository-projects/{repository_project}": {
+        "/api/pg/repository-projects/{repositoryProject}": {
             "get": {
                 "tags": [
                     "Repository Projects"
                 ],
                 "summary": "Show a repository project",
-                "operationId": "9201af4c67701aa75b663e91bd16507a",
+                "operationId": "3406efe6e4d00dbf05942aa6615479d3",
                 "parameters": [
                     {
-                        "name": "repository_project",
+                        "name": "repositoryProject",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1770,10 +1797,10 @@
                     "Repository Projects"
                 ],
                 "summary": "Update a repository project",
-                "operationId": "049b0182078c350213db4a783b102859",
+                "operationId": "17ae42b2aceb9d1d2dc4acf14bec1790",
                 "parameters": [
                     {
-                        "name": "repository_project",
+                        "name": "repositoryProject",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1803,6 +1830,125 @@
                     },
                     "404": {
                         "description": "Repository project not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/repository-project-files": {
+            "get": {
+                "tags": [
+                    "Repository Project Files"
+                ],
+                "summary": "Get all repository project files",
+                "operationId": "21a727dd2e36ea3316e1134ac556bd87",
+                "responses": {
+                    "200": {
+                        "description": "List of all files attached to repository projects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RepositoryProjectFileResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/repository-projects/{repositoryProject}/files": {
+            "get": {
+                "tags": [
+                    "Repository Project Files"
+                ],
+                "summary": "Get files for a repository project",
+                "operationId": "1e786a7eabf8b66a85f3360c51b36911",
+                "parameters": [
+                    {
+                        "name": "repositoryProject",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Files linked to the repository project",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RepositoryProjectFileResource"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Repository project not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Repository Project Files"
+                ],
+                "summary": "Upload and relate a file to a repository project",
+                "operationId": "e02fceb6accfdc8bee99b987503a2121",
+                "parameters": [
+                    {
+                        "name": "repositoryProject",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "file"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "memoria-final.pdf"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "File uploaded and linked to repository project",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RepositoryProjectFileResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Repository project not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 }
             }
@@ -3125,20 +3271,6 @@
                     "abstract_en": {
                         "type": "string",
                         "nullable": true
-                    },
-                    "file_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 88
-                        }
-                    },
-                    "files": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "binary"
-                        }
                     }
                 },
                 "type": "object"
@@ -3270,6 +3402,36 @@
                     "updated_at": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "RepositoryProjectFileResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 90
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "memoria.pdf"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://storage.test/pg/uploads/2025/memoria.pdf"
+                    },
+                    "repository_project_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "repository_project_name": {
+                        "type": "string",
+                        "example": "Repositorio IoT"
+                    },
+                    "repository_project_publish_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-06-01"
                     }
                 },
                 "type": "object"
@@ -3453,6 +3615,10 @@
         {
             "name": "Repository Projects",
             "description": "Expose research projects available in the institutional repository"
+        },
+        {
+            "name": "Repository Project Files",
+            "description": "Manage files attached to repository projects"
         },
         {
             "name": "Rubrics",

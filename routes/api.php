@@ -41,6 +41,7 @@ Route::prefix('pg')->group(function () {
 
     // Files routes (handles show/update/delete for all files)
     Route::get('files/dropdown', [FileController::class, 'dropdown']);
+    Route::get('files/{file}/download', [FileController::class, 'download']);
     Route::apiResource('files', FileController::class)->except('store', 'create');
 
     // Thematic Lines routes
