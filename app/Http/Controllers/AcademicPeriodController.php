@@ -7,6 +7,7 @@ use App\Http\Requests\AcademicPeriod\UpdateAcademicPeriodRequest;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicPeriodState;
 use Illuminate\Http\JsonResponse;
+
 /**
  * @OA\Tag(
  *     name="Academic Periods",
@@ -39,7 +40,7 @@ use Illuminate\Http\JsonResponse;
 class AcademicPeriodController extends Controller
 {
     /**
-    * @OA\Get(
+     * @OA\Get(
      *     path="/api/pg/academic-periods",
      *     summary="Get all academic periods",
      *     tags={"Academic Periods"},
@@ -82,7 +83,7 @@ class AcademicPeriodController extends Controller
      *
      *             @OA\Property(property="name", type="string", example="2025-1"),
      *             @OA\Property(property="start_date", type="string", format="date", example="2025-01-15"),
-    *             @OA\Property(property="end_date", type="string", format="date", example="2025-06-30")
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-06-30")
      *         )
      *     ),
      *
@@ -111,8 +112,8 @@ class AcademicPeriodController extends Controller
 
         $this->createDefaultPhases($academicPeriod);
 
-    $academicPeriod->ensureCurrentState();
-    $academicPeriod->load('state');
+        $academicPeriod->ensureCurrentState();
+        $academicPeriod->load('state');
 
         return response()->json($this->transformPeriod($academicPeriod), 201);
     }
@@ -146,18 +147,10 @@ class AcademicPeriodController extends Controller
      */
     public function show(AcademicPeriod $academicPeriod): JsonResponse
     {
-        $academicPeriod->load('phases');
+        $academicPeriod->ensureCurrentState();
+        $academicPeriod->load('state');
 
-        return response()->json([
-            'id' => $academicPeriod->id,
-            'name' => $academicPeriod->name,
-            'start_date' => optional($academicPeriod->start_date)->toDateString(),
-            'end_date' => optional($academicPeriod->end_date)->toDateString(),
-            'state_id' => $academicPeriod->state_id,
-            'phase_ids' => $academicPeriod->phases->pluck('id')->values()->all(),
-            'created_at' => optional($academicPeriod->created_at)->toDateTimeString(),
-            'updated_at' => optional($academicPeriod->updated_at)->toDateTimeString(),
-        ]);
+        return response()->json($this->transformPeriod($academicPeriod));
     }
 
     /**
@@ -181,7 +174,7 @@ class AcademicPeriodController extends Controller
      *
      *             @OA\Property(property="name", type="string", example="2025-1"),
      *             @OA\Property(property="start_date", type="string", format="date", example="2025-01-15"),
-    *             @OA\Property(property="end_date", type="string", format="date", example="2025-06-30")
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-06-30")
      *         )
      *     ),
      *
@@ -206,7 +199,7 @@ class AcademicPeriodController extends Controller
     {
         $validated = $request->validated();
 
-    foreach (['name', 'start_date', 'end_date'] as $attribute) {
+        foreach (['name', 'start_date', 'end_date'] as $attribute) {
             if (array_key_exists($attribute, $validated)) {
                 $academicPeriod->{$attribute} = $validated[$attribute];
             }

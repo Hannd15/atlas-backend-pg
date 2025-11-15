@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProjectPosition;
+use App\Services\AtlasUserService;
 use Illuminate\Http\Request;
 
 /**
@@ -13,6 +14,10 @@ use Illuminate\Http\Request;
  */
 class ProjectPositionController extends Controller
 {
+    public function __construct(
+        protected AtlasUserService $atlasUserService
+    ) {}
+
     /**
      * @OA\Get(
      *     path="/api/pg/project-positions",
@@ -25,15 +30,37 @@ class ProjectPositionController extends Controller
      *     )
      * )
      */
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         $positions = ProjectPosition::with(['eligibleUsers', 'staff'])->orderBy('updated_at', 'desc')->get();
 
-        $positions->each(function ($position) {
-            $position->eligible_user_names = $position->eligibleUsers->pluck('name')->implode(', ');
-            $position->staff_names = $position->staff->map(function ($staff) {
-                return "Staff #{$staff->id}";
-            })->implode(', ');
+        if ($positions->isEmpty()) {
+            return response()->json($positions);
+        }
+
+        $token = trim((string) $request->bearerToken());
+        $userIds = $positions
+            ->flatMap(fn (ProjectPosition $position) => $position->eligibleUsers->pluck('id'))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $userNames = empty($userIds)
+            ? []
+            : $this->userNamesForIds($userIds, $token);
+
+        $positions->each(function (ProjectPosition $position) use ($userNames) {
+            $ids = $position->eligibleUsers->pluck('id')->filter()->map(fn ($id) => (int) $id)->values();
+
+            $position->eligible_user_names = $ids
+                ->map(fn ($id) => $userNames[$id] ?? "User #{$id}")
+                ->filter()
+                ->unique()
+                ->implode(', ');
+
+            $position->staff_names = $position->staff->map(fn ($staff) => "Staff #{$staff->id}")->implode(', ');
         });
 
         return response()->json($positions);
@@ -211,5 +238,25 @@ class ProjectPositionController extends Controller
         });
 
         return response()->json($positions);
+    }
+
+    /**
+     * @param  array<int, int>  $ids
+     * @return array<int, string>
+     */
+    protected function userNamesForIds(array $ids, string $token): array
+    {
+        $ids = collect($ids)
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        return $this->atlasUserService->namesByIds($token, $ids);
     }
 }

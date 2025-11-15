@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\RepositoryProject\StoreRepositoryProjectRequest;
 use App\Http\Requests\RepositoryProject\UpdateRepositoryProjectRequest;
 use App\Models\RepositoryProject;
+use App\Services\AtlasUserService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
 /**
@@ -71,6 +73,10 @@ use Illuminate\Support\Arr;
  */
 class RepositoryProjectController extends Controller
 {
+    public function __construct(
+        protected AtlasUserService $atlasUserService
+    ) {}
+
     /**
      * @OA\Get(
      *     path="/api/pg/repository-projects",
@@ -85,11 +91,21 @@ class RepositoryProjectController extends Controller
      *     )
      * )
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $repositoryProjects = RepositoryProject::withDetails()->orderByDesc('updated_at')->get();
 
-        return response()->json($repositoryProjects->map(fn (RepositoryProject $repositoryProject) => $this->transformForIndex($repositoryProject)));
+        if ($repositoryProjects->isEmpty()) {
+            return response()->json([]);
+        }
+
+        $token = trim((string) $request->bearerToken());
+        $userIds = $this->collectRepositoryUserIds($repositoryProjects);
+        $userNames = empty($userIds)
+            ? []
+            : $this->userNamesForIds($userIds, $token);
+
+        return response()->json($repositoryProjects->map(fn (RepositoryProject $repositoryProject) => $this->transformForIndex($repositoryProject, $userNames)));
     }
 
     /**
@@ -104,16 +120,18 @@ class RepositoryProjectController extends Controller
      *     @OA\Response(response=404, description="Repository project not found")
      * )
      */
-    public function show(RepositoryProject $repositoryProject): JsonResponse
+    public function show(Request $request, RepositoryProject $repositoryProject): JsonResponse
     {
         $repositoryProject->loadMissing(
             'files',
-            'project.groups.members.user',
-            'project.staff.user',
+            'project.groups.members',
+            'project.staff',
             'project.proposal.thematicLine'
         );
 
-        return response()->json($this->transformForShow($repositoryProject));
+        $userNames = $this->resolveRepositoryUserNames($repositoryProject, trim((string) $request->bearerToken()));
+
+        return response()->json($this->transformForShow($repositoryProject, $userNames));
     }
 
     /**
@@ -152,12 +170,14 @@ class RepositoryProjectController extends Controller
 
         $repositoryProject->loadMissing(
             'files',
-            'project.groups.members.user',
-            'project.staff.user',
+            'project.groups.members',
+            'project.staff',
             'project.proposal.thematicLine'
         );
 
-        return response()->json($this->transformForShow($repositoryProject), 201);
+        $userNames = $this->resolveRepositoryUserNames($repositoryProject, trim((string) $request->bearerToken()));
+
+        return response()->json($this->transformForShow($repositoryProject, $userNames), 201);
     }
 
     /**
@@ -195,21 +215,23 @@ class RepositoryProjectController extends Controller
 
         $repositoryProject->loadMissing(
             'files',
-            'project.groups.members.user',
-            'project.staff.user',
+            'project.groups.members',
+            'project.staff',
             'project.proposal.thematicLine'
         );
 
-        return response()->json($this->transformForShow($repositoryProject));
+        $userNames = $this->resolveRepositoryUserNames($repositoryProject, trim((string) $request->bearerToken()));
+
+        return response()->json($this->transformForShow($repositoryProject, $userNames));
     }
 
-    protected function transformForIndex(RepositoryProject $repositoryProject): array
+    protected function transformForIndex(RepositoryProject $repositoryProject, array $userNames): array
     {
         return [
             'id' => $repositoryProject->id,
             'title' => $repositoryProject->project?->title ?? $repositoryProject->title,
-            'authors' => $this->authorNames($repositoryProject),
-            'advisors' => $this->advisorNames($repositoryProject),
+            'authors' => $this->authorNames($repositoryProject, $userNames),
+            'advisors' => $this->advisorNames($repositoryProject, $userNames),
             'keywords_es' => $repositoryProject->keywords_es,
             'thematic_line' => $repositoryProject->project?->proposal?->thematicLine?->name,
             'publish_date' => optional($repositoryProject->publish_date)->toDateString(),
@@ -219,10 +241,10 @@ class RepositoryProjectController extends Controller
         ];
     }
 
-    protected function transformForShow(RepositoryProject $repositoryProject): array
+    protected function transformForShow(RepositoryProject $repositoryProject, array $userNames): array
     {
         return array_merge(
-            $this->transformForIndex($repositoryProject),
+            $this->transformForIndex($repositoryProject, $userNames),
             [
                 'repository_title' => $repositoryProject->title,
                 'project_id' => $repositoryProject->project_id,
@@ -234,7 +256,7 @@ class RepositoryProjectController extends Controller
         );
     }
 
-    protected function authorNames(RepositoryProject $repositoryProject): string
+    protected function authorNames(RepositoryProject $repositoryProject, array $userNames): ?string
     {
         $project = $repositoryProject->project;
 
@@ -242,18 +264,16 @@ class RepositoryProjectController extends Controller
             return '';
         }
 
-        $project->loadMissing('groups.members.user');
-
-        $values = $project->groups
-            ->flatMap(fn ($group) => $group->members->map(fn ($member) => $member->user?->name))
+        $memberIds = $project->groups
+            ->flatMap(fn ($group) => $group->members->pluck('user_id'))
             ->filter()
-            ->unique()
+            ->map(fn ($id) => (int) $id)
             ->values();
 
-        return $values->isEmpty() ? null : $values->implode(', ');
+        return $this->implodeUserNames($memberIds, $userNames);
     }
 
-    protected function advisorNames(RepositoryProject $repositoryProject): string
+    protected function advisorNames(RepositoryProject $repositoryProject, array $userNames): ?string
     {
         $project = $repositoryProject->project;
 
@@ -261,15 +281,99 @@ class RepositoryProjectController extends Controller
             return '';
         }
 
-        $project->loadMissing('staff.user');
-
-        $values = $project->staff
+        $staffIds = $project->staff
             ->filter(fn ($staff) => $staff->status === null || $staff->status === 'active')
-            ->map(fn ($staff) => $staff->user?->name)
+            ->pluck('user_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        return $this->implodeUserNames($staffIds, $userNames);
+    }
+
+    /**
+     * @param  iterable<RepositoryProject>  $repositoryProjects
+     * @return array<int, int>
+     */
+    protected function collectRepositoryUserIds(iterable $repositoryProjects): array
+    {
+        $ids = [];
+
+        foreach ($repositoryProjects as $repositoryProject) {
+            $ids = array_merge($ids, $this->repositoryProjectUserIds($repositoryProject));
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected function repositoryProjectUserIds(RepositoryProject $repositoryProject): array
+    {
+        $project = $repositoryProject->project;
+
+        if (! $project) {
+            return [];
+        }
+
+        $memberIds = $project->groups
+            ->flatMap(fn ($group) => $group->members->pluck('user_id'))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $staffIds = $project->staff
+            ->filter(fn ($staff) => $staff->status === null || $staff->status === 'active')
+            ->pluck('user_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        return array_merge($memberIds, $staffIds);
+    }
+
+    protected function resolveRepositoryUserNames(RepositoryProject $repositoryProject, string $token): array
+    {
+        $ids = $this->repositoryProjectUserIds($repositoryProject);
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        return $this->userNamesForIds($ids, $token);
+    }
+
+    protected function implodeUserNames(iterable $userIds, array $userNames): ?string
+    {
+        $names = collect($userIds)
+            ->map(fn ($id) => $userNames[(int) $id] ?? "User #{$id}")
             ->filter()
             ->unique()
             ->values();
 
-        return $values->isEmpty() ? null : $values->implode(', ');
+        return $names->isEmpty() ? null : $names->implode(', ');
+    }
+
+    /**
+     * @param  array<int, int>  $ids
+     * @return array<int, string>
+     */
+    protected function userNamesForIds(array $ids, string $token): array
+    {
+        $ids = collect($ids)
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        return $this->atlasUserService->namesByIds($token, $ids);
     }
 }

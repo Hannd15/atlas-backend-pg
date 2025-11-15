@@ -97,4 +97,6 @@ Route::prefix('pg')->group(function () {
     // User Project Eligibilities routes
     Route::get('user-project-eligibilities/by-user', [UserProjectEligibilityController::class, 'byUser']);
     Route::get('user-project-eligibilities/by-position', [UserProjectEligibilityController::class, 'byPosition']);
+    Route::get('user-project-eligibilities/by-user/dropdown', [UserProjectEligibilityController::class, 'byUserDropdown']);
+    Route::get('user-project-eligibilities/by-position/dropdown', [UserProjectEligibilityController::class, 'byPositionDropdown']);
 });

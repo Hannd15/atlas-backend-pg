@@ -51,7 +51,7 @@ class ThematicLineController extends Controller
      */
     public function index(): JsonResponse
     {
-        $thematicLines = ThematicLine::orderByDesc('updated_at')->get();
+        $thematicLines = ThematicLine::with('rubrics')->orderByDesc('updated_at')->get();
 
         return response()->json($thematicLines->map(fn (ThematicLine $thematicLine) => $this->transformForIndex($thematicLine)));
     }
@@ -72,7 +72,9 @@ class ThematicLineController extends Controller
     {
         $thematicLine = ThematicLine::create($request->safe()->only(['name', 'description']));
 
-        return response()->json($this->transformForShow($thematicLine), 201);
+        $this->syncRubrics($thematicLine, $request->rubricIds());
+
+        return response()->json($this->transformForShow($thematicLine->load('rubrics')), 201);
     }
 
     /**
@@ -89,6 +91,8 @@ class ThematicLineController extends Controller
      */
     public function show(ThematicLine $thematicLine): JsonResponse
     {
+        $thematicLine->load('rubrics');
+
         return response()->json($this->transformForShow($thematicLine));
     }
 
@@ -110,7 +114,9 @@ class ThematicLineController extends Controller
     {
         $thematicLine->update($request->safe()->only(['name', 'description']));
 
-        return response()->json($this->transformForShow($thematicLine));
+        $this->syncRubrics($thematicLine, $request->rubricIds());
+
+        return response()->json($this->transformForShow($thematicLine->load('rubrics')));
     }
 
     /**
@@ -156,7 +162,7 @@ class ThematicLineController extends Controller
      */
     public function dropdown(): JsonResponse
     {
-        $thematicLines = ThematicLine::orderBy('name')->get()->map(fn (ThematicLine $thematicLine) => [
+        $thematicLines = ThematicLine::orderBy('id')->get()->map(fn (ThematicLine $thematicLine) => [
             'value' => $thematicLine->id,
             'label' => $thematicLine->name,
         ]);
@@ -170,6 +176,8 @@ class ThematicLineController extends Controller
             'id' => $thematicLine->id,
             'name' => $thematicLine->name,
             'description' => $thematicLine->description,
+            'rubric_ids' => $thematicLine->rubrics->pluck('id')->values()->all(),
+            'rubric_names' => $thematicLine->rubrics->pluck('name')->implode(', '),
             'created_at' => optional($thematicLine->created_at)->toDateTimeString(),
             'updated_at' => optional($thematicLine->updated_at)->toDateTimeString(),
         ];
@@ -181,8 +189,17 @@ class ThematicLineController extends Controller
             'id' => $thematicLine->id,
             'name' => $thematicLine->name,
             'description' => $thematicLine->description,
+            'rubric_ids' => $thematicLine->rubrics->pluck('id')->values()->all(),
+            'rubric_names' => $thematicLine->rubrics->pluck('name')->implode(', '),
             'created_at' => optional($thematicLine->created_at)->toDateTimeString(),
             'updated_at' => optional($thematicLine->updated_at)->toDateTimeString(),
         ];
+    }
+
+    protected function syncRubrics(ThematicLine $thematicLine, ?array $rubricIds): void
+    {
+        if ($rubricIds !== null) {
+            $thematicLine->rubrics()->sync($rubricIds);
+        }
     }
 }

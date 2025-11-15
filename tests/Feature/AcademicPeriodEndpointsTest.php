@@ -15,6 +15,8 @@ class AcademicPeriodEndpointsTest extends TestCase
     use PgApiResponseHelpers;
     use RefreshDatabase;
 
+    protected bool $ensureActivePhase = false;
+
     protected function setUp(): void
     {
         parent::setUp();

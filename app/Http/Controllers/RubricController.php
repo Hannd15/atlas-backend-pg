@@ -74,15 +74,7 @@ class RubricController extends Controller
     {
         $rubrics = Rubric::with('thematicLines', 'deliverables')->orderByDesc('updated_at')->get();
 
-        return response()->json($rubrics->map(fn (Rubric $rubric) => [
-            'id' => $rubric->id,
-            'name' => $rubric->name,
-            'description' => $rubric->description,
-            'min_value' => $rubric->min_value,
-            'max_value' => $rubric->max_value,
-            'thematic_line_names' => $rubric->thematicLines->pluck('name')->implode(', '),
-            'deliverable_names' => $rubric->deliverables->pluck('name')->implode(', '),
-        ]));
+        return response()->json($rubrics->map(fn (Rubric $rubric) => $this->transformForIndex($rubric)));
     }
 
     /**
@@ -100,6 +92,12 @@ class RubricController extends Controller
     public function store(StoreRubricRequest $request): JsonResponse
     {
         $rubric = Rubric::create($request->safe()->only(['name', 'description', 'min_value', 'max_value']));
+
+        $this->syncRelationships(
+            $rubric,
+            $request->thematicLineIds(),
+            $request->deliverableIds()
+        );
 
         return response()->json($this->transformForShow($rubric->load('thematicLines', 'deliverables')), 201);
     }
@@ -140,6 +138,12 @@ class RubricController extends Controller
     public function update(UpdateRubricRequest $request, Rubric $rubric): JsonResponse
     {
         $rubric->update($request->safe()->only(['name', 'description', 'min_value', 'max_value']));
+
+        $this->syncRelationships(
+            $rubric,
+            $request->thematicLineIds(),
+            $request->deliverableIds()
+        );
 
         $rubric->load('thematicLines', 'deliverables');
 
@@ -317,5 +321,16 @@ class RubricController extends Controller
             'created_at' => optional($rubric->created_at)->toDateTimeString(),
             'updated_at' => optional($rubric->updated_at)->toDateTimeString(),
         ];
+    }
+
+    protected function syncRelationships(Rubric $rubric, ?array $thematicLineIds, ?array $deliverableIds): void
+    {
+        if ($thematicLineIds !== null) {
+            $rubric->thematicLines()->sync($thematicLineIds);
+        }
+
+        if ($deliverableIds !== null) {
+            $rubric->deliverables()->sync($deliverableIds);
+        }
     }
 }

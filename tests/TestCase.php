@@ -5,18 +5,36 @@ namespace Tests;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicPeriodState;
 use App\Models\Phase;
+use App\Services\AtlasUserService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Date;
+use Tests\Fakes\FakeAtlasUserService;
 
 abstract class TestCase extends BaseTestCase
 {
     use CreatesApplication;
+    use RefreshDatabase;
+
+    protected $defaultHeaders = [
+        'Accept' => 'application/json',
+        'Authorization' => 'Bearer test-token',
+    ];
+
+    protected FakeAtlasUserService $atlasUserServiceFake;
+
+    protected bool $ensureActivePhase = true;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->ensureActivePhaseExists();
+        $this->atlasUserServiceFake = new FakeAtlasUserService;
+        $this->app->instance(AtlasUserService::class, $this->atlasUserServiceFake);
+
+        if ($this->ensureActivePhase) {
+            $this->ensureActivePhaseExists();
+        }
     }
 
     protected function ensureActivePhaseExists(): void

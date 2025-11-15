@@ -6,8 +6,9 @@ use App\Http\Requests\ProjectGroup\StoreProjectGroupRequest;
 use App\Http\Requests\ProjectGroup\UpdateProjectGroupRequest;
 use App\Models\GroupMember;
 use App\Models\ProjectGroup;
-use App\Models\User;
+use App\Services\AtlasUserService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -43,6 +44,10 @@ use Illuminate\Validation\ValidationException;
  */
 class ProjectGroupController extends Controller
 {
+    public function __construct(
+        protected AtlasUserService $atlasUserService
+    ) {}
+
     /**
      * @OA\Get(
      *     path="/api/pg/project-groups",
@@ -57,11 +62,28 @@ class ProjectGroupController extends Controller
      *     )
      * )
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $groups = ProjectGroup::with('project', 'users')->orderByDesc('updated_at')->get();
+        $groups = ProjectGroup::with('project', 'members')->orderByDesc('updated_at')->get();
 
-        return response()->json($groups->map(fn (ProjectGroup $group) => $this->transformForIndex($group)));
+        if ($groups->isEmpty()) {
+            return response()->json([]);
+        }
+
+        $token = trim((string) $request->bearerToken());
+        $memberIds = $groups
+            ->flatMap(fn (ProjectGroup $group) => $group->members->pluck('user_id'))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $userNames = empty($memberIds)
+            ? []
+            : $this->userNamesForIds($memberIds, $token);
+
+        return response()->json($groups->map(fn (ProjectGroup $group) => $this->transformForIndex($group, $userNames)));
     }
 
     /**
@@ -88,12 +110,18 @@ class ProjectGroupController extends Controller
      */
     public function store(StoreProjectGroupRequest $request): JsonResponse
     {
-        return DB::transaction(function () use ($request) {
+        $token = trim((string) $request->bearerToken());
+
+        return DB::transaction(function () use ($request, $token) {
             $group = ProjectGroup::create($request->safe()->only(['name', 'project_id']));
 
-            $this->syncMembers($group, $request->memberUserIds());
+            $this->syncMembers($group, $request->memberUserIds(), $token);
 
-            return response()->json($this->transformForShow($group->load('project', 'users')), 201);
+            $group->load('project', 'members');
+
+            $userNames = $this->userNamesForIds($group->members->pluck('user_id')->all(), $token);
+
+            return response()->json($this->transformForShow($group, $userNames), 201);
         });
     }
 
@@ -109,11 +137,13 @@ class ProjectGroupController extends Controller
      *     @OA\Response(response=404, description="Project group not found")
      * )
      */
-    public function show(ProjectGroup $projectGroup): JsonResponse
+    public function show(Request $request, ProjectGroup $projectGroup): JsonResponse
     {
-        $projectGroup->load('project', 'users');
+        $projectGroup->load('project', 'members');
 
-        return response()->json($this->transformForShow($projectGroup));
+        $userNames = $this->userNamesForIds($projectGroup->members->pluck('user_id')->all(), trim((string) $request->bearerToken()));
+
+        return response()->json($this->transformForShow($projectGroup, $userNames));
     }
 
     /**
@@ -132,14 +162,18 @@ class ProjectGroupController extends Controller
      */
     public function update(UpdateProjectGroupRequest $request, ProjectGroup $projectGroup): JsonResponse
     {
-        return DB::transaction(function () use ($request, $projectGroup) {
+        $token = trim((string) $request->bearerToken());
+
+        return DB::transaction(function () use ($request, $projectGroup, $token) {
             $projectGroup->update($request->safe()->only(['name', 'project_id']));
 
-            $this->syncMembers($projectGroup, $request->memberUserIds());
+            $this->syncMembers($projectGroup, $request->memberUserIds(), $token);
 
-            $projectGroup->load('project', 'users');
+            $projectGroup->load('project', 'members');
 
-            return response()->json($this->transformForShow($projectGroup));
+            $userNames = $this->userNamesForIds($projectGroup->members->pluck('user_id')->all(), $token);
+
+            return response()->json($this->transformForShow($projectGroup, $userNames));
         });
     }
 
@@ -194,7 +228,7 @@ class ProjectGroupController extends Controller
         return response()->json($groups);
     }
 
-    protected function syncMembers(ProjectGroup $group, ?array $userIds): void
+    protected function syncMembers(ProjectGroup $group, ?array $userIds, string $token): void
     {
         if ($userIds === null) {
             return;
@@ -207,7 +241,11 @@ class ProjectGroupController extends Controller
             ->unique();
 
         if ($conflictingUserIds->isNotEmpty()) {
-            $names = User::whereIn('id', $conflictingUserIds)->pluck('name')->implode(', ');
+            $namesMap = $this->userNamesForIds($conflictingUserIds->all(), $token);
+
+            $names = $conflictingUserIds
+                ->map(fn ($id) => $namesMap[$id] ?? "User #{$id}")
+                ->implode(', ');
 
             throw ValidationException::withMessages([
                 'member_user_ids' => "These users already belong to another group: {$names}",
@@ -217,31 +255,64 @@ class ProjectGroupController extends Controller
         $group->users()->sync($userIds);
     }
 
-    protected function transformForIndex(ProjectGroup $group): array
+    protected function transformForIndex(ProjectGroup $group, array $userNames): array
     {
+        $memberIds = $group->members->pluck('user_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
+
         return [
             'id' => $group->id,
             'name' => $group->name,
             'project_id' => $group->project_id,
             'project_name' => $group->project?->title,
-            'member_user_ids' => $group->users->pluck('id')->values()->all(),
-            'member_user_names' => $group->users->pluck('name')->implode(', '),
+            'member_user_ids' => $memberIds,
+            'member_user_names' => $this->implodeUserNames($memberIds, $userNames),
             'created_at' => optional($group->created_at)->toDateTimeString(),
             'updated_at' => optional($group->updated_at)->toDateTimeString(),
         ];
     }
 
-    protected function transformForShow(ProjectGroup $group): array
+    protected function transformForShow(ProjectGroup $group, array $userNames): array
     {
+        $memberIds = $group->members->pluck('user_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
+
         return [
             'id' => $group->id,
             'name' => $group->name,
             'project_id' => $group->project_id,
             'project_name' => $group->project?->title,
-            'member_user_ids' => $group->users->pluck('id')->values()->all(),
-            'member_user_names' => $group->users->pluck('name')->implode(', '),
+            'member_user_ids' => $memberIds,
+            'member_user_names' => $this->implodeUserNames($memberIds, $userNames),
             'created_at' => optional($group->created_at)->toDateTimeString(),
             'updated_at' => optional($group->updated_at)->toDateTimeString(),
         ];
+    }
+
+    protected function implodeUserNames(array $userIds, array $userNames): string
+    {
+        return collect($userIds)
+            ->map(fn ($id) => $userNames[$id] ?? "User #{$id}")
+            ->filter()
+            ->unique()
+            ->implode(', ');
+    }
+
+    /**
+     * @param  array<int, int>  $ids
+     * @return array<int, string>
+     */
+    protected function userNamesForIds(array $ids, string $token): array
+    {
+        $ids = collect($ids)
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        return $this->atlasUserService->namesByIds($token, $ids);
     }
 }

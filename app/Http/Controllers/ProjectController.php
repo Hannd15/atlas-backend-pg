@@ -9,7 +9,9 @@ use App\Models\Meeting;
 use App\Models\Project;
 use App\Models\ProjectStaff;
 use App\Models\ProjectStatus;
+use App\Services\AtlasUserService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * @OA\Tag(
@@ -82,6 +84,10 @@ use Illuminate\Http\JsonResponse;
  */
 class ProjectController extends Controller
 {
+    public function __construct(
+        protected AtlasUserService $atlasUserService
+    ) {}
+
     /**
      * @OA\Get(
      *     path="/api/pg/projects",
@@ -96,11 +102,21 @@ class ProjectController extends Controller
      *     )
      * )
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $projects = Project::with(['groups.members.user', 'status'])->orderByDesc('updated_at')->get();
+        $projects = Project::with(['groups.members', 'status'])->orderByDesc('updated_at')->get();
 
-        return response()->json($projects->map(fn (Project $project) => $this->formatProjectForIndex($project)));
+        if ($projects->isEmpty()) {
+            return response()->json([]);
+        }
+
+        $token = trim((string) $request->bearerToken());
+        $userIds = $this->collectProjectUserIds($projects);
+        $userNames = empty($userIds)
+            ? []
+            : $this->userNamesByIds($userIds, $token);
+
+        return response()->json($projects->map(fn (Project $project) => $this->formatProjectForIndex($project, $userNames)));
     }
 
     /**
@@ -132,8 +148,11 @@ class ProjectController extends Controller
         $activoStatusId = ProjectStatus::firstOrCreate(['name' => 'Activo'])->id;
 
         $project = Project::create($data + ['status_id' => $activoStatusId]);
+        $project->load($this->projectRelations());
 
-        return response()->json($this->formatProject($project->load($this->projectRelations())), 201);
+        $userNames = $this->resolveProjectUserNames($project, trim((string) $request->bearerToken()));
+
+        return response()->json($this->formatProject($project, $userNames), 201);
     }
 
     /**
@@ -148,11 +167,13 @@ class ProjectController extends Controller
      *     @OA\Response(response=404, description="Project not found")
      * )
      */
-    public function show(Project $project): JsonResponse
+    public function show(Request $request, Project $project): JsonResponse
     {
         $project->load($this->projectRelations());
 
-        return response()->json($this->formatProject($project));
+        $userNames = $this->resolveProjectUserNames($project, trim((string) $request->bearerToken()));
+
+        return response()->json($this->formatProject($project, $userNames));
     }
 
     /**
@@ -183,7 +204,9 @@ class ProjectController extends Controller
 
         $project->load($this->projectRelations());
 
-        return response()->json($this->formatProject($project));
+        $userNames = $this->resolveProjectUserNames($project, trim((string) $request->bearerToken()));
+
+        return response()->json($this->formatProject($project, $userNames));
     }
 
     /**
@@ -237,15 +260,15 @@ class ProjectController extends Controller
         return response()->json($projects);
     }
 
-    protected function formatProjectForIndex(Project $project): array
+    protected function formatProjectForIndex(Project $project, array $userNames): array
     {
-        $project->loadMissing('groups.members.user', 'status');
+        $project->loadMissing('groups.members', 'status');
 
         return [
             'id' => $project->id,
             'title' => $project->title,
             'status' => $project->status?->name,
-            'member_names' => $this->memberNames($project),
+            'member_names' => $this->memberNames($project, $userNames),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
         ];
@@ -255,9 +278,8 @@ class ProjectController extends Controller
     {
         return [
             'proposal.thematicLine',
-            'groups.members.user',
+            'groups.members',
             'status',
-            'staff.user',
             'staff.position',
             'deliverables.phase',
             'meetings',
@@ -265,7 +287,7 @@ class ProjectController extends Controller
         ];
     }
 
-    protected function formatProject(Project $project): array
+    protected function formatProject(Project $project, array $userNames = []): array
     {
         $project->loadMissing($this->projectRelations());
 
@@ -275,8 +297,8 @@ class ProjectController extends Controller
             'status' => $project->status?->name,
             'proposal_id' => $project->proposal_id,
             'thematic_line_name' => $project->proposal?->thematicLine?->name,
-            'member_names' => $this->memberNames($project),
-            'staff' => $this->transformStaff($project),
+            'member_names' => $this->memberNames($project, $userNames),
+            'staff' => $this->transformStaff($project, $userNames),
             'meetings' => $this->transformMeetings($project),
             'deliverables' => $this->transformDeliverables($project),
             'created_at' => optional($project->created_at)->toDateTimeString(),
@@ -284,13 +306,17 @@ class ProjectController extends Controller
         ];
     }
 
-    protected function transformStaff(Project $project): array
+    protected function transformStaff(Project $project, array $userNames): array
     {
         return $project->staff
-            ->map(fn (ProjectStaff $staff) => [
-                'user_name' => $staff->user?->name,
-                'position_name' => $staff->position?->name,
-            ])
+            ->map(function (ProjectStaff $staff) use ($userNames) {
+                $userId = $staff->user_id;
+
+                return [
+                    'user_name' => $userId ? ($userNames[$userId] ?? "User #{$userId}") : null,
+                    'position_name' => $staff->position?->name,
+                ];
+            })
             ->values()
             ->all();
     }
@@ -336,15 +362,86 @@ class ProjectController extends Controller
             ->all();
     }
 
-    protected function memberNames(Project $project): string
+    protected function memberNames(Project $project, array $userNames): string
     {
-        $project->loadMissing('groups.members.user');
+        $project->loadMissing('groups.members');
 
         return $project->groups
-            ->flatMap(fn ($group) => $group->members->map(fn ($member) => $member->user?->name))
+            ->flatMap(fn ($group) => $group->members->pluck('user_id'))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->map(fn ($id) => $userNames[$id] ?? "User #{$id}")
             ->filter()
             ->unique()
             ->values()
             ->implode(', ');
+    }
+
+    /**
+     * @param  iterable<Project>  $projects
+     * @return array<int, int>
+     */
+    protected function collectProjectUserIds(iterable $projects): array
+    {
+        $ids = [];
+
+        foreach ($projects as $project) {
+            $ids = array_merge($ids, $this->projectUserIds($project));
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected function projectUserIds(Project $project): array
+    {
+        $memberIds = $project->groups
+            ->flatMap(fn ($group) => $group->members->pluck('user_id'))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $staffIds = $project->staff
+            ->pluck('user_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        return array_merge($memberIds, $staffIds);
+    }
+
+    protected function resolveProjectUserNames(Project $project, string $token): array
+    {
+        $ids = $this->projectUserIds($project);
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        return $this->userNamesByIds($ids, $token);
+    }
+
+    /**
+     * @param  array<int, int>  $ids
+     * @return array<int, string>
+     */
+    protected function userNamesByIds(array $ids, string $token): array
+    {
+        $ids = collect($ids)
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        return $this->atlasUserService->namesByIds($token, $ids);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Deliverable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -65,15 +66,13 @@ class DeliverableController extends Controller
      */
     public function index(): \Illuminate\Http\JsonResponse
     {
-        $deliverables = Deliverable::with('phase')->orderByDesc('updated_at')->get();
+        $deliverables = Deliverable::with('phase.period', 'files', 'rubrics')
+            ->orderByDesc('updated_at')
+            ->get();
 
-        return response()->json($deliverables->map(fn (Deliverable $deliverable) => [
-            'id' => $deliverable->id,
-            'name' => $deliverable->name,
-            'description' => $deliverable->description,
-            'due_date' => optional($deliverable->due_date)->toDateTimeString(),
-            'phase_name' => $deliverable->phase?->name,
-        ]));
+        return response()->json(
+            $deliverables->map(fn (Deliverable $deliverable) => $this->transformDeliverable($deliverable))
+        );
     }
 
     /**
@@ -112,13 +111,37 @@ class DeliverableController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
+            'file_ids' => 'sometimes|array',
+            'file_ids.*' => 'integer|exists:files,id',
+            'rubric_ids' => 'sometimes|array',
+            'rubric_ids.*' => 'integer|exists:rubrics,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $deliverable = Deliverable::create($validator->validated());
+        $data = $validator->validated();
+        $fileIds = $this->normalizeIds($data['file_ids'] ?? null);
+        $rubricIds = $this->normalizeIds($data['rubric_ids'] ?? null);
+
+        unset($data['file_ids'], $data['rubric_ids']);
+
+        $deliverable = DB::transaction(function () use ($data, $fileIds, $rubricIds) {
+            $deliverable = Deliverable::create($data);
+
+            if ($fileIds !== null) {
+                $deliverable->files()->sync($fileIds);
+            }
+
+            if ($rubricIds !== null) {
+                $deliverable->rubrics()->sync($rubricIds);
+            }
+
+            return $deliverable;
+        });
+
+        $deliverable->load('phase.period', 'files', 'rubrics');
 
         return response()->json($this->transformDeliverable($deliverable), 201);
     }
@@ -193,14 +216,36 @@ class DeliverableController extends Controller
      */
     public function update(Request $request, Deliverable $deliverable): \Illuminate\Http\JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'phase_id' => 'sometimes|required|exists:phases,id',
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
             'due_date' => 'sometimes|nullable|date',
+            'file_ids' => 'sometimes|array',
+            'file_ids.*' => 'integer|exists:files,id',
+            'rubric_ids' => 'sometimes|array',
+            'rubric_ids.*' => 'integer|exists:rubrics,id',
         ]);
 
-        $deliverable->update($request->only('phase_id', 'name', 'description', 'due_date'));
+        $attributes = array_intersect_key($validated, array_flip(['phase_id', 'name', 'description', 'due_date']));
+        $fileIds = array_key_exists('file_ids', $validated) ? $this->normalizeIds($validated['file_ids']) : null;
+        $rubricIds = array_key_exists('rubric_ids', $validated) ? $this->normalizeIds($validated['rubric_ids']) : null;
+
+        DB::transaction(function () use ($deliverable, $attributes, $fileIds, $rubricIds) {
+            if (! empty($attributes)) {
+                $deliverable->update($attributes);
+            }
+
+            if ($fileIds !== null) {
+                $deliverable->files()->sync($fileIds);
+            }
+
+            if ($rubricIds !== null) {
+                $deliverable->rubrics()->sync($rubricIds);
+            }
+        });
+
+        $deliverable->load('phase.period', 'files', 'rubrics');
 
         return response()->json($this->transformDeliverable($deliverable));
     }
@@ -256,14 +301,57 @@ class DeliverableController extends Controller
 
     protected function transformDeliverable(Deliverable $deliverable): array
     {
+        $deliverable->loadMissing('phase.period', 'files', 'rubrics');
+
         return [
             'id' => $deliverable->id,
             'name' => $deliverable->name,
             'description' => $deliverable->description,
             'due_date' => optional($deliverable->due_date)->toDateTimeString(),
-            'phase_id' => $deliverable->phase_id,
+            'phase' => $deliverable->phase ? [
+                'id' => $deliverable->phase->id,
+                'name' => $deliverable->phase->name,
+                'period' => $deliverable->phase->period ? [
+                    'id' => $deliverable->phase->period->id,
+                    'name' => $deliverable->phase->period->name,
+                ] : null,
+            ] : null,
+            'files' => $deliverable->files->map(fn ($file) => [
+                'id' => $file->id,
+                'name' => $file->name,
+                'extension' => $file->extension,
+                'url' => $file->url,
+            ])->values()->all(),
+            'file_ids' => $deliverable->files->pluck('id')->values()->all(),
+            'rubrics' => $deliverable->rubrics->map(fn ($rubric) => [
+                'id' => $rubric->id,
+                'name' => $rubric->name,
+                'description' => $rubric->description,
+                'min_value' => $rubric->min_value,
+                'max_value' => $rubric->max_value,
+            ])->values()->all(),
+            'rubric_ids' => $deliverable->rubrics->pluck('id')->values()->all(),
+            'rubric_names' => $deliverable->rubrics->pluck('name')->implode(', '),
             'created_at' => optional($deliverable->created_at)->toDateTimeString(),
             'updated_at' => optional($deliverable->updated_at)->toDateTimeString(),
         ];
+    }
+
+    /**
+     * @param  array<int, int|string>|null  $ids
+     * @return array<int, int>|null
+     */
+    protected function normalizeIds(?array $ids): ?array
+    {
+        if ($ids === null) {
+            return null;
+        }
+
+        return collect($ids)
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 }

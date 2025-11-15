@@ -43,8 +43,8 @@ class RepositoryProject extends Model
     {
         return $query->with([
             'files',
-            'project.groups.members.user',
-            'project.staff.user',
+            'project.groups.members',
+            'project.staff',
             'project.proposal.thematicLine',
         ]);
     }

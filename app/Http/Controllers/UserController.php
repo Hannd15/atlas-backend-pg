@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AtlasUserService;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 
 /**
@@ -13,6 +15,10 @@ use Illuminate\Http\Request;
  */
 class UserController extends Controller
 {
+    public function __construct(
+        protected AtlasUserService $atlasUserService
+    ) {}
+
     /**
      * @OA\Get(
      *     path="/api/pg/users",
@@ -39,20 +45,26 @@ class UserController extends Controller
      *     )
      * )
      */
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $users = User::with(['eligiblePositions', 'proposals', 'preferredProposals'])->orderBy('updated_at', 'desc')->get();
+        $users = User::with(['eligiblePositions', 'proposals', 'preferredProposals'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
 
-        $users->each(function ($user) {
-            $user->project_position_eligibility_names = $user->eligiblePositions->pluck('name')->implode(', ');
-            $user->proposal_names = $user->proposals->pluck('title')
-                ->merge($user->preferredProposals->pluck('title'))
-                ->filter()
-                ->unique()
-                ->implode(', ');
-        });
+        if ($users->isEmpty()) {
+            return response()->json([]);
+        }
 
-        return response()->json($users);
+        $token = $this->requireToken($request->bearerToken());
+
+        $remoteUsers = $this->remoteUsersById($token, $users->pluck('id')->all());
+
+        $response = $users->map(fn (User $user) => $this->formatUserWithRemoteData(
+            $user,
+            $remoteUsers[$user->id] ?? []
+        ));
+
+        return response()->json($response->values());
     }
 
     /**
@@ -90,18 +102,15 @@ class UserController extends Controller
      *     )
      * )
      */
-    public function show(User $user): \Illuminate\Http\JsonResponse
+    public function show(Request $request, User $user): \Illuminate\Http\JsonResponse
     {
         $user->load('eligiblePositions', 'proposals', 'preferredProposals');
 
-        $user->project_position_eligibility_ids = $user->eligiblePositions->pluck('id');
-        $user->proposal_names = $user->proposals->pluck('title')
-            ->merge($user->preferredProposals->pluck('title'))
-            ->filter()
-            ->unique()
-            ->implode(', ');
+        $token = $this->requireToken($request->bearerToken());
 
-        return response()->json($user);
+        $remoteUser = $this->atlasUserService->getUser($token, $user->id);
+
+        return response()->json($this->formatUserWithRemoteData($user, $remoteUser, includeEligibilityIds: true));
     }
 
     /**
@@ -153,29 +162,38 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|max:255|unique:users,email,'.$user->id,
+            'email' => 'sometimes|required|email|max:255',
             'project_position_eligibility_ids' => 'nullable|array',
             'project_position_eligibility_ids.*' => 'exists:project_positions,id',
         ]);
 
-        // Update user basic fields if provided
-        $user->update($request->only('name', 'email'));
+        $token = $this->requireToken($request->bearerToken());
+        $payload = array_filter(
+            $request->only(['name', 'email']),
+            fn ($value) => $value !== null
+        );
 
-        // Handle project position eligibilities sync if field is provided
-        if ($request->has('project_position_eligibility_ids')) {
-            $user->eligiblePositions()->sync($request->input('project_position_eligibility_ids'));
+        $remoteUser = [];
+
+        if (! empty($payload)) {
+            $remoteUser = $this->atlasUserService->updateUser($token, $user->id, $payload);
+
+            $user->fill($payload);
+
+            if ($user->isDirty()) {
+                $user->save();
+            }
+        } else {
+            $remoteUser = $this->atlasUserService->getUser($token, $user->id);
         }
 
-        // Reload and enrich with eligibility data
-        $user->load('eligiblePositions', 'proposals', 'preferredProposals');
-        $user->project_position_eligibility_ids = $user->eligiblePositions->pluck('id');
-        $user->proposal_names = $user->proposals->pluck('title')
-            ->merge($user->preferredProposals->pluck('title'))
-            ->filter()
-            ->unique()
-            ->implode(', ');
+        if ($request->has('project_position_eligibility_ids')) {
+            $user->eligiblePositions()->sync($request->input('project_position_eligibility_ids', []));
+        }
 
-        return response()->json($user);
+        $user->load('eligiblePositions', 'proposals', 'preferredProposals');
+
+        return response()->json($this->formatUserWithRemoteData($user, $remoteUser, includeEligibilityIds: true));
     }
 
     /**
@@ -201,13 +219,152 @@ class UserController extends Controller
      *     )
      * )
      */
-    public function dropdown(): \Illuminate\Http\JsonResponse
+    public function dropdown(Request $request): \Illuminate\Http\JsonResponse
     {
-        $users = User::orderBy('name')->get()->map(fn (User $user) => [
-            'value' => $user->id,
-            'label' => $user->name,
-        ])->values();
+        $localUsers = User::with(['eligiblePositions', 'proposals', 'preferredProposals'])
+            ->orderBy('name')
+            ->get();
 
-        return response()->json($users);
+        if ($localUsers->isEmpty()) {
+            return response()->json([]);
+        }
+
+        $localIds = $localUsers->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        $token = $this->requireToken($request->bearerToken());
+
+        $allowed = array_flip($localIds);
+
+        $remoteOptions = collect($this->atlasUserService->dropdown($token))
+            ->filter(function ($option) use ($allowed) {
+                $value = $option['value'] ?? null;
+
+                if ($value === null) {
+                    return false;
+                }
+
+                $id = (int) $value;
+
+                return array_key_exists($id, $allowed);
+            })
+            ->mapWithKeys(fn ($option) => [
+                (int) ($option['value'] ?? 0) => (string) ($option['label'] ?? ''),
+            ]);
+
+        $options = $localUsers
+            ->map(function (User $user) use ($remoteOptions) {
+                $label = $remoteOptions[$user->id] ?? '';
+
+                if ($label === '') {
+                    $label = "User #{$user->id}";
+                }
+
+                return [
+                    'value' => $user->id,
+                    'label' => $label,
+                    'project_position_eligibility_names' => $user->eligiblePositions->pluck('name')->implode(', '),
+                    'proposal_names' => $user->proposals->pluck('title')
+                        ->merge($user->preferredProposals->pluck('title'))
+                        ->filter()
+                        ->unique()
+                        ->implode(', '),
+                ];
+            })
+            ->sortBy('label')
+            ->values();
+
+        return response()->json($options);
+    }
+
+    /**
+     * @param  array<int, int>  $userIds
+     * @return array<int, array<string, mixed>>
+     */
+    protected function remoteUsersById(string $token, array $userIds): array
+    {
+        $ids = collect($userIds)
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $lookup = array_flip($ids->all());
+
+        $remoteUsers = [];
+
+        foreach ($this->atlasUserService->listUsers($token) as $remoteUser) {
+            $id = isset($remoteUser['id']) ? (int) $remoteUser['id'] : null;
+
+            if ($id === null) {
+                continue;
+            }
+
+            if (! array_key_exists($id, $lookup)) {
+                continue;
+            }
+
+            $remoteUsers[$id] = $remoteUser;
+        }
+
+        return $remoteUsers;
+    }
+
+    protected function formatUserWithRemoteData(User $user, array $remoteData, bool $includeEligibilityIds = false): array
+    {
+        $user->loadMissing('eligiblePositions', 'proposals', 'preferredProposals');
+
+        $local = $user->toArray();
+        $local['project_position_eligibility_names'] = $user->eligiblePositions->pluck('name')->implode(', ');
+        $local['proposal_names'] = $user->proposals->pluck('title')
+            ->merge($user->preferredProposals->pluck('title'))
+            ->filter()
+            ->unique()
+            ->implode(', ');
+        $local['created_at'] = optional($user->created_at)->toJSON();
+        $local['updated_at'] = optional($user->updated_at)->toJSON();
+
+        if ($includeEligibilityIds) {
+            $local['project_position_eligibility_ids'] = $user->eligiblePositions->pluck('id')->values()->all();
+        } else {
+            unset($local['project_position_eligibility_ids']);
+        }
+
+        $response = $local;
+
+        foreach ($remoteData as $key => $value) {
+            $response[$key] = $value;
+        }
+
+        foreach (['eligible_positions', 'proposals', 'preferred_proposals'] as $relationshipKey) {
+            $response[$relationshipKey] = $local[$relationshipKey] ?? [];
+        }
+
+        $response['proposal_names'] = $local['proposal_names'];
+
+        if ($includeEligibilityIds) {
+            $response['project_position_eligibility_ids'] = $local['project_position_eligibility_ids'] ?? [];
+            unset($response['project_position_eligibility_names']);
+        } else {
+            $response['project_position_eligibility_names'] = $local['project_position_eligibility_names'];
+        }
+
+        return $response;
+    }
+
+    protected function requireToken(?string $token): string
+    {
+        $token = trim((string) $token);
+
+        if ($token === '') {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Missing bearer token.',
+            ], 401));
+        }
+
+        return $token;
     }
 }

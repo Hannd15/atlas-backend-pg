@@ -115,7 +115,9 @@ class AuthenticateViaAtlasTest extends TestCase
     {
         Route::middleware('auth.atlas')->get('/middleware-missing-token', fn () => response()->json());
 
-        $this->getJson('/middleware-missing-token')
+        $this->getJson('/middleware-missing-token', [
+            'Authorization' => '',
+        ])
             ->assertStatus(401)
             ->assertExactJson([
                 'message' => 'Unauthenticated.',
