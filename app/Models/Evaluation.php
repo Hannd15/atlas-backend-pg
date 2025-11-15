@@ -19,6 +19,14 @@ class Evaluation extends Model
         'evaluation_date',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'grade' => 'float',
+            'evaluation_date' => 'datetime',
+        ];
+    }
+
     public function submission()
     {
         return $this->belongsTo(Submission::class);

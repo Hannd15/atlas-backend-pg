@@ -2507,6 +2507,478 @@
                 }
             }
         },
+        "/api/pg/submissions": {
+            "get": {
+                "tags": [
+                    "Submissions"
+                ],
+                "summary": "List submissions",
+                "operationId": "ac2849fa8cd5a9cb2c2ad49090f0e050",
+                "responses": {
+                    "200": {
+                        "description": "Array of submissions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SubmissionResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Submissions"
+                ],
+                "summary": "Create a submission",
+                "operationId": "b74d1a3873cefccf3905c24daa18cdee",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubmissionCreatePayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Submission created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SubmissionResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/submissions/{submission}": {
+            "get": {
+                "tags": [
+                    "Submissions"
+                ],
+                "summary": "Show submission",
+                "operationId": "58f1cd3a1ab75c817b76b89ca0484441",
+                "parameters": [
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Submission resource",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SubmissionResource"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Submissions"
+                ],
+                "summary": "Update submission",
+                "operationId": "09951d9a8c01158f2b2e3fe5d76644cb",
+                "parameters": [
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubmissionUpdatePayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated submission",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SubmissionResource"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Submissions"
+                ],
+                "summary": "Delete submission",
+                "operationId": "71cb76df44f6ff5ec088f7beb85b34f3",
+                "parameters": [
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deletion confirmation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Submission deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/submissions/{submission}/evaluations": {
+            "get": {
+                "tags": [
+                    "Submission Evaluations"
+                ],
+                "summary": "List evaluations for a submission",
+                "operationId": "d9516e31c5da30d2c9c2754d9e2f2658",
+                "parameters": [
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of evaluations",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SubmissionEvaluationResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Submission Evaluations"
+                ],
+                "summary": "Create evaluation",
+                "operationId": "23979e754b427d1c0149b4caeda2bccb",
+                "parameters": [
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubmissionEvaluationCreatePayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Evaluation resource",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SubmissionEvaluationResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/evaluations/{evaluation}": {
+            "get": {
+                "tags": [
+                    "Submission Evaluations"
+                ],
+                "summary": "Show evaluation",
+                "operationId": "d0b823ba996d83b181c2312a126c6be4",
+                "parameters": [
+                    {
+                        "name": "evaluation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Evaluation resource",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SubmissionEvaluationResource"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Submission Evaluations"
+                ],
+                "summary": "Update evaluation",
+                "operationId": "0de85acc34d97a6e82e1bd950d4460c8",
+                "parameters": [
+                    {
+                        "name": "evaluation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubmissionEvaluationUpdatePayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated evaluation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SubmissionEvaluationResource"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Submission Evaluations"
+                ],
+                "summary": "Delete evaluation",
+                "operationId": "aef7de0e209f7e5144c208b7ce5f531d",
+                "parameters": [
+                    {
+                        "name": "evaluation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deletion confirmation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Evaluation deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/submission-files": {
+            "get": {
+                "tags": [
+                    "Submission Files"
+                ],
+                "summary": "Get all submission files",
+                "operationId": "7fc14cea412b96e7c1f04fa52467b448",
+                "responses": {
+                    "200": {
+                        "description": "List of submission files with contextual metadata",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "file_id": {
+                                                "type": "integer"
+                                            },
+                                            "submission_id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "extension": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "url": {
+                                                "type": "string",
+                                                "nullable": true
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/submissions/{submission}/files": {
+            "get": {
+                "tags": [
+                    "Submission Files"
+                ],
+                "summary": "Get files associated with a submission",
+                "operationId": "eda278c6808dbbb8460235ab2457c65f",
+                "parameters": [
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of files",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SubmissionFileResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Submission Files"
+                ],
+                "summary": "Upload and associate a file with a submission",
+                "operationId": "0d7179ff566a03567da006fb148b3e2a",
+                "parameters": [
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "file"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "File stored and associated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SubmissionFileResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
         "/api/pg/thematic-lines": {
             "get": {
                 "tags": [
@@ -2958,6 +3430,74 @@
                                             "user_names": {
                                                 "type": "string",
                                                 "example": "Jane Doe, John Smith"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/user-project-eligibilities/by-user/dropdown": {
+            "get": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Dropdown of users with eligibility labels",
+                "operationId": "be00a33e175672767a6f8de0b7ed7af6",
+                "responses": {
+                    "200": {
+                        "description": "Value-label pairs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 5
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Jane Doe - Director, Jurado"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/user-project-eligibilities/by-position/dropdown": {
+            "get": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Dropdown of positions with eligible user labels",
+                "operationId": "d1dfd67bbff864cef80f12dd698bec72",
+                "responses": {
+                    "200": {
+                        "description": "Value-label pairs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 3
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Director - Jane Doe"
                                             }
                                         },
                                         "type": "object"
@@ -3434,37 +3974,26 @@
                         "type": "string",
                         "example": "Plan de trabajo"
                     },
-                    "description": {
-                        "type": "string",
-                        "example": "Documento inicial"
-                    },
                     "due_date": {
                         "type": "string",
                         "format": "date-time",
                         "example": "2025-04-30 18:00:00"
                     },
-                    "status": {
+                    "grading": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 4.3,
+                        "nullable": true
+                    },
+                    "state": {
                         "type": "string",
                         "enum": [
-                            "pending",
-                            "submitted"
+                            "Pendiente de entrega",
+                            "Atrasado",
+                            "Pendiente por revisión",
+                            "Al día"
                         ],
-                        "example": "pending"
-                    },
-                    "submission": {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 44
-                            },
-                            "submitted_at": {
-                                "type": "string",
-                                "format": "date-time",
-                                "example": "2025-04-28 18:00:00"
-                            }
-                        },
-                        "type": "object",
-                        "nullable": true
+                        "example": "Pendiente de entrega"
                     }
                 },
                 "type": "object"
@@ -3989,6 +4518,387 @@
                 },
                 "type": "object"
             },
+            "SubmissionResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 45
+                    },
+                    "deliverable_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 30
+                    },
+                    "submission_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-19T10:00:00"
+                    },
+                    "deliverable": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "description": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "phase": {
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "period": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "project": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "title": {
+                                "type": "string"
+                            },
+                            "status": {
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "extension": {
+                                    "type": "string"
+                                },
+                                "url": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "evaluations": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SubmissionEvaluationResource"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "SubmissionCreatePayload": {
+                "required": [
+                    "deliverable_id",
+                    "project_id",
+                    "submission_date"
+                ],
+                "properties": {
+                    "deliverable_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 30
+                    },
+                    "submission_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-19T10:00:00"
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "evaluations": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SubmissionEvaluationCreatePayload"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "SubmissionUpdatePayload": {
+                "properties": {
+                    "deliverable_id": {
+                        "type": "integer"
+                    },
+                    "project_id": {
+                        "type": "integer"
+                    },
+                    "submission_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "SubmissionEvaluationResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 90
+                    },
+                    "submission_id": {
+                        "type": "integer",
+                        "example": 45
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "evaluator_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "rubric_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "grade": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 4.5
+                    },
+                    "comments": {
+                        "type": "string",
+                        "example": "Gran trabajo",
+                        "nullable": true
+                    },
+                    "evaluation_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-15T17:45:00"
+                    },
+                    "user": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "email": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "evaluator": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "email": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "rubric": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "min_value": {
+                                "type": "integer"
+                            },
+                            "max_value": {
+                                "type": "integer"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "SubmissionEvaluationCreatePayload": {
+                "required": [
+                    "user_id",
+                    "rubric_id",
+                    "grade",
+                    "evaluator_id"
+                ],
+                "properties": {
+                    "user_id": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "rubric_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "grade": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 4.2
+                    },
+                    "comments": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "evaluation_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "evaluator_id": {
+                        "type": "integer",
+                        "example": 2
+                    }
+                },
+                "type": "object"
+            },
+            "SubmissionEvaluationUpdatePayload": {
+                "properties": {
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "rubric_id": {
+                        "type": "integer"
+                    },
+                    "grade": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "comments": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "evaluation_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "evaluator_id": {
+                        "type": "integer"
+                    }
+                },
+                "type": "object"
+            },
+            "SubmissionFileResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 120
+                    },
+                    "submission_id": {
+                        "type": "integer",
+                        "example": 45
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "avance.pdf"
+                    },
+                    "extension": {
+                        "type": "string",
+                        "example": "pdf"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://storage.test/pg/uploads/2025/avance.pdf"
+                    },
+                    "disk": {
+                        "type": "string",
+                        "example": "public"
+                    },
+                    "path": {
+                        "type": "string",
+                        "example": "pg/uploads/2025/04/15/avance.pdf"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
             "ThematicLinePayload": {
                 "required": [
                     "name"
@@ -4084,6 +4994,18 @@
         {
             "name": "Rubrics",
             "description": "CRUD endpoints for rubrics and their associations"
+        },
+        {
+            "name": "Submissions",
+            "description": "API endpoints for project deliverable submissions"
+        },
+        {
+            "name": "Submission Evaluations",
+            "description": "Endpoints to manage evaluations per submission"
+        },
+        {
+            "name": "Submission Files",
+            "description": "API endpoints for uploading and listing files associated with submissions"
         },
         {
             "name": "Thematic Lines",

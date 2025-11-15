@@ -1,0 +1,273 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Evaluation;
+use App\Models\Submission;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+/**
+ * @OA\Tag(
+ *     name="Submission Evaluations",
+ *     description="Endpoints to manage evaluations per submission"
+ * )
+ *
+ * @OA\Schema(
+ *     schema="SubmissionEvaluationResource",
+ *     type="object",
+ *
+ *     @OA\Property(property="id", type="integer", example=90),
+ *     @OA\Property(property="submission_id", type="integer", example=45),
+ *     @OA\Property(property="user_id", type="integer", example=15),
+ *     @OA\Property(property="evaluator_id", type="integer", example=2),
+ *     @OA\Property(property="rubric_id", type="integer", example=5),
+ *     @OA\Property(property="grade", type="number", format="float", example=4.5),
+ *     @OA\Property(property="comments", type="string", nullable=true, example="Gran trabajo"),
+ *     @OA\Property(property="evaluation_date", type="string", format="date-time", example="2025-04-15T17:45:00"),
+ *     @OA\Property(
+ *         property="user",
+ *         type="object",
+ *         nullable=true,
+ *         @OA\Property(property="id", type="integer"),
+ *         @OA\Property(property="name", type="string"),
+ *         @OA\Property(property="email", type="string")
+ *     ),
+ *     @OA\Property(
+ *         property="evaluator",
+ *         type="object",
+ *         nullable=true,
+ *         @OA\Property(property="id", type="integer"),
+ *         @OA\Property(property="name", type="string"),
+ *         @OA\Property(property="email", type="string")
+ *     ),
+ *     @OA\Property(
+ *         property="rubric",
+ *         type="object",
+ *         nullable=true,
+ *         @OA\Property(property="id", type="integer"),
+ *         @OA\Property(property="name", type="string"),
+ *         @OA\Property(property="min_value", type="integer"),
+ *         @OA\Property(property="max_value", type="integer")
+ *     ),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="SubmissionEvaluationCreatePayload",
+ *     type="object",
+ *     required={"user_id","rubric_id","grade","evaluator_id"},
+ *
+ *     @OA\Property(property="user_id", type="integer", example=15),
+ *     @OA\Property(property="rubric_id", type="integer", example=5),
+ *     @OA\Property(property="grade", type="number", format="float", example=4.2),
+ *     @OA\Property(property="comments", type="string", nullable=true),
+ *     @OA\Property(property="evaluation_date", type="string", format="date-time", nullable=true),
+ *     @OA\Property(property="evaluator_id", type="integer", example=2)
+ * )
+ *
+ * @OA\Schema(
+ *     schema="SubmissionEvaluationUpdatePayload",
+ *     type="object",
+ *
+ *     @OA\Property(property="user_id", type="integer"),
+ *     @OA\Property(property="rubric_id", type="integer"),
+ *     @OA\Property(property="grade", type="number", format="float"),
+ *     @OA\Property(property="comments", type="string", nullable=true),
+ *     @OA\Property(property="evaluation_date", type="string", format="date-time"),
+ *     @OA\Property(property="evaluator_id", type="integer")
+ * )
+ */
+class SubmissionEvaluationController extends Controller
+{
+    /**
+     * @OA\Get(
+     *     path="/api/pg/submissions/{submission}/evaluations",
+     *     summary="List evaluations for a submission",
+     *     tags={"Submission Evaluations"},
+     *
+     *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Array of evaluations",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(ref="#/components/schemas/SubmissionEvaluationResource")
+     *         )
+     *     )
+     * )
+     */
+    public function index(Submission $submission): JsonResponse
+    {
+        $submission->load('evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
+
+        return response()->json(
+            $submission->evaluations
+                ->map(fn (Evaluation $evaluation) => $this->transformEvaluation($evaluation))
+                ->values()
+                ->all()
+        );
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/pg/submissions/{submission}/evaluations",
+     *     summary="Create evaluation",
+     *     tags={"Submission Evaluations"},
+     *
+     *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\RequestBody(required=true, @OA\JsonContent(ref="#/components/schemas/SubmissionEvaluationCreatePayload")),
+     *
+     *     @OA\Response(
+     *         response=201,
+     *         description="Evaluation resource",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/SubmissionEvaluationResource")
+     *     ),
+     *
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
+    public function store(Request $request, Submission $submission): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'rubric_id' => 'required|exists:rubrics,id',
+            'grade' => 'required|numeric',
+            'comments' => 'nullable|string',
+            'evaluation_date' => 'nullable|date',
+            'evaluator_id' => 'required|exists:users,id',
+        ]);
+
+        $validated['evaluation_date'] = $validated['evaluation_date'] ?? now();
+
+        $evaluation = $submission->evaluations()->create($validated);
+        $evaluation->load('user', 'evaluator', 'rubric');
+
+        return response()->json($this->transformEvaluation($evaluation), 201);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/pg/evaluations/{evaluation}",
+     *     summary="Show evaluation",
+     *     tags={"Submission Evaluations"},
+     *
+     *     @OA\Parameter(name="evaluation", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Evaluation resource",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/SubmissionEvaluationResource")
+     *     )
+     * )
+     */
+    public function show(Evaluation $evaluation): JsonResponse
+    {
+        $evaluation->load('user', 'evaluator', 'rubric');
+
+        return response()->json($this->transformEvaluation($evaluation));
+    }
+
+    /**
+     * @OA\Put(
+     *     path="/api/pg/evaluations/{evaluation}",
+     *     summary="Update evaluation",
+     *     tags={"Submission Evaluations"},
+     *
+     *     @OA\Parameter(name="evaluation", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/SubmissionEvaluationUpdatePayload")),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Updated evaluation",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/SubmissionEvaluationResource")
+     *     )
+     * )
+     */
+    public function update(Request $request, Evaluation $evaluation): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'sometimes|required|exists:users,id',
+            'rubric_id' => 'sometimes|required|exists:rubrics,id',
+            'grade' => 'sometimes|required|numeric',
+            'comments' => 'sometimes|nullable|string',
+            'evaluation_date' => 'sometimes|required|date',
+            'evaluator_id' => 'sometimes|required|exists:users,id',
+        ]);
+
+        $evaluation->update($validated);
+        $evaluation->load('user', 'evaluator', 'rubric');
+
+        return response()->json($this->transformEvaluation($evaluation));
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/pg/evaluations/{evaluation}",
+     *     summary="Delete evaluation",
+     *     tags={"Submission Evaluations"},
+     *
+     *     @OA\Parameter(name="evaluation", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Deletion confirmation",
+     *
+     *         @OA\JsonContent(
+     *             type="object",
+     *
+     *             @OA\Property(property="message", type="string", example="Evaluation deleted successfully")
+     *         )
+     *     )
+     * )
+     */
+    public function destroy(Evaluation $evaluation): JsonResponse
+    {
+        $evaluation->delete();
+
+        return response()->json(['message' => 'Evaluation deleted successfully']);
+    }
+
+    protected function transformEvaluation(Evaluation $evaluation): array
+    {
+        $evaluation->loadMissing('user', 'evaluator', 'rubric');
+
+        return [
+            'id' => $evaluation->id,
+            'submission_id' => $evaluation->submission_id,
+            'user_id' => $evaluation->user_id,
+            'evaluator_id' => $evaluation->evaluator_id,
+            'rubric_id' => $evaluation->rubric_id,
+            'grade' => $evaluation->grade,
+            'comments' => $evaluation->comments,
+            'evaluation_date' => optional($evaluation->evaluation_date)->toDateTimeString(),
+            'user' => $evaluation->user ? [
+                'id' => $evaluation->user->id,
+                'name' => $evaluation->user->name,
+                'email' => $evaluation->user->email,
+            ] : null,
+            'evaluator' => $evaluation->evaluator ? [
+                'id' => $evaluation->evaluator->id,
+                'name' => $evaluation->evaluator->name,
+                'email' => $evaluation->evaluator->email,
+            ] : null,
+            'rubric' => $evaluation->rubric ? [
+                'id' => $evaluation->rubric->id,
+                'name' => $evaluation->rubric->name,
+                'min_value' => $evaluation->rubric->min_value,
+                'max_value' => $evaluation->rubric->max_value,
+            ] : null,
+            'created_at' => optional($evaluation->created_at)->toDateTimeString(),
+            'updated_at' => optional($evaluation->updated_at)->toDateTimeString(),
+        ];
+    }
+}

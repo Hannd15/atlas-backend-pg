@@ -15,6 +15,13 @@ class Submission extends Model
         'submission_date',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'submission_date' => 'datetime',
+        ];
+    }
+
     public function deliverable()
     {
         return $this->belongsTo(Deliverable::class);

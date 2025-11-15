@@ -5,10 +5,12 @@ namespace Tests\Support;
 use App\Models\AcademicPeriod;
 use App\Models\Deliverable;
 use App\Models\DeliverableFile;
+use App\Models\Evaluation;
 use App\Models\File;
 use App\Models\Phase;
 use App\Models\ProjectPosition;
 use App\Models\Rubric;
+use App\Models\Submission;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -200,6 +202,86 @@ trait PgApiResponseHelpers
             'value' => $deliverable->id,
             'label' => $deliverable->name,
         ])->values()->all();
+    }
+
+    protected function submissionResource(Submission $submission): array
+    {
+        $submission->loadMissing('deliverable.phase.period', 'project.status', 'files', 'evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
+
+        return [
+            'id' => $submission->id,
+            'deliverable' => $submission->deliverable ? [
+                'id' => $submission->deliverable->id,
+                'name' => $submission->deliverable->name,
+                'description' => $submission->deliverable->description,
+                'phase' => $submission->deliverable->phase ? [
+                    'id' => $submission->deliverable->phase->id,
+                    'name' => $submission->deliverable->phase->name,
+                    'period' => $submission->deliverable->phase->period ? [
+                        'id' => $submission->deliverable->phase->period->id,
+                        'name' => $submission->deliverable->phase->period->name,
+                    ] : null,
+                ] : null,
+            ] : null,
+            'project' => $submission->project ? [
+                'id' => $submission->project->id,
+                'title' => $submission->project->title,
+                'status' => $submission->project->status ? [
+                    'id' => $submission->project->status->id,
+                    'name' => $submission->project->status->name,
+                ] : null,
+            ] : null,
+            'deliverable_id' => $submission->deliverable_id,
+            'project_id' => $submission->project_id,
+            'submission_date' => optional($submission->submission_date)->toDateTimeString(),
+            'files' => $submission->files->map(fn (File $file) => [
+                'id' => $file->id,
+                'name' => $file->name,
+                'extension' => $file->extension,
+                'url' => $file->url,
+            ])->values()->all(),
+            'file_ids' => $submission->files->pluck('id')->values()->all(),
+            'evaluations' => $submission->evaluations
+                ->map(fn (Evaluation $evaluation) => $this->evaluationResource($evaluation))
+                ->values()
+                ->all(),
+            'created_at' => optional($submission->created_at)->toDateTimeString(),
+            'updated_at' => optional($submission->updated_at)->toDateTimeString(),
+        ];
+    }
+
+    protected function evaluationResource(Evaluation $evaluation): array
+    {
+        $evaluation->loadMissing('user', 'evaluator', 'rubric');
+
+        return [
+            'id' => $evaluation->id,
+            'submission_id' => $evaluation->submission_id,
+            'user_id' => $evaluation->user_id,
+            'evaluator_id' => $evaluation->evaluator_id,
+            'rubric_id' => $evaluation->rubric_id,
+            'grade' => $evaluation->grade,
+            'comments' => $evaluation->comments,
+            'evaluation_date' => optional($evaluation->evaluation_date)->toDateTimeString(),
+            'user' => $evaluation->user ? [
+                'id' => $evaluation->user->id,
+                'name' => $evaluation->user->name,
+                'email' => $evaluation->user->email,
+            ] : null,
+            'evaluator' => $evaluation->evaluator ? [
+                'id' => $evaluation->evaluator->id,
+                'name' => $evaluation->evaluator->name,
+                'email' => $evaluation->evaluator->email,
+            ] : null,
+            'rubric' => $evaluation->rubric ? [
+                'id' => $evaluation->rubric->id,
+                'name' => $evaluation->rubric->name,
+                'min_value' => $evaluation->rubric->min_value,
+                'max_value' => $evaluation->rubric->max_value,
+            ] : null,
+            'created_at' => optional($evaluation->created_at)->toDateTimeString(),
+            'updated_at' => optional($evaluation->updated_at)->toDateTimeString(),
+        ];
     }
 
     protected function fileDropdownArray(Collection $files): array

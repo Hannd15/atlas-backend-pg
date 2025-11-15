@@ -13,6 +13,9 @@ use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\RepositoryProjectController;
 use App\Http\Controllers\RepositoryProjectFileController;
 use App\Http\Controllers\RubricController;
+use App\Http\Controllers\SubmissionController;
+use App\Http\Controllers\SubmissionEvaluationController;
+use App\Http\Controllers\SubmissionFileController;
 use App\Http\Controllers\ThematicLineController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserProjectEligibilityController;
@@ -40,10 +43,23 @@ Route::prefix('pg')->group(function () {
     Route::get('deliverables/{deliverable_id}/files', [DeliverableFileController::class, 'index']);
     Route::post('deliverables/{deliverable_id}/files', [DeliverableFileController::class, 'store']);
 
+    // Submission Files routes
+    Route::get('submission-files', [SubmissionFileController::class, 'getAll']);
+    Route::get('submissions/{submission_id}/files', [SubmissionFileController::class, 'index']);
+    Route::post('submissions/{submission_id}/files', [SubmissionFileController::class, 'store']);
+
     // Files routes (handles show/update/delete for all files)
     Route::get('files/dropdown', [FileController::class, 'dropdown']);
     Route::get('files/{file}/download', [FileController::class, 'download']);
     Route::apiResource('files', FileController::class)->except('store', 'create');
+
+    // Submissions routes and nested evaluations
+    Route::apiResource('submissions', SubmissionController::class);
+    Route::get('submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'index']);
+    Route::post('submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'store']);
+    Route::get('evaluations/{evaluation}', [SubmissionEvaluationController::class, 'show']);
+    Route::put('evaluations/{evaluation}', [SubmissionEvaluationController::class, 'update']);
+    Route::delete('evaluations/{evaluation}', [SubmissionEvaluationController::class, 'destroy']);
 
     // Thematic Lines routes
     Route::get('thematic-lines/dropdown', [ThematicLineController::class, 'dropdown']);

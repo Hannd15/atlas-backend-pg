@@ -9,9 +9,11 @@ use App\Models\Meeting;
 use App\Models\Project;
 use App\Models\ProjectStaff;
 use App\Models\ProjectStatus;
+use App\Models\Submission;
 use App\Services\AtlasUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 /**
  * @OA\Tag(
@@ -73,12 +75,13 @@ use Illuminate\Http\Request;
  *
  *     @OA\Property(property="id", type="integer", example=1),
  *     @OA\Property(property="name", type="string", example="Plan de trabajo"),
- *     @OA\Property(property="description", type="string", example="Documento inicial"),
  *     @OA\Property(property="due_date", type="string", format="date-time", example="2025-04-30 18:00:00"),
- *     @OA\Property(property="status", type="string", enum={"pending", "submitted"}, example="pending"),
- *     @OA\Property(property="submission", type="object", nullable=true,
- *         @OA\Property(property="id", type="integer", example=44),
- *         @OA\Property(property="submitted_at", type="string", format="date-time", example="2025-04-28 18:00:00")
+ *     @OA\Property(property="grading", type="number", format="float", nullable=true, example=4.3),
+ *     @OA\Property(
+ *         property="state",
+ *         type="string",
+ *         enum={"Pendiente de entrega", "Atrasado", "Pendiente por revisión", "Al día"},
+ *         example="Pendiente de entrega"
  *     )
  * )
  */
@@ -283,7 +286,7 @@ class ProjectController extends Controller
             'staff.position',
             'deliverables.phase',
             'meetings',
-            'submissions',
+            'submissions.evaluations',
         ];
     }
 
@@ -339,27 +342,44 @@ class ProjectController extends Controller
     protected function transformDeliverables(Project $project): array
     {
         $submissionsByDeliverable = $project->submissions->groupBy('deliverable_id');
+        $now = Carbon::now();
 
         return $project->deliverables
             ->sortBy('due_date')
             ->values()
-            ->map(function (Deliverable $deliverable) use ($submissionsByDeliverable) {
+            ->map(function (Deliverable $deliverable) use ($submissionsByDeliverable, $now) {
                 $submissionGroup = $submissionsByDeliverable->get($deliverable->id);
                 $submission = $submissionGroup ? $submissionGroup->sortByDesc('submission_date')->first() : null;
+                $averageGrade = $submission ? $submission->evaluations->avg('grade') : null;
 
                 return [
                     'id' => $deliverable->id,
                     'name' => $deliverable->name,
-                    'description' => $deliverable->description,
                     'due_date' => optional($deliverable->due_date)->toDateTimeString(),
-                    'status' => $submission ? 'submitted' : 'pending',
-                    'submission' => $submission ? [
-                        'id' => $submission->id,
-                        'submitted_at' => optional($submission->submission_date)->toDateTimeString(),
-                    ] : null,
+                    'grading' => $averageGrade !== null ? round((float) $averageGrade, 2) : null,
+                    'state' => $this->resolveDeliverableState($deliverable, $submission, $now),
                 ];
             })
             ->all();
+    }
+
+    protected function resolveDeliverableState(Deliverable $deliverable, ?Submission $submission, Carbon $now): string
+    {
+        $dueDate = $deliverable->due_date ? $deliverable->due_date->copy() : null;
+
+        if ($submission === null) {
+            if ($dueDate === null || $now->lessThanOrEqualTo($dueDate)) {
+                return 'Pendiente de entrega';
+            }
+
+            return 'Atrasado';
+        }
+
+        if ($submission->evaluations->isEmpty()) {
+            return 'Pendiente por revisión';
+        }
+
+        return 'Al día';
     }
 
     protected function memberNames(Project $project, array $userNames): string
