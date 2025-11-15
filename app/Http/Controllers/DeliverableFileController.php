@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicPeriod;
 use App\Models\Deliverable;
 use App\Models\File;
+use App\Models\Phase;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -78,7 +80,7 @@ class DeliverableFileController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/deliverables/{deliverable_id}/files",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files",
      *     summary="Get all files associated with a deliverable",
      *     tags={"Deliverable Files"},
      *
@@ -108,17 +110,16 @@ class DeliverableFileController extends Controller
      *     )
      * )
      */
-    public function index(int $deliverableId): \Illuminate\Http\JsonResponse
+    public function index(AcademicPeriod $academicPeriod, Phase $phase, Deliverable $deliverable): \Illuminate\Http\JsonResponse
     {
-        $deliverable = \App\Models\Deliverable::findOrFail($deliverableId);
         $files = $deliverable->files()->orderByDesc('updated_at')->get();
 
-        return response()->json($files->map(fn (File $file) => $this->transformFileForDeliverable($file, $deliverableId)));
+        return response()->json($files->map(fn (File $file) => $this->transformFileForDeliverable($file, $deliverable->id)));
     }
 
     /**
      * @OA\Post(
-     *     path="/api/pg/deliverables/{deliverable_id}/files",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files",
      *     summary="Upload and associate a file with a deliverable",
      *     tags={"Deliverable Files"},
      *
@@ -158,10 +159,8 @@ class DeliverableFileController extends Controller
      *     )
      * )
      */
-    public function store(Request $request, int $deliverableId): \Illuminate\Http\JsonResponse
+    public function store(Request $request, AcademicPeriod $academicPeriod, Phase $phase, Deliverable $deliverable): \Illuminate\Http\JsonResponse
     {
-        $deliverable = \App\Models\Deliverable::findOrFail($deliverableId);
-
         $validated = $request->validate([
             'file' => 'required|file',
             'name' => 'sometimes|nullable|string|max:255',
@@ -193,7 +192,7 @@ class DeliverableFileController extends Controller
 
         $deliverable->files()->attach($file->id);
 
-        return response()->json($this->transformFileForDeliverable($file, $deliverableId), 201);
+        return response()->json($this->transformFileForDeliverable($file, $deliverable->id), 201);
     }
 
     /**

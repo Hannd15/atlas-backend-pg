@@ -289,13 +289,13 @@
                 }
             }
         },
-        "/api/pg/deliverables": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables": {
             "get": {
                 "tags": [
                     "Deliverables"
                 ],
                 "summary": "Get all deliverables",
-                "operationId": "7ae26f21055ed76fad4e7bb42aaca919",
+                "operationId": "a99a7f24bf9d58a4074302e9bf8d1ae6",
                 "responses": {
                     "200": {
                         "description": "List of deliverables with essential metadata",
@@ -343,7 +343,7 @@
                     "Deliverables"
                 ],
                 "summary": "Create a deliverable",
-                "operationId": "5c940f036f85439fbcca31a5d91157f5",
+                "operationId": "c6bd9603dd19561f994aa6d7728f1e24",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -371,13 +371,13 @@
                 }
             }
         },
-        "/api/pg/deliverables/{id}": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}": {
             "get": {
                 "tags": [
                     "Deliverables"
                 ],
                 "summary": "Get a specific deliverable",
-                "operationId": "e72c8bdf3e1a4d751f4beba2924c6c8c",
+                "operationId": "d7ef9e4a1743176e5ae60bea5cdeab18",
                 "parameters": [
                     {
                         "name": "id",
@@ -406,7 +406,7 @@
                     "Deliverables"
                 ],
                 "summary": "Update a deliverable",
-                "operationId": "4538913078ae021375594e7b5970406e",
+                "operationId": "04793bae2fb053686f9d3ac524d24702",
                 "parameters": [
                     {
                         "name": "id",
@@ -470,7 +470,7 @@
                     "Deliverables"
                 ],
                 "summary": "Delete a deliverable",
-                "operationId": "3a2d130b458970794b3cd681f260edbc",
+                "operationId": "0a3233c1f35e00a7eea061f15d05d470",
                 "parameters": [
                     {
                         "name": "id",
@@ -488,13 +488,13 @@
                 }
             }
         },
-        "/api/pg/deliverables/dropdown": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/dropdown": {
             "get": {
                 "tags": [
                     "Deliverables"
                 ],
                 "summary": "Get deliverables for dropdown",
-                "operationId": "8bde9c6f60854a0c9a126491660ce14a",
+                "operationId": "489433635e8eb4be9aae58fcd86011e4",
                 "responses": {
                     "200": {
                         "description": "List of deliverables formatted for dropdowns"
@@ -548,13 +548,13 @@
                 }
             }
         },
-        "/api/pg/deliverables/{deliverable_id}/files": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files": {
             "get": {
                 "tags": [
                     "Deliverable Files"
                 ],
                 "summary": "Get all files associated with a deliverable",
-                "operationId": "a77a2f7c1dde0264dd4533f4afc76aa2",
+                "operationId": "07a6446e796dccf6149ac7f92b575567",
                 "parameters": [
                     {
                         "name": "deliverable_id",
@@ -590,7 +590,7 @@
                     "Deliverable Files"
                 ],
                 "summary": "Upload and associate a file with a deliverable",
-                "operationId": "c96bd6de8b300457005b8ad0d2bcfd2f",
+                "operationId": "93e12b5771c21cf62409f4f730d69907",
                 "parameters": [
                     {
                         "name": "deliverable_id",
@@ -1031,13 +1031,13 @@
                 }
             }
         },
-        "/api/pg/phases": {
+        "/api/pg/academic-periods/{academic_period}/phases": {
             "get": {
                 "tags": [
                     "Phases"
                 ],
                 "summary": "Get all phases",
-                "operationId": "b25436f36fed519cb23ebc9e2e9fe4d8",
+                "operationId": "5fa79d4ccb084adef41f40bdee5e3b63",
                 "responses": {
                     "200": {
                         "description": "List of all phases with period information",
@@ -1055,13 +1055,13 @@
                 }
             }
         },
-        "/api/pg/phases/{id}": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}": {
             "get": {
                 "tags": [
                     "Phases"
                 ],
                 "summary": "Get a specific phase",
-                "operationId": "13e921a3841e0e3189fabb65a71c2f46",
+                "operationId": "205b0e664a05c11e0215bc8307b1c42b",
                 "parameters": [
                     {
                         "name": "id",
@@ -1094,7 +1094,7 @@
                     "Phases"
                 ],
                 "summary": "Update a phase",
-                "operationId": "f4a65f250c51c588d34e357f76c4c155",
+                "operationId": "0aaa6f3a8b23bc82c693c08ec2efad06",
                 "parameters": [
                     {
                         "name": "id",
@@ -1153,13 +1153,13 @@
                 }
             }
         },
-        "/api/pg/phases/dropdown": {
+        "/api/pg/academic-periods/{academic_period}/phases/dropdown": {
             "get": {
                 "tags": [
                     "Phases"
                 ],
                 "summary": "Get phases for dropdown",
-                "operationId": "755caaf39b8cf85852e62911d12b3e41",
+                "operationId": "bd31034082ea0680657b32f19d7f4e17",
                 "responses": {
                     "200": {
                         "description": "List of phases formatted for dropdowns",
@@ -3554,13 +3554,6 @@
                         "type": "integer",
                         "example": 1
                     },
-                    "phase_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 5
-                        }
-                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -3595,10 +3588,6 @@
                         "example": "2025-03-15T23:59:00",
                         "nullable": true
                     },
-                    "phase_id": {
-                        "type": "integer",
-                        "example": 5
-                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -3614,14 +3603,9 @@
             },
             "DeliverableCreatePayload": {
                 "required": [
-                    "phase_id",
                     "name"
                 ],
                 "properties": {
-                    "phase_id": {
-                        "type": "integer",
-                        "example": 5
-                    },
                     "name": {
                         "type": "string",
                         "example": "Entrega 1"

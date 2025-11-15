@@ -33,7 +33,7 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_can_update_phase_with_valid_dates(): void
     {
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '2025-02-01',
             'end_date' => '2025-04-30',
         ]);
@@ -46,7 +46,7 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_start_date_cannot_be_before_period_start_date(): void
     {
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '2024-12-31',
             'end_date' => '2025-03-31',
         ]);
@@ -58,7 +58,7 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_end_date_cannot_be_after_period_end_date(): void
     {
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '2025-01-15',
             'end_date' => '2025-07-01',
         ]);
@@ -70,7 +70,7 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_end_date_must_be_after_or_equal_start_date(): void
     {
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '2025-03-15',
             'end_date' => '2025-03-01',
         ]);
@@ -82,15 +82,13 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_dates_cannot_overlap_with_other_phases(): void
     {
-        // Create another phase in the same period
         Phase::factory()->create([
             'period_id' => $this->period->id,
             'start_date' => '2025-04-01',
             'end_date' => '2025-06-30',
         ]);
 
-        // Try to update the first phase to overlap with the second
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '2025-03-15',
             'end_date' => '2025-04-15',
         ]);
@@ -102,15 +100,13 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_dates_cannot_completely_contain_another_phase(): void
     {
-        // Create another phase in the same period
         Phase::factory()->create([
             'period_id' => $this->period->id,
             'start_date' => '2025-04-01',
             'end_date' => '2025-05-31',
         ]);
 
-        // Try to update the first phase to completely contain the second
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '2025-03-01',
             'end_date' => '2025-06-30',
         ]);
@@ -122,7 +118,7 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_can_update_only_name(): void
     {
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'name' => 'Updated Phase Name',
         ]);
 
@@ -135,7 +131,7 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_can_update_only_start_date(): void
     {
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '2025-02-01',
         ]);
 
@@ -147,7 +143,7 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_dates_on_period_boundaries_are_valid(): void
     {
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '2025-01-01',
             'end_date' => '2025-06-30',
         ]);
@@ -160,15 +156,13 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_adjacent_phases_do_not_overlap(): void
     {
-        // Create another phase in the same period
         Phase::factory()->create([
             'period_id' => $this->period->id,
             'start_date' => '2025-04-01',
             'end_date' => '2025-06-30',
         ]);
 
-        // Update the first phase to end just before the second starts
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '2025-01-15',
             'end_date' => '2025-03-31',
         ]);
@@ -178,11 +172,16 @@ class UpdatePhaseWithDatesTest extends TestCase
 
     public function test_invalid_date_format_is_rejected(): void
     {
-        $response = $this->putJson("/api/pg/phases/{$this->phase->id}", [
+        $response = $this->putJson($this->phaseRoute(), [
             'start_date' => '15/01/2025',
         ]);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('start_date');
+    }
+
+    private function phaseRoute(): string
+    {
+        return "/api/pg/academic-periods/{$this->period->id}/phases/{$this->phase->id}";
     }
 }

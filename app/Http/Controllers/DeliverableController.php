@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicPeriod;
 use App\Models\Deliverable;
+use App\Models\Phase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -21,7 +24,6 @@ use Illuminate\Support\Facades\Validator;
  *     @OA\Property(property="name", type="string", example="Entrega 1"),
  *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
  *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
- *     @OA\Property(property="phase_id", type="integer", example=5),
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2025-01-01T12:00:00"),
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-01-15T18:30:00")
  * )
@@ -29,9 +31,9 @@ use Illuminate\Support\Facades\Validator;
  * @OA\Schema(
  *     schema="DeliverableCreatePayload",
  *     type="object",
- *     required={"phase_id","name"},
+ *     required={"name"},
+
  *
- *     @OA\Property(property="phase_id", type="integer", example=5),
  *     @OA\Property(property="name", type="string", example="Entrega 1"),
  *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
  *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00")
@@ -41,7 +43,7 @@ class DeliverableController extends Controller
 {
     /**
      * @OA\Get(
-     *     path="/api/pg/deliverables",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables",
      *     summary="Get all deliverables",
      *     tags={"Deliverables"},
      *
@@ -64,9 +66,9 @@ class DeliverableController extends Controller
      *     )
      * )
      */
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
     {
-        $deliverables = Deliverable::with('phase.period', 'files', 'rubrics')
+        $deliverables = $phase->deliverables()->with('phase.period', 'files', 'rubrics')
             ->orderByDesc('updated_at')
             ->get();
 
@@ -77,7 +79,7 @@ class DeliverableController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/pg/deliverables",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables",
      *     summary="Create a deliverable",
      *     tags={"Deliverables"},
      *
@@ -104,10 +106,9 @@ class DeliverableController extends Controller
      *     )
      * )
      */
-    public function store(Request $request): \Illuminate\Http\JsonResponse
+    public function store(Request $request, AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'phase_id' => 'required|exists:phases,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
@@ -127,8 +128,8 @@ class DeliverableController extends Controller
 
         unset($data['file_ids'], $data['rubric_ids']);
 
-        $deliverable = DB::transaction(function () use ($data, $fileIds, $rubricIds) {
-            $deliverable = Deliverable::create($data);
+        $deliverable = DB::transaction(function () use ($phase, $data, $fileIds, $rubricIds) {
+            $deliverable = $phase->deliverables()->create($data);
 
             if ($fileIds !== null) {
                 $deliverable->files()->sync($fileIds);
@@ -148,7 +149,7 @@ class DeliverableController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/deliverables/{id}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}",
      *     summary="Get a specific deliverable",
      *     tags={"Deliverables"},
      *
@@ -168,7 +169,7 @@ class DeliverableController extends Controller
      *     )
      * )
      */
-    public function show(Deliverable $deliverable): \Illuminate\Http\JsonResponse
+    public function show(AcademicPeriod $academicPeriod, Phase $phase, Deliverable $deliverable): JsonResponse
     {
         $deliverable->load('phase.period', 'files');
 
@@ -177,7 +178,7 @@ class DeliverableController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/pg/deliverables/{id}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}",
      *     summary="Update a deliverable",
      *     tags={"Deliverables"},
      *
@@ -214,10 +215,9 @@ class DeliverableController extends Controller
      *     )
      * )
      */
-    public function update(Request $request, Deliverable $deliverable): \Illuminate\Http\JsonResponse
+    public function update(Request $request, AcademicPeriod $academicPeriod, Phase $phase, Deliverable $deliverable): JsonResponse
     {
         $validated = $request->validate([
-            'phase_id' => 'sometimes|required|exists:phases,id',
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
             'due_date' => 'sometimes|nullable|date',
@@ -227,7 +227,7 @@ class DeliverableController extends Controller
             'rubric_ids.*' => 'integer|exists:rubrics,id',
         ]);
 
-        $attributes = array_intersect_key($validated, array_flip(['phase_id', 'name', 'description', 'due_date']));
+        $attributes = array_intersect_key($validated, array_flip(['name', 'description', 'due_date']));
         $fileIds = array_key_exists('file_ids', $validated) ? $this->normalizeIds($validated['file_ids']) : null;
         $rubricIds = array_key_exists('rubric_ids', $validated) ? $this->normalizeIds($validated['rubric_ids']) : null;
 
@@ -252,7 +252,7 @@ class DeliverableController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/api/pg/deliverables/{id}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}",
      *     summary="Delete a deliverable",
      *     tags={"Deliverables"},
      *
@@ -270,7 +270,7 @@ class DeliverableController extends Controller
      *     )
      * )
      */
-    public function destroy(Deliverable $deliverable): \Illuminate\Http\JsonResponse
+    public function destroy(AcademicPeriod $academicPeriod, Phase $phase, Deliverable $deliverable): JsonResponse
     {
         $deliverable->delete();
 
@@ -279,7 +279,7 @@ class DeliverableController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/deliverables/dropdown",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/dropdown",
      *     summary="Get deliverables for dropdown",
      *     tags={"Deliverables"},
      *
@@ -289,12 +289,14 @@ class DeliverableController extends Controller
      *     )
      * )
      */
-    public function dropdown(): \Illuminate\Http\JsonResponse
+    public function dropdown(AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
     {
-        $deliverables = Deliverable::orderByDesc('updated_at')->get()->map(fn (Deliverable $deliverable) => [
-            'value' => $deliverable->id,
-            'label' => $deliverable->name,
-        ]);
+        $deliverables = $phase->deliverables
+            ->sortByDesc('updated_at')
+            ->map(fn (Deliverable $deliverable) => [
+                'value' => $deliverable->id,
+                'label' => $deliverable->name,
+            ])->values();
 
         return response()->json($deliverables);
     }

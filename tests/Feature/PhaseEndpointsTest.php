@@ -52,9 +52,9 @@ class PhaseEndpointsTest extends TestCase
             'end_date' => '2025-08-30',
         ]);
 
-        $response = $this->getJson('/api/pg/phases');
+        $response = $this->getJson("/api/pg/academic-periods/{$period->id}/phases");
 
-        $phases = Phase::with('period')->orderBy('updated_at', 'desc')->get();
+        $phases = $period->phases()->with('period')->orderByDesc('updated_at')->get();
         $phases->each(function ($phase) {
             $phase->period_names = $phase->period ? $phase->period->name : '';
         });
@@ -79,7 +79,7 @@ class PhaseEndpointsTest extends TestCase
             'due_date' => '2025-04-15 18:00:00',
         ]);
 
-        $response = $this->getJson("/api/pg/phases/{$phase->id}");
+        $response = $this->getJson("/api/pg/academic-periods/{$period->id}/phases/{$phase->id}");
 
         $phase->load('period');
 
@@ -101,7 +101,7 @@ class PhaseEndpointsTest extends TestCase
             'name' => 'Updated Phase',
         ];
 
-        $response = $this->putJson("/api/pg/phases/{$phase->id}", $payload);
+        $response = $this->putJson("/api/pg/academic-periods/{$period->id}/phases/{$phase->id}", $payload);
 
         $phase->refresh();
         $phase->load('period');
@@ -130,7 +130,7 @@ class PhaseEndpointsTest extends TestCase
             'end_date' => '2025-08-30',
         ]);
 
-        $this->getJson('/api/pg/phases/dropdown')
+        $this->getJson("/api/pg/academic-periods/{$period->id}/phases/dropdown")
             ->assertOk()
             ->assertExactJson([
                 ['value' => $first->id, 'label' => 'Phase One'],

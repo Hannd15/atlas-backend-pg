@@ -38,7 +38,7 @@ class DeliverableFileEndpointsTest extends TestCase
         // Associate file with deliverable
         $deliverable->files()->attach($file);
 
-        $response = $this->getJson("/api/pg/deliverables/{$deliverable->id}/files");
+        $response = $this->getJson($this->deliverableFilesRoute($deliverable));
 
         $response->assertOk()
             ->assertJsonCount(1)
@@ -53,7 +53,7 @@ class DeliverableFileEndpointsTest extends TestCase
 
         $uploaded = UploadedFile::fake()->create('propuesta.pdf', 100, 'application/pdf');
 
-        $response = $this->postJson("/api/pg/deliverables/{$deliverable->id}/files", [
+        $response = $this->postJson($this->deliverableFilesRoute($deliverable), [
             'file' => $uploaded,
             'name' => 'Propuesta Técnica',
         ]);
@@ -109,5 +109,12 @@ class DeliverableFileEndpointsTest extends TestCase
             'description' => 'Documento',
             'due_date' => '2025-04-15 18:00:00',
         ]);
+    }
+
+    private function deliverableFilesRoute(Deliverable $deliverable): string
+    {
+        $phase = $deliverable->phase ?? $deliverable->phase()->with('period')->firstOrFail();
+
+        return "/api/pg/academic-periods/{$phase->period_id}/phases/{$phase->id}/deliverables/{$deliverable->id}/files";
     }
 }

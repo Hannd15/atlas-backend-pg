@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdatePhaseRequest;
+use App\Models\AcademicPeriod;
 use App\Models\Phase;
+use Illuminate\Http\JsonResponse;
 
 /**
  * @OA\Tag(
@@ -29,7 +31,7 @@ class PhaseController extends Controller
 {
     /**
      * @OA\Get(
-     *     path="/api/pg/phases",
+     *     path="/api/pg/academic-periods/{academic_period}/phases",
      *     summary="Get all phases",
      *     tags={"Phases"},
      *
@@ -45,11 +47,11 @@ class PhaseController extends Controller
      *     )
      * )
      */
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(AcademicPeriod $academicPeriod): JsonResponse
     {
-        $phases = Phase::with('period')->orderBy('updated_at', 'desc')->get();
+        $phases = $academicPeriod->phases()->with('period')->orderByDesc('updated_at')->get();
 
-        $phases->each(function ($phase) {
+        $phases->each(function (Phase $phase) {
             $phase->period_names = $phase->period ? $phase->period->name : '';
         });
 
@@ -58,7 +60,7 @@ class PhaseController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/phases/{id}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}",
      *     summary="Get a specific phase",
      *     tags={"Phases"},
      *
@@ -84,7 +86,7 @@ class PhaseController extends Controller
      *     )
      * )
      */
-    public function show(Phase $phase): \Illuminate\Http\JsonResponse
+    public function show(AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
     {
         $phase->load('period');
 
@@ -93,7 +95,7 @@ class PhaseController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/pg/phases/{id}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}",
      *     summary="Update a phase",
      *     tags={"Phases"},
      *
@@ -135,7 +137,7 @@ class PhaseController extends Controller
      *     )
      * )
      */
-    public function update(UpdatePhaseRequest $request, Phase $phase): \Illuminate\Http\JsonResponse
+    public function update(UpdatePhaseRequest $request, AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
     {
         $validated = $request->validated();
 
@@ -147,7 +149,7 @@ class PhaseController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/phases/dropdown",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/dropdown",
      *     summary="Get phases for dropdown",
      *     tags={"Phases"},
      *
@@ -167,14 +169,13 @@ class PhaseController extends Controller
      *     )
      * )
      */
-    public function dropdown(): \Illuminate\Http\JsonResponse
+    public function dropdown(AcademicPeriod $academicPeriod): JsonResponse
     {
-        $phases = Phase::all()->map(function ($phase) {
-            return [
+        $phases = $academicPeriod->phases
+            ->map(fn (Phase $phase) => [
                 'value' => $phase->id,
                 'label' => $phase->name,
-            ];
-        });
+            ])->values();
 
         return response()->json($phases);
     }

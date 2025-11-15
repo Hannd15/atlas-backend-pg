@@ -32,7 +32,6 @@ use Illuminate\Http\JsonResponse;
  *     @OA\Property(property="start_date", type="string", format="date", example="2025-01-15"),
  *     @OA\Property(property="end_date", type="string", format="date", example="2025-06-30"),
  *     @OA\Property(property="state_id", type="integer", example=1),
- *     @OA\Property(property="phase_ids", type="array", @OA\Items(type="integer", example=5)),
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2025-01-01T12:00:00"),
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-01-15T18:30:00")
  * )

@@ -65,9 +65,9 @@ class DeliverableEndpointsTest extends TestCase
 
         $deliverable->refresh();
 
-        $response = $this->getJson('/api/pg/deliverables');
+        $response = $this->getJson($this->deliverablesRoute($phase));
 
-        $expected = Deliverable::with('phase.period', 'files', 'rubrics')->orderByDesc('updated_at')->get()
+        $expected = $phase->deliverables()->with('phase.period', 'files', 'rubrics')->orderByDesc('updated_at')->get()
             ->map(fn (Deliverable $item) => $this->deliverableResource($item))
             ->values()
             ->all();
@@ -95,7 +95,6 @@ class DeliverableEndpointsTest extends TestCase
         ]);
 
         $payload = [
-            'phase_id' => $phase->id,
             'name' => 'Entrega 1',
             'description' => 'Documento PDF',
             'due_date' => '2025-04-20 17:00:00',
@@ -103,7 +102,7 @@ class DeliverableEndpointsTest extends TestCase
             'rubric_ids' => [$rubric->id],
         ];
 
-        $response = $this->postJson('/api/pg/deliverables', $payload);
+        $response = $this->postJson($this->deliverablesRoute($phase), $payload);
 
         $deliverable = Deliverable::firstOrFail()->load('phase.period', 'files');
 
@@ -144,14 +143,12 @@ class DeliverableEndpointsTest extends TestCase
         $payload = [
             'deliverables' => [
                 [
-                    'phase_id' => $phase->id,
                     'name' => 'Entrega 1',
                     'description' => 'Doc 1',
                     'due_date' => '2025-04-20 17:00:00',
                     'rubric_ids' => [$rubricOne->id],
                 ],
                 [
-                    'phase_id' => $phase->id,
                     'name' => 'Entrega 2',
                     'description' => 'Doc 2',
                     'due_date' => '2025-04-25 17:00:00',
@@ -160,10 +157,10 @@ class DeliverableEndpointsTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/pg/deliverables', $payload);
+        $response = $this->postJson($this->deliverablesRoute($phase), $payload);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['phase_id', 'name']);
+        $response->assertJsonValidationErrors(['name']);
     }
 
     public function test_show_returns_expected_resource(): void
@@ -184,7 +181,7 @@ class DeliverableEndpointsTest extends TestCase
         ]);
         $deliverable->rubrics()->attach($rubric);
 
-        $response = $this->getJson("/api/pg/deliverables/{$deliverable->id}");
+        $response = $this->getJson($this->deliverableRoute($deliverable));
 
         $deliverable->load('phase.period', 'files', 'rubrics');
 
@@ -194,7 +191,6 @@ class DeliverableEndpointsTest extends TestCase
     public function test_update_syncs_files_and_basic_fields(): void
     {
         [$phase] = $this->createPhaseWithPeriod();
-        $otherPhase = $this->createPhaseWithPeriod(name: 'PG II')[0];
 
         $deliverable = $phase->deliverables()->create([
             'name' => 'Entrega 1',
@@ -240,14 +236,13 @@ class DeliverableEndpointsTest extends TestCase
 
         $payload = [
             'name' => 'Entrega Final',
-            'phase_id' => $otherPhase->id,
             'description' => 'Documento final',
             'due_date' => '2025-05-01 12:00:00',
             'file_ids' => [$fileA->id, $fileB->id],
             'rubric_ids' => [$rubricA->id, $rubricB->id],
         ];
 
-        $response = $this->putJson("/api/pg/deliverables/{$deliverable->id}", $payload);
+        $response = $this->putJson($this->deliverableRoute($deliverable), $payload);
 
         $deliverable->refresh()->load('phase.period', 'files', 'rubrics');
 
@@ -269,7 +264,7 @@ class DeliverableEndpointsTest extends TestCase
             'due_date' => '2025-04-15 18:00:00',
         ]);
 
-        $this->deleteJson("/api/pg/deliverables/{$deliverable->id}")
+        $this->deleteJson($this->deliverableRoute($deliverable))
             ->assertOk()
             ->assertExactJson(['message' => 'Deliverable deleted successfully']);
 
@@ -293,12 +288,30 @@ class DeliverableEndpointsTest extends TestCase
             'due_date' => '2025-04-20 12:00:00',
         ]);
 
-        $this->getJson('/api/pg/deliverables/dropdown')
+        $this->getJson($this->deliverableDropdownRoute($phase))
             ->assertOk()
             ->assertExactJson([
                 ['value' => $newer->id, 'label' => 'Entrega 2'],
                 ['value' => $older->id, 'label' => 'Entrega 1'],
             ]);
+
+    }
+
+    private function deliverablesRoute(Phase $phase): string
+    {
+        return "/api/pg/academic-periods/{$phase->period_id}/phases/{$phase->id}/deliverables";
+    }
+
+    private function deliverableRoute(Deliverable $deliverable): string
+    {
+        $phase = $deliverable->phase ?? $deliverable->phase()->with('period')->firstOrFail();
+
+        return $this->deliverablesRoute($phase)."/{$deliverable->id}";
+    }
+
+    private function deliverableDropdownRoute(Phase $phase): string
+    {
+        return $this->deliverablesRoute($phase).'/dropdown';
     }
 
     /**

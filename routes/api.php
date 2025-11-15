@@ -21,27 +21,22 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserProjectEligibilityController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('pg')->group(function () {
+Route::scopeBindings()->prefix('pg')->group(function () {
     // Academic Periods routes
     Route::get('academic-period-states/dropdown', [AcademicPeriodController::class, 'stateDropdown']);
     Route::get('academic-periods/dropdown', [AcademicPeriodController::class, 'dropdown']);
     Route::apiResource('academic-periods', AcademicPeriodController::class);
 
-    // Phases routes (read-only, no store method)
-    Route::get('phases/dropdown', [PhaseController::class, 'dropdown']);
-    Route::get('phases', [PhaseController::class, 'index']);
-    Route::get('phases/{phase}', [PhaseController::class, 'show']);
-    Route::put('phases/{phase}', [PhaseController::class, 'update']);
-    Route::delete('phases/{phase}', [PhaseController::class, 'destroy']);
+    Route::get('academic-periods/{academic_period}/phases/dropdown', [PhaseController::class, 'dropdown']);
+    Route::apiResource('academic-periods.phases', PhaseController::class)->only(['index', 'show', 'update']);
 
-    // Deliverables routes with nested file operations
-    Route::get('deliverables/dropdown', [DeliverableController::class, 'dropdown']);
-    Route::apiResource('deliverables', DeliverableController::class);
+    Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/dropdown', [DeliverableController::class, 'dropdown']);
+    Route::apiResource('academic-periods.phases.deliverables', DeliverableController::class);
 
-    // Deliverable Files routes (scoped under deliverables - index and store only)
+    // Deliverable Files routes (fully scoped under academic periods > phases > deliverables)
     Route::get('deliverable-files', [DeliverableFileController::class, 'getAll']);
-    Route::get('deliverables/{deliverable_id}/files', [DeliverableFileController::class, 'index']);
-    Route::post('deliverables/{deliverable_id}/files', [DeliverableFileController::class, 'store']);
+    Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files', [DeliverableFileController::class, 'index']);
+    Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files', [DeliverableFileController::class, 'store']);
 
     // Submission Files routes
     Route::get('submission-files', [SubmissionFileController::class, 'getAll']);
