@@ -14,9 +14,8 @@ class ProjectGroupEndpointsTest extends TestCase
 
     public function test_index_returns_expected_payload(): void
     {
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Sistema de gestión',
-            'status' => 'active',
         ]);
 
         $group = ProjectGroup::create([
@@ -48,9 +47,8 @@ class ProjectGroupEndpointsTest extends TestCase
 
     public function test_store_creates_group_and_syncs_members(): void
     {
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Proyecto académico',
-            'status' => 'active',
         ]);
 
         $alice = User::factory()->create(['name' => 'Alice']);
@@ -105,9 +103,8 @@ class ProjectGroupEndpointsTest extends TestCase
 
     public function test_update_syncs_members_and_handles_empty_array(): void
     {
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Proyecto de prueba',
-            'status' => 'active',
         ]);
 
         $group = ProjectGroup::create([
@@ -144,9 +141,8 @@ class ProjectGroupEndpointsTest extends TestCase
 
     public function test_update_rejects_users_already_in_another_group(): void
     {
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Proyecto principal',
-            'status' => 'active',
         ]);
 
         $groupA = ProjectGroup::create([
@@ -172,7 +168,7 @@ class ProjectGroupEndpointsTest extends TestCase
     public function test_destroy_deletes_group(): void
     {
         $group = ProjectGroup::create([
-            'project_id' => Project::create(['title' => 'Temp', 'status' => 'active'])->id,
+            'project_id' => Project::factory()->create(['title' => 'Temp'])->id,
             'name' => 'Temporal',
         ]);
 
@@ -186,11 +182,11 @@ class ProjectGroupEndpointsTest extends TestCase
     public function test_dropdown_returns_value_label_pairs(): void
     {
         $groupA = ProjectGroup::create([
-            'project_id' => Project::create(['title' => 'Proyecto A', 'status' => 'active'])->id,
+            'project_id' => Project::factory()->create(['title' => 'Proyecto A'])->id,
             'name' => 'Equipo A',
         ]);
         $groupB = ProjectGroup::create([
-            'project_id' => Project::create(['title' => 'Proyecto B', 'status' => 'active'])->id,
+            'project_id' => Project::factory()->create(['title' => 'Proyecto B'])->id,
             'name' => 'Equipo B',
         ]);
 

@@ -827,6 +827,210 @@
                 }
             }
         },
+        "/api/pg/meetings": {
+            "get": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "List meetings",
+                "operationId": "0f5ff3d640b32abb2310c456ca837faf",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "query",
+                        "description": "Filter meetings by project",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Meetings listing project name, date, and observations",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "project_name": {
+                                                "type": "string",
+                                                "example": "Proyecto Principal"
+                                            },
+                                            "meeting_date": {
+                                                "type": "string",
+                                                "format": "date",
+                                                "example": "2025-02-14"
+                                            },
+                                            "observations": {
+                                                "type": "string",
+                                                "example": "Notas generales",
+                                                "nullable": true
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/project/{project}/meeting": {
+            "post": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "Schedule a meeting for a project",
+                "operationId": "4a48ff6d6538c20b33807c3aa5f233d6",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "meeting_date"
+                                ],
+                                "properties": {
+                                    "meeting_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-02-14"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Meeting created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingDetailResource"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/meetings/{meeting}": {
+            "get": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "Show meeting",
+                "operationId": "5eff38eeffda7c75fd4c1a0058616368",
+                "parameters": [
+                    {
+                        "name": "meeting",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Meeting detail",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingDetailResource"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "Update meeting",
+                "operationId": "09f6246b9ce8c7d44e71a173a289b71f",
+                "parameters": [
+                    {
+                        "name": "meeting",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "meeting_date": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "observations": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Meeting updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingDetailResource"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "Delete meeting",
+                "operationId": "413570614e75c829636baea7607637a8",
+                "parameters": [
+                    {
+                        "name": "meeting",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Meeting deleted successfully"
+                    }
+                }
+            }
+        },
         "/api/pg/phases": {
             "get": {
                 "tags": [
@@ -1018,17 +1222,12 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "title",
-                                    "status"
+                                    "title"
                                 ],
                                 "properties": {
                                     "title": {
                                         "type": "string",
                                         "example": "Nuevo proyecto"
-                                    },
-                                    "status": {
-                                        "type": "string",
-                                        "example": "draft"
                                     },
                                     "proposal_id": {
                                         "type": "integer",
@@ -1047,7 +1246,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProjectResource"
+                                    "$ref": "#/components/schemas/ProjectDetailResource"
                                 }
                             }
                         }
@@ -1081,7 +1280,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProjectResource"
+                                    "$ref": "#/components/schemas/ProjectDetailResource"
                                 }
                             }
                         }
@@ -1116,10 +1315,7 @@
                                     "title": {
                                         "type": "string"
                                     },
-                                    "status": {
-                                        "type": "string"
-                                    },
-                                    "proposal_id": {
+                                    "status_id": {
                                         "type": "integer",
                                         "nullable": true
                                     }
@@ -1135,7 +1331,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProjectResource"
+                                    "$ref": "#/components/schemas/ProjectDetailResource"
                                 }
                             }
                         }
@@ -3031,6 +3227,37 @@
                 },
                 "type": "object"
             },
+            "MeetingDetailResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 42
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "project_name": {
+                        "type": "string",
+                        "example": "Proyecto Principal"
+                    },
+                    "meeting_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-02-14"
+                    },
+                    "observations": {
+                        "type": "string",
+                        "example": "Revisión semanal",
+                        "nullable": true
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://meetings.test/project-12/20250214"
+                    }
+                },
+                "type": "object"
+            },
             "PhaseResource": {
                 "properties": {
                     "id": {
@@ -3084,25 +3311,67 @@
                     },
                     "status": {
                         "type": "string",
-                        "example": "active"
+                        "example": "Activo"
+                    },
+                    "member_names": {
+                        "type": "string",
+                        "example": "Laura Proposer, Juan Developer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ProjectDetailResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Plataforma IoT"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "Activo"
                     },
                     "proposal_id": {
                         "type": "integer",
                         "example": 5,
                         "nullable": true
                     },
-                    "group_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 7
-                        }
+                    "thematic_line_name": {
+                        "type": "string",
+                        "example": "Inteligencia Artificial",
+                        "nullable": true
                     },
                     "member_names": {
+                        "type": "string",
+                        "example": "Laura Proposer, Juan Developer"
+                    },
+                    "staff": {
                         "type": "array",
                         "items": {
-                            "type": "string",
-                            "example": "Laura Proposer"
+                            "$ref": "#/components/schemas/ProjectStaffResource"
+                        }
+                    },
+                    "meetings": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProjectMeetingResource"
+                        }
+                    },
+                    "deliverables": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProjectDeliverableResource"
                         }
                     },
                     "created_at": {
@@ -3112,6 +3381,90 @@
                     "updated_at": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ProjectStaffResource": {
+                "properties": {
+                    "user_name": {
+                        "type": "string",
+                        "example": "Ana Directora"
+                    },
+                    "position_name": {
+                        "type": "string",
+                        "example": "Director"
+                    }
+                },
+                "type": "object"
+            },
+            "ProjectMeetingResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "meeting_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-04-15"
+                    },
+                    "observations": {
+                        "type": "string",
+                        "example": "Initial kickoff meeting"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://meetings.test/project-1/20250415"
+                    },
+                    "created_by": {
+                        "type": "integer",
+                        "example": 5
+                    }
+                },
+                "type": "object"
+            },
+            "ProjectDeliverableResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Plan de trabajo"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Documento inicial"
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-30 18:00:00"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "submitted"
+                        ],
+                        "example": "pending"
+                    },
+                    "submission": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 44
+                            },
+                            "submitted_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "example": "2025-04-28 18:00:00"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -3695,6 +4048,10 @@
         {
             "name": "Files",
             "description": "API endpoints for managing files"
+        },
+        {
+            "name": "Meetings",
+            "description": "API endpoints for scheduling and managing project meetings"
         },
         {
             "name": "Phases",

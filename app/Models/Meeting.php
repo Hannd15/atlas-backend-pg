@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class Meeting extends Model
 {
@@ -15,6 +16,35 @@ class Meeting extends Model
         'observations',
         'created_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'meeting_date' => 'date',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Meeting $meeting): void {
+            $meeting->url = $meeting->buildUrl();
+        });
+
+        static::updating(function (Meeting $meeting): void {
+            if ($meeting->isDirty('meeting_date')) {
+                $meeting->url = $meeting->buildUrl();
+            }
+        });
+    }
+
+    private function buildUrl(): string
+    {
+        $date = $this->meeting_date instanceof Carbon
+            ? $this->meeting_date
+            : ($this->meeting_date ? Carbon::parse($this->meeting_date) : Carbon::now());
+
+        return sprintf('https://meetings.test/project-%s/%s', $this->project_id, $date->format('Ymd'));
+    }
 
     public function project()
     {
@@ -28,6 +58,6 @@ class Meeting extends Model
 
     public function attendees()
     {
-        return $this->belongsToMany(User::class, 'meeting_attendees');
+        return $this->belongsToMany(User::class, 'meeting_attendees')->withTimestamps();
     }
 }

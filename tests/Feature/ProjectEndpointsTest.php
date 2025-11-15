@@ -2,9 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\Deliverable;
 use App\Models\GroupMember;
+use App\Models\Meeting;
 use App\Models\Project;
 use App\Models\ProjectGroup;
+use App\Models\ProjectPosition;
+use App\Models\ProjectStaff;
+use App\Models\Submission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -15,9 +20,8 @@ class ProjectEndpointsTest extends TestCase
 
     public function test_index_returns_expected_payload(): void
     {
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Sistema de seguimiento',
-            'status' => 'active',
         ]);
 
         $groupA = ProjectGroup::create([
@@ -42,41 +46,101 @@ class ProjectEndpointsTest extends TestCase
             'user_id' => $userTwo->id,
         ]);
 
+        $position = ProjectPosition::create(['name' => 'Director']);
+        $staffUser = User::factory()->create(['name' => 'Director Uno']);
+
+        ProjectStaff::create([
+            'project_id' => $project->id,
+            'user_id' => $staffUser->id,
+            'project_position_id' => $position->id,
+            'status' => 'active',
+        ]);
+
+        $project->refresh();
+        $phase = $project->phase()->firstOrFail();
+
+        $deliverable = Deliverable::create([
+            'phase_id' => $phase->id,
+            'name' => 'Plan de trabajo',
+            'description' => 'Documento inicial',
+            'due_date' => now()->addWeek(),
+        ]);
+
+        Submission::create([
+            'deliverable_id' => $deliverable->id,
+            'project_id' => $project->id,
+            'submission_date' => now(),
+        ]);
+
+        $creator = User::factory()->create(['name' => 'Facilitador']);
+
+        $meeting = Meeting::create([
+            'project_id' => $project->id,
+            'meeting_date' => now()->toDateString(),
+            'observations' => 'Kickoff inicial',
+            'created_by' => $creator->id,
+        ]);
+
+        $meeting->attendees()->sync([$creator->id, $staffUser->id, $userOne->id]);
+
         $response = $this->getJson('/api/pg/projects');
 
-        $projects = Project::with('proposal', 'groups.members.user')->orderByDesc('updated_at')->get();
+        $projects = Project::orderByDesc('updated_at')->with(['groups.members.user', 'status'])->get();
 
-        $expected = $projects->map(fn (Project $item) => $this->transformForExpectation($item))->values()->all();
+        $expected = $projects->map(fn (Project $item) => $this->transformForIndexExpectation($item))->values()->all();
 
         $response->assertOk()->assertExactJson($expected);
     }
 
     public function test_store_creates_project(): void
     {
+        $activoStatusId = \App\Models\ProjectStatus::firstOrCreate(['name' => 'Activo'])->id;
+
         $payload = [
             'title' => 'Plataforma educativa',
-            'status' => 'draft',
             'proposal_id' => null,
         ];
 
         $response = $this->postJson('/api/pg/projects', $payload);
 
-        $project = Project::with('proposal', 'groups.members.user')->firstOrFail();
+        $project = Project::firstOrFail();
 
         $response->assertCreated()->assertExactJson($this->transformForExpectation($project));
 
         $this->assertDatabaseHas('projects', [
             'id' => $project->id,
             'title' => 'Plataforma educativa',
-            'status' => 'draft',
+            'status_id' => $activoStatusId,
         ]);
+    }
+
+    public function test_store_auto_sets_status_to_activo_when_not_provided(): void
+    {
+        $payload = [
+            'title' => 'Proyecto sin estado',
+            'proposal_id' => null,
+        ];
+
+        $response = $this->postJson('/api/pg/projects', $payload);
+
+        $project = Project::firstOrFail();
+        $activoStatus = \App\Models\ProjectStatus::where('name', 'Activo')->firstOrFail();
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'title' => 'Proyecto sin estado',
+            'status_id' => $activoStatus->id,
+        ]);
+
+        $this->assertSame('Activo', $project->status->name);
     }
 
     public function test_show_returns_expected_payload(): void
     {
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Aplicativo móvil',
-            'status' => 'active',
         ]);
 
         $group = ProjectGroup::create([
@@ -93,41 +157,60 @@ class ProjectEndpointsTest extends TestCase
 
         $response = $this->getJson("/api/pg/projects/{$project->id}");
 
-        $project->load('proposal', 'groups.members.user');
+        $project->refresh();
 
         $response->assertOk()->assertExactJson($this->transformForExpectation($project));
     }
 
     public function test_update_modifies_project_fields(): void
     {
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Servicio web',
-            'status' => 'active',
         ]);
+
+        $statusId = \App\Models\ProjectStatus::where('name', 'Terminado')->first()->id;
 
         $payload = [
             'title' => 'Servicio web actualizado',
-            'status' => 'archived',
+            'status_id' => $statusId,
         ];
 
         $response = $this->putJson("/api/pg/projects/{$project->id}", $payload);
 
-        $project->refresh()->load('proposal', 'groups.members.user');
+        $project->refresh();
 
         $response->assertOk()->assertExactJson($this->transformForExpectation($project));
 
         $this->assertDatabaseHas('projects', [
             'id' => $project->id,
             'title' => 'Servicio web actualizado',
-            'status' => 'archived',
+            'status_id' => $statusId,
         ]);
+    }
+
+    public function test_update_ignores_proposal_id_changes(): void
+    {
+        $project = Project::factory()->create([
+            'title' => 'Proyecto restringido',
+        ]);
+
+        $response = $this->putJson("/api/pg/projects/{$project->id}", [
+            'title' => 'Proyecto restringido actualizado',
+            'proposal_id' => 999,
+        ]);
+
+        $project->refresh();
+
+        $response->assertOk();
+
+        $this->assertSame('Proyecto restringido actualizado', $project->title);
+        $this->assertNull($project->proposal_id);
     }
 
     public function test_destroy_deletes_project(): void
     {
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Sistema temporal',
-            'status' => 'active',
         ]);
 
         $this->deleteJson("/api/pg/projects/{$project->id}")
@@ -139,8 +222,8 @@ class ProjectEndpointsTest extends TestCase
 
     public function test_dropdown_returns_value_label_pairs(): void
     {
-        $projectA = Project::create(['title' => 'Proyecto A', 'status' => 'active']);
-        $projectB = Project::create(['title' => 'Proyecto B', 'status' => 'active']);
+        $projectA = Project::factory()->create(['title' => 'Proyecto A']);
+        $projectB = Project::factory()->create(['title' => 'Proyecto B']);
 
         $this->getJson('/api/pg/projects/dropdown')
             ->assertOk()
@@ -150,21 +233,80 @@ class ProjectEndpointsTest extends TestCase
             ]);
     }
 
-    private function transformForExpectation(Project $project): array
+    private function transformForIndexExpectation(Project $project): array
     {
+        $project->loadMissing('groups.members.user', 'status');
+
         return [
             'id' => $project->id,
             'title' => $project->title,
-            'status' => $project->status,
-            'proposal_id' => $project->proposal_id,
-            'group_ids' => $project->groups->pluck('id')->values()->all(),
+            'status' => $project->status?->name,
             'member_names' => $this->memberNames($project),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
         ];
     }
 
-    private function memberNames(Project $project): array
+    private function transformForExpectation(Project $project): array
+    {
+        $project->loadMissing([
+            'proposal.thematicLine',
+            'groups.members.user',
+            'status',
+            'staff.user',
+            'staff.position',
+            'deliverables',
+            'meetings',
+            'submissions',
+        ]);
+
+        $submissionsByDeliverable = $project->submissions->groupBy('deliverable_id');
+
+        return [
+            'id' => $project->id,
+            'title' => $project->title,
+            'status' => $project->status?->name,
+            'proposal_id' => $project->proposal_id,
+            'thematic_line_name' => $project->proposal?->thematicLine?->name,
+            'member_names' => $this->memberNames($project),
+            'staff' => $project->staff->map(fn (ProjectStaff $staff) => [
+                'user_name' => $staff->user?->name,
+                'position_name' => $staff->position?->name,
+            ])->values()->all(),
+            'meetings' => $project->meetings
+                ->sortByDesc('meeting_date')
+                ->values()
+                ->map(fn (Meeting $meeting) => [
+                    'id' => $meeting->id,
+                    'meeting_date' => optional($meeting->meeting_date)->toDateString(),
+                    'observations' => $meeting->observations,
+                    'created_by' => $meeting->created_by,
+                ])->all(),
+            'deliverables' => $project->deliverables
+                ->sortBy('due_date')
+                ->values()
+                ->map(function (Deliverable $deliverable) use ($submissionsByDeliverable) {
+                    $submissionGroup = $submissionsByDeliverable->get($deliverable->id);
+                    $submission = $submissionGroup ? $submissionGroup->sortByDesc('submission_date')->first() : null;
+
+                    return [
+                        'id' => $deliverable->id,
+                        'name' => $deliverable->name,
+                        'description' => $deliverable->description,
+                        'due_date' => optional($deliverable->due_date)->toDateTimeString(),
+                        'status' => $submission ? 'submitted' : 'pending',
+                        'submission' => $submission ? [
+                            'id' => $submission->id,
+                            'submitted_at' => optional($submission->submission_date)->toDateTimeString(),
+                        ] : null,
+                    ];
+                })->all(),
+            'created_at' => optional($project->created_at)->toDateTimeString(),
+            'updated_at' => optional($project->updated_at)->toDateTimeString(),
+        ];
+    }
+
+    private function memberNames(Project $project): string
     {
         $project->loadMissing('groups.members.user');
 
@@ -173,6 +315,6 @@ class ProjectEndpointsTest extends TestCase
             ->filter()
             ->unique()
             ->values()
-            ->all();
+            ->implode(', ');
     }
 }

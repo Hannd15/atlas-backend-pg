@@ -14,9 +14,8 @@ class UpdateProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'proposal_id' => ['sometimes', 'nullable', 'exists:proposals,id'],
             'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'status' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'status_id' => ['sometimes', 'nullable', 'exists:project_statuses,id'],
         ];
     }
 }

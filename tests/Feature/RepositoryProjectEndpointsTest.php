@@ -133,10 +133,9 @@ class RepositoryProjectEndpointsTest extends TestCase
             'proposer_id' => $proposer->id,
         ]);
 
-        $project = Project::create([
+        $project = Project::factory()->create([
             'proposal_id' => $proposal->id,
             'title' => 'Sistema de monitoreo implementado',
-            'status' => 'completed',
         ]);
 
         $group = ProjectGroup::create([

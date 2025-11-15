@@ -38,9 +38,8 @@ class ProjectPositionEndpointsTest extends TestCase
         $userTwo = User::factory()->create(['name' => 'Bob Example', 'email' => 'bob@example.com']);
         $position->eligibleUsers()->sync([$userOne->id, $userTwo->id]);
 
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Project Uno',
-            'status' => 'active',
         ]);
 
         ProjectStaff::create([
@@ -76,9 +75,8 @@ class ProjectPositionEndpointsTest extends TestCase
         $user = User::factory()->create(['name' => 'Alice Example', 'email' => 'alice@example.com']);
         $position->eligibleUsers()->sync([$user->id]);
 
-        $project = Project::create([
+        $project = Project::factory()->create([
             'title' => 'Project Uno',
-            'status' => 'active',
         ]);
 
         ProjectStaff::create([

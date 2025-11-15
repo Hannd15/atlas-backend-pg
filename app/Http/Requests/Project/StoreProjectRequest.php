@@ -16,7 +16,6 @@ class StoreProjectRequest extends FormRequest
         return [
             'proposal_id' => ['nullable', 'exists:proposals,id'],
             'title' => ['required', 'string', 'max:255'],
-            'status' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

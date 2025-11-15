@@ -4,6 +4,7 @@ use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\DeliverableFileController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\PhaseController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectGroupController;
@@ -63,6 +64,10 @@ Route::prefix('pg')->group(function () {
     // Projects routes
     Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
     Route::apiResource('projects', ProjectController::class);
+
+    // Meetings routes
+    Route::post('project/{project}/meeting', [MeetingController::class, 'store']);
+    Route::apiResource('meetings', MeetingController::class)->except('store');
 
     // Repository Projects routes
     Route::get('repository-projects', [RepositoryProjectController::class, 'index']);
