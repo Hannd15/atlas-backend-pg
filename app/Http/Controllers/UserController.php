@@ -37,7 +37,23 @@ class UserController extends Controller
      *                 @OA\Property(property="id", type="integer"),
      *                 @OA\Property(property="name", type="string"),
      *                 @OA\Property(property="email", type="string", format="email"),
+     *                 @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
      *                 @OA\Property(property="project_position_eligibility_names", type="string", description="Comma-separated position names"),
+     *                 @OA\Property(property="proposal_names", type="string", description="Comma-separated proposal names"),
+     *                 @OA\Property(
+     *                     property="eligible_positions",
+     *                     type="array",
+     *
+     *                     @OA\Items(
+     *                         type="object",
+     *
+     *                         @OA\Property(property="id", type="integer"),
+     *                         @OA\Property(property="name", type="string"),
+     *                         @OA\Property(property="pivot", type="object", nullable=true)
+     *                     )
+     *                 ),
+     *                 @OA\Property(property="proposals", type="array", @OA\Items(type="object")),
+     *                 @OA\Property(property="preferred_proposals", type="array", @OA\Items(type="object")),
      *                 @OA\Property(property="created_at", type="string", format="date-time"),
      *                 @OA\Property(property="updated_at", type="string", format="date-time")
      *             )
@@ -90,7 +106,12 @@ class UserController extends Controller
      *             @OA\Property(property="id", type="integer"),
      *             @OA\Property(property="name", type="string"),
      *             @OA\Property(property="email", type="string", format="email"),
+     *             @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
      *             @OA\Property(property="project_position_eligibility_ids", type="array", @OA\Items(type="integer")),
+     *             @OA\Property(property="proposal_names", type="string", description="Comma-separated proposal names"),
+     *             @OA\Property(property="eligible_positions", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="proposals", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="preferred_proposals", type="array", @OA\Items(type="object")),
      *             @OA\Property(property="created_at", type="string", format="date-time"),
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )

@@ -16,6 +16,8 @@ abstract class TestCase extends BaseTestCase
     use CreatesApplication;
     use RefreshDatabase;
 
+    protected bool $seed = true;
+
     protected $defaultHeaders = [
         'Accept' => 'application/json',
         'Authorization' => 'Bearer test-token',

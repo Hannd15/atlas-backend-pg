@@ -23,14 +23,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::scopeBindings()->prefix('pg')->group(function () {
     // Academic Periods routes
-    Route::get('academic-period-states/dropdown', [AcademicPeriodController::class, 'stateDropdown']);
-    Route::get('academic-periods/dropdown', [AcademicPeriodController::class, 'dropdown']);
     Route::apiResource('academic-periods', AcademicPeriodController::class);
 
-    Route::get('academic-periods/{academic_period}/phases/dropdown', [PhaseController::class, 'dropdown']);
     Route::apiResource('academic-periods.phases', PhaseController::class)->only(['index', 'show', 'update']);
 
-    Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/dropdown', [DeliverableController::class, 'dropdown']);
     Route::apiResource('academic-periods.phases.deliverables', DeliverableController::class);
 
     // Deliverable Files routes (fully scoped under academic periods > phases > deliverables)

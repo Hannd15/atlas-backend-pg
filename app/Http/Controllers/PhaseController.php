@@ -21,8 +21,6 @@ use Illuminate\Http\JsonResponse;
  *     @OA\Property(property="name", type="string", example="Proyecto de grado I"),
  *     @OA\Property(property="start_date", type="string", format="date", example="2025-01-15"),
  *     @OA\Property(property="end_date", type="string", format="date", example="2025-06-30"),
- *     @OA\Property(property="period_id", type="integer", example=2),
- *     @OA\Property(property="period_names", type="string", example="2025-1"),
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2025-01-01T12:00:00"),
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-01-15T18:30:00")
  * )
@@ -49,13 +47,16 @@ class PhaseController extends Controller
      */
     public function index(AcademicPeriod $academicPeriod): JsonResponse
     {
-        $phases = $academicPeriod->phases()->with('period')->orderByDesc('updated_at')->get();
+        $phases = $academicPeriod->phases()->orderBy('name')->get();
 
-        $phases->each(function (Phase $phase) {
-            $phase->period_names = $phase->period ? $phase->period->name : '';
-        });
-
-        return response()->json($phases);
+        return response()->json(
+            $phases
+                ->map(fn (Phase $phase) => [
+                    'id' => $phase->id,
+                    'name' => $phase->name,
+                ])
+                ->values()
+        );
     }
 
     /**
@@ -88,9 +89,7 @@ class PhaseController extends Controller
      */
     public function show(AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
     {
-        $phase->load('period');
-
-        return response()->json($phase);
+        return response()->json($this->transformPhase($phase));
     }
 
     /**
@@ -142,41 +141,20 @@ class PhaseController extends Controller
         $validated = $request->validated();
 
         $phase->update($validated);
-        $phase->load('period');
 
-        return response()->json($phase);
+        return response()->json($this->transformPhase($phase));
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/dropdown",
-     *     summary="Get phases for dropdown",
-     *     tags={"Phases"},
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="List of phases formatted for dropdowns",
-     *
-     *         @OA\JsonContent(
-     *             type="array",
-     *
-     *             @OA\Items(
-     *
-     *                 @OA\Property(property="value", type="integer", example=1),
-     *                 @OA\Property(property="label", type="string", example="Proyecto de grado I")
-     *             )
-     *         )
-     *     )
-     * )
-     */
-    public function dropdown(AcademicPeriod $academicPeriod): JsonResponse
+    private function transformPhase(Phase $phase): array
     {
-        $phases = $academicPeriod->phases
-            ->map(fn (Phase $phase) => [
-                'value' => $phase->id,
-                'label' => $phase->name,
-            ])->values();
-
-        return response()->json($phases);
+        return [
+            'id' => $phase->id,
+            'name' => $phase->name,
+            'start_date' => optional($phase->start_date)->toDateString(),
+            'end_date' => optional($phase->end_date)->toDateString(),
+            'period_id' => $phase->period_id,
+            'created_at' => optional($phase->created_at)->toDateTimeString(),
+            'updated_at' => optional($phase->updated_at)->toDateTimeString(),
+        ];
     }
 }

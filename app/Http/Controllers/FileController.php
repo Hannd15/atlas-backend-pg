@@ -69,12 +69,16 @@ class FileController extends Controller
     {
         $files = File::orderByDesc('updated_at')->get();
 
-        return response()->json($files->map(fn (File $file) => [
-            'id' => $file->id,
-            'name' => $file->name,
-            'extension' => $file->extension,
-            'url' => $file->url,
-        ]));
+        return response()->json(
+            $files
+                ->map(fn (File $file) => [
+                    'id' => $file->id,
+                    'name' => $file->name,
+                    'extension' => $file->extension,
+                    'url' => $file->url,
+                ])
+                ->values()
+        );
     }
 
     /**
@@ -102,7 +106,7 @@ class FileController extends Controller
     public function show(File $file): \Illuminate\Http\JsonResponse
     {
         $file->load([
-            'deliverables.phase.period',
+            'deliverables',
             'submissions',
             'repositoryProjects',
             'proposals',
@@ -189,7 +193,7 @@ class FileController extends Controller
         }
 
         $file->load([
-            'deliverables.phase.period',
+            'deliverables',
             'submissions',
             'repositoryProjects',
             'proposals',
@@ -305,10 +309,10 @@ class FileController extends Controller
             'url' => $file->url,
             'disk' => $file->disk,
             'path' => $file->path,
-            'deliverable_ids' => $file->deliverables->pluck('id')->values(),
-            'submission_ids' => $file->submissions->pluck('id')->values(),
-            'repository_project_ids' => $file->repositoryProjects->pluck('id')->values(),
-            'proposal_ids' => $file->proposals->pluck('id')->values(),
+            'deliverable_ids' => $file->deliverables->pluck('id')->values()->all(),
+            'submission_ids' => $file->submissions->pluck('id')->values()->all(),
+            'repository_project_ids' => $file->repositoryProjects->pluck('id')->values()->all(),
+            'proposal_ids' => $file->proposals->pluck('id')->values()->all(),
             'created_at' => optional($file->created_at)->toDateTimeString(),
             'updated_at' => optional($file->updated_at)->toDateTimeString(),
         ];

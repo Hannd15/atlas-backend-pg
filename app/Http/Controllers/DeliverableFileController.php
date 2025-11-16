@@ -22,14 +22,9 @@ use Illuminate\Support\Facades\Storage;
  *     type="object",
  *
  *     @OA\Property(property="id", type="integer", example=90),
- *     @OA\Property(property="deliverable_id", type="integer", example=27),
  *     @OA\Property(property="name", type="string", example="propuesta.pdf"),
  *     @OA\Property(property="extension", type="string", example="pdf"),
- *     @OA\Property(property="url", type="string", example="https://storage.test/pg/uploads/2025/propuesta.pdf"),
- *     @OA\Property(property="disk", type="string", example="public"),
- *     @OA\Property(property="path", type="string", example="pg/uploads/2025/01/15/propuesta.pdf"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
+ *     @OA\Property(property="url", type="string", example="https://storage.test/pg/uploads/2025/propuesta.pdf")
  * )
  */
 class DeliverableFileController extends Controller
@@ -114,7 +109,11 @@ class DeliverableFileController extends Controller
     {
         $files = $deliverable->files()->orderByDesc('updated_at')->get();
 
-        return response()->json($files->map(fn (File $file) => $this->transformFileForDeliverable($file, $deliverable->id)));
+        return response()->json(
+            $files
+                ->map(fn (File $file) => $this->transformFileForDeliverable($file))
+                ->values()
+        );
     }
 
     /**
@@ -192,24 +191,19 @@ class DeliverableFileController extends Controller
 
         $deliverable->files()->attach($file->id);
 
-        return response()->json($this->transformFileForDeliverable($file, $deliverable->id), 201);
+        return response()->json($this->transformFileForDeliverable($file), 201);
     }
 
     /**
      * Transform a file for deliverable response.
      */
-    private function transformFileForDeliverable(File $file, int $deliverableId): array
+    private function transformFileForDeliverable(File $file): array
     {
         return [
             'id' => $file->id,
             'name' => $file->name,
             'extension' => $file->extension,
             'url' => $file->url,
-            'disk' => $file->disk,
-            'path' => $file->path,
-            'deliverable_id' => $deliverableId,
-            'created_at' => $file->created_at,
-            'updated_at' => $file->updated_at,
         ];
     }
 }

@@ -17,10 +17,20 @@ use Illuminate\Support\Facades\Validator;
  * )
  *
  * @OA\Schema(
+ *     schema="DeliverableSummaryResource",
+ *     type="object",
+ *
+ *     @OA\Property(property="id", type="integer", example=12),
+ *     @OA\Property(property="name", type="string", example="Entrega 1"),
+ *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00")
+ * )
+ *
+ * @OA\Schema(
  *     schema="DeliverableResource",
  *     type="object",
  *
  *     @OA\Property(property="id", type="integer", example=12),
+ *     @OA\Property(property="phase_id", type="integer", example=7),
  *     @OA\Property(property="name", type="string", example="Entrega 1"),
  *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
  *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
@@ -54,26 +64,19 @@ class DeliverableController extends Controller
      *         @OA\JsonContent(
      *             type="array",
      *
-     *             @OA\Items(
-     *
-     *                 @OA\Property(property="id", type="integer", example=12),
-     *                 @OA\Property(property="name", type="string", example="Entrega 1"),
-     *                 @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
-     *                 @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
-     *                 @OA\Property(property="phase_name", type="string", nullable=true, example="Proyecto de grado I")
-     *             )
+     *             @OA\Items(ref="#/components/schemas/DeliverableSummaryResource")
      *         )
      *     )
      * )
      */
     public function index(AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
     {
-        $deliverables = $phase->deliverables()->with('phase.period', 'files', 'rubrics')
-            ->orderByDesc('updated_at')
-            ->get();
+        $deliverables = $phase->deliverables()->orderBy('due_date')->orderBy('id')->get();
 
         return response()->json(
-            $deliverables->map(fn (Deliverable $deliverable) => $this->transformDeliverable($deliverable))
+            $deliverables
+                ->map(fn (Deliverable $deliverable) => $this->transformDeliverableSummary($deliverable))
+                ->values()
         );
     }
 
@@ -99,12 +102,6 @@ class DeliverableController extends Controller
      *
      *         @OA\JsonContent(ref="#/components/schemas/DeliverableResource")
      *     ),
-     *
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error"
-     *     )
-     * )
      */
     public function store(Request $request, AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
     {
@@ -142,9 +139,7 @@ class DeliverableController extends Controller
             return $deliverable;
         });
 
-        $deliverable->load('phase.period', 'files', 'rubrics');
-
-        return response()->json($this->transformDeliverable($deliverable), 201);
+        return response()->json($this->transformDeliverableDetail($deliverable), 201);
     }
 
     /**
@@ -171,9 +166,7 @@ class DeliverableController extends Controller
      */
     public function show(AcademicPeriod $academicPeriod, Phase $phase, Deliverable $deliverable): JsonResponse
     {
-        $deliverable->load('phase.period', 'files');
-
-        return response()->json($this->transformDeliverable($deliverable));
+        return response()->json($this->transformDeliverableDetail($deliverable));
     }
 
     /**
@@ -218,7 +211,8 @@ class DeliverableController extends Controller
     public function update(Request $request, AcademicPeriod $academicPeriod, Phase $phase, Deliverable $deliverable): JsonResponse
     {
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
+            'phase_id' => 'prohibited',
+            'name' => 'sometimes|string|max:255',
             'description' => 'sometimes|nullable|string',
             'due_date' => 'sometimes|nullable|date',
             'file_ids' => 'sometimes|array',
@@ -245,9 +239,7 @@ class DeliverableController extends Controller
             }
         });
 
-        $deliverable->load('phase.period', 'files', 'rubrics');
-
-        return response()->json($this->transformDeliverable($deliverable));
+        return response()->json($this->transformDeliverableDetail($deliverable));
     }
 
     /**
@@ -289,51 +281,23 @@ class DeliverableController extends Controller
      *     )
      * )
      */
-    public function dropdown(AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
+    protected function transformDeliverableSummary(Deliverable $deliverable): array
     {
-        $deliverables = $phase->deliverables
-            ->sortByDesc('updated_at')
-            ->map(fn (Deliverable $deliverable) => [
-                'value' => $deliverable->id,
-                'label' => $deliverable->name,
-            ])->values();
-
-        return response()->json($deliverables);
-    }
-
-    protected function transformDeliverable(Deliverable $deliverable): array
-    {
-        $deliverable->loadMissing('phase.period', 'files', 'rubrics');
-
         return [
             'id' => $deliverable->id,
             'name' => $deliverable->name,
+            'due_date' => optional($deliverable->due_date)->toDateTimeString(),
+        ];
+    }
+
+    protected function transformDeliverableDetail(Deliverable $deliverable): array
+    {
+        return [
+            'id' => $deliverable->id,
+            'phase_id' => $deliverable->phase_id,
+            'name' => $deliverable->name,
             'description' => $deliverable->description,
             'due_date' => optional($deliverable->due_date)->toDateTimeString(),
-            'phase' => $deliverable->phase ? [
-                'id' => $deliverable->phase->id,
-                'name' => $deliverable->phase->name,
-                'period' => $deliverable->phase->period ? [
-                    'id' => $deliverable->phase->period->id,
-                    'name' => $deliverable->phase->period->name,
-                ] : null,
-            ] : null,
-            'files' => $deliverable->files->map(fn ($file) => [
-                'id' => $file->id,
-                'name' => $file->name,
-                'extension' => $file->extension,
-                'url' => $file->url,
-            ])->values()->all(),
-            'file_ids' => $deliverable->files->pluck('id')->values()->all(),
-            'rubrics' => $deliverable->rubrics->map(fn ($rubric) => [
-                'id' => $rubric->id,
-                'name' => $rubric->name,
-                'description' => $rubric->description,
-                'min_value' => $rubric->min_value,
-                'max_value' => $rubric->max_value,
-            ])->values()->all(),
-            'rubric_ids' => $deliverable->rubrics->pluck('id')->values()->all(),
-            'rubric_names' => $deliverable->rubrics->pluck('name')->implode(', '),
             'created_at' => optional($deliverable->created_at)->toDateTimeString(),
             'updated_at' => optional($deliverable->updated_at)->toDateTimeString(),
         ];

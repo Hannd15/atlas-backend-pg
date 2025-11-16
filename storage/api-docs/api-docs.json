@@ -231,42 +231,10 @@
                     "Academic Periods"
                 ],
                 "summary": "Get academic periods for dropdown",
-                "operationId": "5fa378d21ced40786c74e01f16e74857",
+                "operationId": "b714648a07220f5fec979599731f2c57",
                 "responses": {
                     "200": {
                         "description": "List of academic periods formatted for dropdowns",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "value": {
-                                                "type": "integer"
-                                            },
-                                            "label": {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "type": "object"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/pg/academic-period-states/dropdown": {
-            "get": {
-                "tags": [
-                    "Academic Periods"
-                ],
-                "summary": "Get academic period states for dropdown",
-                "operationId": "c6e3ac5b7ebb343137dadbcbeebac457",
-                "responses": {
-                    "200": {
-                        "description": "List of academic period states formatted for dropdowns",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -304,33 +272,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "properties": {
-                                            "id": {
-                                                "type": "integer",
-                                                "example": 12
-                                            },
-                                            "name": {
-                                                "type": "string",
-                                                "example": "Entrega 1"
-                                            },
-                                            "description": {
-                                                "type": "string",
-                                                "example": "Documento PDF con la propuesta",
-                                                "nullable": true
-                                            },
-                                            "due_date": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "example": "2025-03-15T23:59:00",
-                                                "nullable": true
-                                            },
-                                            "phase_name": {
-                                                "type": "string",
-                                                "example": "Proyecto de grado I",
-                                                "nullable": true
-                                            }
-                                        },
-                                        "type": "object"
+                                        "$ref": "#/components/schemas/DeliverableResource"
                                     }
                                 }
                             }
@@ -494,7 +436,7 @@
                     "Deliverables"
                 ],
                 "summary": "Get deliverables for dropdown",
-                "operationId": "489433635e8eb4be9aae58fcd86011e4",
+                "operationId": "179b750128e3e07bfec4e28936b6e72b",
                 "responses": {
                     "200": {
                         "description": "List of deliverables formatted for dropdowns"
@@ -1149,40 +1091,6 @@
                     },
                     "422": {
                         "description": "Validation error"
-                    }
-                }
-            }
-        },
-        "/api/pg/academic-periods/{academic_period}/phases/dropdown": {
-            "get": {
-                "tags": [
-                    "Phases"
-                ],
-                "summary": "Get phases for dropdown",
-                "operationId": "bd31034082ea0680657b32f19d7f4e17",
-                "responses": {
-                    "200": {
-                        "description": "List of phases formatted for dropdowns",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "value": {
-                                                "type": "integer",
-                                                "example": 1
-                                            },
-                                            "label": {
-                                                "type": "string",
-                                                "example": "Proyecto de grado I"
-                                            }
-                                        },
-                                        "type": "object"
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -3195,9 +3103,48 @@
                                                 "type": "string",
                                                 "format": "email"
                                             },
+                                            "email_verified_at": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "nullable": true
+                                            },
                                             "project_position_eligibility_names": {
                                                 "description": "Comma-separated position names",
                                                 "type": "string"
+                                            },
+                                            "proposal_names": {
+                                                "description": "Comma-separated proposal names",
+                                                "type": "string"
+                                            },
+                                            "eligible_positions": {
+                                                "type": "array",
+                                                "items": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "pivot": {
+                                                            "type": "object",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "proposals": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "preferred_proposals": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object"
+                                                }
                                             },
                                             "created_at": {
                                                 "type": "string",
@@ -3251,10 +3198,37 @@
                                             "type": "string",
                                             "format": "email"
                                         },
+                                        "email_verified_at": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true
+                                        },
                                         "project_position_eligibility_ids": {
                                             "type": "array",
                                             "items": {
                                                 "type": "integer"
+                                            }
+                                        },
+                                        "proposal_names": {
+                                            "description": "Comma-separated proposal names",
+                                            "type": "string"
+                                        },
+                                        "eligible_positions": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "proposals": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "preferred_proposals": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
                                             }
                                         },
                                         "created_at": {
@@ -3522,9 +3496,19 @@
                         "type": "string",
                         "example": "2025-1"
                     },
+                    "state_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
                     "state_name": {
                         "type": "string",
                         "example": "Activo",
+                        "nullable": true
+                    },
+                    "state_description": {
+                        "type": "string",
+                        "example": "Periodo en curso",
                         "nullable": true
                     }
                 },
@@ -3552,7 +3536,18 @@
                     },
                     "state_id": {
                         "type": "integer",
-                        "example": 1
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "state_name": {
+                        "type": "string",
+                        "example": "Activo",
+                        "nullable": true
+                    },
+                    "state_description": {
+                        "type": "string",
+                        "example": "Periodo en curso",
+                        "nullable": true
                     },
                     "created_at": {
                         "type": "string",
@@ -3567,11 +3562,34 @@
                 },
                 "type": "object"
             },
+            "DeliverableSummaryResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Entrega 1"
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-03-15T23:59:00",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
             "DeliverableResource": {
                 "properties": {
                     "id": {
                         "type": "integer",
                         "example": 12
+                    },
+                    "phase_id": {
+                        "type": "integer",
+                        "example": 7
                     },
                     "name": {
                         "type": "string",
@@ -3630,10 +3648,6 @@
                         "type": "integer",
                         "example": 90
                     },
-                    "deliverable_id": {
-                        "type": "integer",
-                        "example": 27
-                    },
                     "name": {
                         "type": "string",
                         "example": "propuesta.pdf"
@@ -3645,22 +3659,6 @@
                     "url": {
                         "type": "string",
                         "example": "https://storage.test/pg/uploads/2025/propuesta.pdf"
-                    },
-                    "disk": {
-                        "type": "string",
-                        "example": "public"
-                    },
-                    "path": {
-                        "type": "string",
-                        "example": "pg/uploads/2025/01/15/propuesta.pdf"
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
                     }
                 },
                 "type": "object"
@@ -3801,14 +3799,6 @@
                         "type": "string",
                         "format": "date",
                         "example": "2025-06-30"
-                    },
-                    "period_id": {
-                        "type": "integer",
-                        "example": 2
-                    },
-                    "period_names": {
-                        "type": "string",
-                        "example": "2025-1"
                     },
                     "created_at": {
                         "type": "string",
