@@ -21,19 +21,14 @@ class MeetingSeeder extends Seeder
         }
 
         $faker = fake();
-        $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
-            $records[] = [
+        for ($i = 0; $i < 50; $i++) {
+            Meeting::query()->create([
                 'project_id' => $faker->randomElement($projectIds),
-                'meeting_date' => $faker->dateTimeBetween('-1 month', '+1 month')->format('Y-m-d'),
+                'meeting_date' => $faker->dateTimeBetween('-2 months', '+2 months')->format('Y-m-d'),
                 'observations' => $faker->optional()->sentence(),
                 'created_by' => $faker->randomElement($userIds),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+            ]);
         }
-
-        Meeting::insert($records);
     }
 }

@@ -5,11 +5,16 @@ namespace Database\Seeders;
 use App\Models\Proposal;
 use App\Models\RepositoryProposal;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class RepositoryProposalSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! Schema::hasTable('repository_proposals')) {
+            return;
+        }
+
         RepositoryProposal::query()->delete();
 
         $proposalIds = Proposal::pluck('id')->all();
@@ -20,7 +25,7 @@ class RepositoryProposalSeeder extends Seeder
         $faker = fake();
         $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $records[] = [
                 'proposal_id' => $faker->optional()->randomElement($proposalIds),
                 'title' => 'Repository Proposal '.strtoupper($faker->unique()->bothify('??##')),

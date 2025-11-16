@@ -20,10 +20,10 @@ class ProjectGroupSeeder extends Seeder
         $faker = fake();
         $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $records[] = [
                 'project_id' => $faker->randomElement($projectIds),
-                'name' => 'Group '.strtoupper($faker->unique()->bothify('##??')),
+                'name' => 'Grupo '.strtoupper($faker->unique()->bothify('##??')),
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

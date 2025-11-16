@@ -24,7 +24,10 @@ class SubmissionFileSeeder extends Seeder
         $records = [];
         $used = [];
 
-        while (count($records) < 10) {
+        $maxCombinations = count($submissionIds) * count($fileIds);
+        $target = min(200, max(10, $maxCombinations));
+
+        while (count($records) < $target && count($used) < $maxCombinations) {
             $submission = $faker->randomElement($submissionIds);
             $file = $faker->randomElement($fileIds);
             $key = $submission.'-'.$file;

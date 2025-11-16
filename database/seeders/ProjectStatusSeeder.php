@@ -2,23 +2,26 @@
 
 namespace Database\Seeders;
 
-use App\Models\ProjectPosition;
+use App\Models\ProjectStatus;
 use Illuminate\Database\Seeder;
 
-class ProjectPositionSeeder extends Seeder
+class ProjectStatusSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        ProjectPosition::query()->delete();
+        ProjectStatus::query()->delete();
 
         $faker = fake();
         $records = [];
 
-        $basePositions = ['Jurado', 'Asesor', 'Director', 'Codirector'];
+        $baseStatuses = ['Activo', 'En proceso', 'Terminado'];
 
-        foreach ($basePositions as $position) {
+        foreach ($baseStatuses as $status) {
             $records[] = [
-                'name' => $position,
+                'name' => $status,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -26,12 +29,12 @@ class ProjectPositionSeeder extends Seeder
 
         while (count($records) < 50) {
             $records[] = [
-                'name' => $faker->unique()->jobTitle(),
+                'name' => ucfirst($faker->unique()->words(2, true)),
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
 
-        ProjectPosition::insert($records);
+        ProjectStatus::insert($records);
     }
 }

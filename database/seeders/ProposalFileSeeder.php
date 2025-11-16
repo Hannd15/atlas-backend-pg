@@ -3,20 +3,23 @@
 namespace Database\Seeders;
 
 use App\Models\File;
-use App\Models\RepositoryProject;
-use App\Models\RepositoryProjectFile;
+use App\Models\Proposal;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
-class RepositoryProjectFileSeeder extends Seeder
+class ProposalFileSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        RepositoryProjectFile::query()->delete();
+        DB::table('proposal_files')->delete();
 
-        $repositoryIds = RepositoryProject::pluck('id')->all();
+        $proposalIds = Proposal::pluck('id')->all();
         $fileIds = File::pluck('id')->all();
 
-        if (empty($repositoryIds) || empty($fileIds)) {
+        if (empty($proposalIds) || empty($fileIds)) {
             return;
         }
 
@@ -24,26 +27,30 @@ class RepositoryProjectFileSeeder extends Seeder
         $records = [];
         $used = [];
 
-        $maxCombinations = count($repositoryIds) * count($fileIds);
-        $target = min(200, max(10, $maxCombinations));
+        $maxCombinations = count($proposalIds) * count($fileIds);
+        $target = min(200, max(10, count($proposalIds) * 3));
 
         while (count($records) < $target && count($used) < $maxCombinations) {
-            $repo = $faker->randomElement($repositoryIds);
+            $proposal = $faker->randomElement($proposalIds);
             $file = $faker->randomElement($fileIds);
-            $key = $repo.'-'.$file;
+            $key = $proposal.'-'.$file;
+
             if (isset($used[$key])) {
                 continue;
             }
+
             $used[$key] = true;
 
             $records[] = [
-                'repository_item_id' => $repo,
+                'proposal_id' => $proposal,
                 'file_id' => $file,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
 
-        RepositoryProjectFile::insert($records);
+        if (! empty($records)) {
+            DB::table('proposal_files')->insert($records);
+        }
     }
 }

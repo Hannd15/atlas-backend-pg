@@ -20,12 +20,12 @@ class DeliverableSeeder extends Seeder
         $faker = fake();
         $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
-            $dueDate = $faker->optional()->dateTimeBetween('now', '+3 months');
+        for ($i = 0; $i < 50; $i++) {
+            $dueDate = $faker->optional()->dateTimeBetween('now', '+6 months');
             $records[] = [
                 'phase_id' => $faker->randomElement($phaseIds),
                 'name' => 'Deliverable '.strtoupper($faker->unique()->bothify('##')),
-                'description' => $faker->sentence(12),
+                'description' => $faker->sentence(15),
                 'due_date' => $dueDate?->format('Y-m-d H:i:s'),
                 'created_at' => now(),
                 'updated_at' => now(),

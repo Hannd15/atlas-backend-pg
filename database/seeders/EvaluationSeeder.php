@@ -25,7 +25,7 @@ class EvaluationSeeder extends Seeder
         $faker = fake();
         $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $user = $faker->randomElement($userIds);
             $evaluator = $faker->randomElement($userIds);
 

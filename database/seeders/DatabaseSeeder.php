@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             'meetings',
             'repository_project_files',
             'repository_projects',
+            'repository_proposal_files',
+            'repository_proposals',
             'rubric_deliverables',
             'evaluations',
             'submission_files',
@@ -33,6 +35,7 @@ class DatabaseSeeder extends Seeder
             'project_staff',
             'user_project_eligibilities',
             'project_positions',
+            'project_statuses',
             'projects',
             'proposals',
             'proposal_statuses',
@@ -47,26 +50,33 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($tables as $table) {
-            DB::table($table)->truncate();
+            if (Schema::hasTable($table)) {
+                DB::table($table)->truncate();
+            }
         }
 
         Schema::enableForeignKeyConstraints();
 
         $this->call([
+            UserSeeder::class,
             AcademicPeriodStateSeeder::class,
             AcademicPeriodSeeder::class,
             PhaseSeeder::class,
+            ProjectStatusSeeder::class,
             ThematicLineSeeder::class,
             RubricSeeder::class,
             RubricThematicLineSeeder::class,
             ProjectPositionSeeder::class,
             UserProjectEligibilitySeeder::class,
+            ProposalTypeSeeder::class,
+            ProposalStatusSeeder::class,
+            FileSeeder::class,
             ProposalSeeder::class,
+            ProposalFileSeeder::class,
             ProjectSeeder::class,
             ProjectStaffSeeder::class,
             ProjectGroupSeeder::class,
             GroupMemberSeeder::class,
-            FileSeeder::class,
             DeliverableSeeder::class,
             DeliverableFileSeeder::class,
             SubmissionSeeder::class,
@@ -75,6 +85,8 @@ class DatabaseSeeder extends Seeder
             RubricDeliverableSeeder::class,
             RepositoryProjectSeeder::class,
             RepositoryProjectFileSeeder::class,
+            RepositoryProposalSeeder::class,
+            RepositoryProposalFileSeeder::class,
             MeetingSeeder::class,
             MeetingAttendeeSeeder::class,
         ]);

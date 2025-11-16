@@ -14,12 +14,12 @@ class ThematicLineSeeder extends Seeder
         $faker = fake();
         $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $records[] = [
-                'name' => 'Thematic Line '.$faker->unique()->word(),
+                'name' => 'Línea Temática '.$faker->unique()->words(2, true),
                 'description' => $faker->sentence(),
-                'trl_expected' => strtoupper($faker->bothify('TRL-#')),
-                'abet_criteria' => $faker->sentence(8),
+                'trl_expected' => strtoupper($faker->bothify('TRL-#?')),
+                'abet_criteria' => $faker->sentence(12),
                 'min_score' => $faker->numberBetween(60, 90),
                 'created_at' => now(),
                 'updated_at' => now(),

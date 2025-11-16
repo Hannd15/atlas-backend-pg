@@ -24,7 +24,10 @@ class DeliverableFileSeeder extends Seeder
         $records = [];
         $used = [];
 
-        while (count($records) < 10) {
+        $maxCombinations = count($deliverableIds) * count($fileIds);
+        $target = min(200, max(10, $maxCombinations));
+
+        while (count($records) < $target && count($used) < $maxCombinations) {
             $deliverable = $faker->randomElement($deliverableIds);
             $file = $faker->randomElement($fileIds);
             $key = $deliverable.'-'.$file;

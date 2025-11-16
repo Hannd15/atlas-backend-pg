@@ -14,13 +14,13 @@ class RubricSeeder extends Seeder
         $faker = fake();
         $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $min = $faker->numberBetween(0, 50);
             $max = $faker->numberBetween($min + 10, $min + 40);
 
             $records[] = [
                 'name' => 'Rubric '.strtoupper($faker->unique()->bothify('??-##')),
-                'description' => $faker->sentence(8),
+                'description' => $faker->sentence(12),
                 'min_value' => $min,
                 'max_value' => $max,
                 'created_at' => now(),

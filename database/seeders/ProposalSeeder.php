@@ -17,65 +17,38 @@ class ProposalSeeder extends Seeder
 
         $users = User::pluck('id')->all();
         $lines = ThematicLine::pluck('id')->all();
+        $typeIds = ProposalType::pluck('id')->all();
+        $statusIds = ProposalStatus::pluck('id')->all();
 
-        if (empty($users)) {
+        if (empty($users) || empty($typeIds) || empty($statusIds)) {
             return;
         }
 
-        $this->seedTypes();
-        $this->seedStatuses();
-
         $faker = fake();
         $records = [];
+        $userCollection = collect($users);
 
-        $typeIds = ProposalType::pluck('id', 'code')->all();
-        $statusIds = ProposalStatus::pluck('id', 'code')->all();
-
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $proposer = $faker->randomElement($users);
             $preferred = $faker->randomElement($users);
 
-            $typeCode = $faker->randomElement(['made_by_student', 'made_by_teacher']);
-            $statusCode = $faker->randomElement(['pending', 'approved', 'rejected']);
+            if ($preferred === $proposer && $userCollection->count() > 1) {
+                $preferred = $userCollection->reject(fn (int $id) => $id === $proposer)->random();
+            }
 
             $records[] = [
-                'title' => ucfirst($faker->unique()->sentence(3)),
-                'description' => $faker->paragraph(),
-                'proposal_status_id' => $statusIds[$statusCode] ?? $statusIds['pending'] ?? null,
-                'proposal_type_id' => $typeIds[$typeCode] ?? $typeIds['made_by_student'] ?? null,
+                'title' => ucfirst($faker->unique()->sentence(4)),
+                'description' => $faker->paragraph(3),
+                'proposal_status_id' => $faker->randomElement($statusIds),
+                'proposal_type_id' => $faker->randomElement($typeIds),
                 'proposer_id' => $proposer,
                 'preferred_director_id' => $preferred,
-                'thematic_line_id' => ! empty($lines) ? $faker->optional()->randomElement($lines) : null,
+                'thematic_line_id' => ! empty($lines) ? $faker->optional(0.7)->randomElement($lines) : null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
 
         Proposal::insert($records);
-    }
-
-    protected function seedTypes(): void
-    {
-        if (ProposalType::count() > 0) {
-            return;
-        }
-
-        ProposalType::insert([
-            ['code' => 'made_by_student', 'name' => 'Made by student', 'created_at' => now(), 'updated_at' => now()],
-            ['code' => 'made_by_teacher', 'name' => 'Made by teacher', 'created_at' => now(), 'updated_at' => now()],
-        ]);
-    }
-
-    protected function seedStatuses(): void
-    {
-        if (ProposalStatus::count() > 0) {
-            return;
-        }
-
-        ProposalStatus::insert([
-            ['code' => 'pending', 'name' => 'Pending', 'created_at' => now(), 'updated_at' => now()],
-            ['code' => 'approved', 'name' => 'Approved', 'created_at' => now(), 'updated_at' => now()],
-            ['code' => 'rejected', 'name' => 'Rejected', 'created_at' => now(), 'updated_at' => now()],
-        ]);
     }
 }

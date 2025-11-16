@@ -24,7 +24,10 @@ class UserProjectEligibilitySeeder extends Seeder
         $records = [];
         $used = [];
 
-        while (count($records) < 10) {
+        $maxCombinations = count($userIds) * count($positionIds);
+        $target = min(200, max(10, $maxCombinations / 2));
+
+        while (count($records) < $target && count($used) < $maxCombinations) {
             $combo = [
                 $faker->randomElement($userIds),
                 $faker->randomElement($positionIds),

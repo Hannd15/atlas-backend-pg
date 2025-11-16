@@ -24,7 +24,10 @@ class RubricThematicLineSeeder extends Seeder
         $records = [];
         $used = [];
 
-        while (count($records) < 10) {
+        $maxCombinations = count($rubricIds) * count($lineIds);
+        $target = min(150, max(10, $maxCombinations));
+
+        while (count($records) < $target && count($used) < $maxCombinations) {
             $combo = [
                 $faker->randomElement($rubricIds),
                 $faker->randomElement($lineIds),

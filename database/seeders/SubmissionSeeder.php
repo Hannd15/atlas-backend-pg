@@ -23,7 +23,7 @@ class SubmissionSeeder extends Seeder
         $faker = fake();
         $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $submittedAt = $faker->dateTimeBetween('-1 month', 'now');
 
             $records[] = [

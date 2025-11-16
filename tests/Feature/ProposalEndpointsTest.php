@@ -256,6 +256,44 @@ class ProposalEndpointsTest extends TestCase
         $this->assertFalse(Storage::disk('public')->exists($file->path));
     }
 
+    public function test_proposals_routes_require_bearer_token(): void
+    {
+        Http::fake();
+
+        $this->withHeaders(['Authorization' => ''])
+            ->getJson('/api/pg/proposals')
+            ->assertStatus(401)
+            ->assertExactJson(['message' => 'Unauthenticated.']);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_proposals_route_forwards_auth_forbidden_response(): void
+    {
+        Http::fake([
+            'https://auth.example/api/auth/token/verify' => Http::response([
+                'message' => 'Missing permissions.',
+            ], 403),
+        ]);
+
+        $this->getJson('/api/pg/proposals', $this->authHeaders())
+            ->assertStatus(403)
+            ->assertExactJson(['message' => 'Missing permissions.']);
+    }
+
+    public function test_proposals_route_returns_service_unavailable_when_user_payload_missing(): void
+    {
+        Http::fake([
+            'https://auth.example/api/auth/token/verify' => Http::response([
+                'authorized' => true,
+            ], 200),
+        ]);
+
+        $this->getJson('/api/pg/proposals', $this->authHeaders())
+            ->assertStatus(503)
+            ->assertExactJson(['message' => 'Authentication service unavailable.']);
+    }
+
     protected function fakeAuth(array $userPayload): void
     {
         Http::fake([

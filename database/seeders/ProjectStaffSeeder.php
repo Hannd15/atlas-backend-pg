@@ -26,7 +26,10 @@ class ProjectStaffSeeder extends Seeder
         $records = [];
         $used = [];
 
-        while (count($records) < 10) {
+        $maxCombinations = count($projectIds) * count($userIds) * count($positionIds);
+        $target = min(200, max(10, $maxCombinations / 4));
+
+        while (count($records) < $target && count($used) < $maxCombinations) {
             $project = $faker->randomElement($projectIds);
             $user = $faker->randomElement($userIds);
             $position = $faker->randomElement($positionIds);

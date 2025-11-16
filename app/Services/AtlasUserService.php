@@ -132,6 +132,8 @@ class AtlasUserService extends AtlasAuthService
     {
         try {
             $response = $callback();
+        } catch (HttpResponseException $exception) {
+            throw $exception;
         } catch (ConnectionException $exception) {
             Log::error('Atlas authentication service unreachable.', [
                 'exception' => $exception,

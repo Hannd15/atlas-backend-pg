@@ -24,7 +24,10 @@ class MeetingAttendeeSeeder extends Seeder
         $records = [];
         $used = [];
 
-        while (count($records) < 10) {
+        $maxCombinations = count($meetingIds) * count($userIds);
+        $target = min(200, max(10, $maxCombinations));
+
+        while (count($records) < $target && count($used) < $maxCombinations) {
             $meeting = $faker->randomElement($meetingIds);
             $user = $faker->randomElement($userIds);
             $key = $meeting.'-'.$user;

@@ -22,22 +22,14 @@ class GroupMemberSeeder extends Seeder
 
         $faker = fake();
         $records = [];
-        $used = [];
 
-        while (count($records) < 10) {
-            $group = $faker->randomElement($groupIds);
-            $user = $faker->randomElement($userIds);
-            $key = $group.'-'.$user;
+        $maxMembers = min(50, count($userIds));
+        $selectedUsers = collect($userIds)->shuffle()->take($maxMembers);
 
-            if (isset($used[$key])) {
-                continue;
-            }
-
-            $used[$key] = true;
-
+        foreach ($selectedUsers as $userId) {
             $records[] = [
-                'group_id' => $group,
-                'user_id' => $user,
+                'group_id' => $faker->randomElement($groupIds),
+                'user_id' => $userId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

@@ -20,12 +20,14 @@ class RepositoryProjectSeeder extends Seeder
         $faker = fake();
         $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 50; $i++) {
+            $publishDate = $faker->dateTimeBetween('-2 years', 'now');
             $records[] = [
                 'project_id' => $faker->optional()->randomElement($projectIds),
                 'title' => 'Repository Project '.strtoupper($faker->unique()->bothify('##??')),
                 'description' => $faker->paragraph(),
-                'publish_date' => $faker->dateTimeBetween('-2 years', 'now'),
+                'url' => $faker->url(),
+                'publish_date' => $publishDate->format('Y-m-d'),
                 'keywords_es' => implode(', ', $faker->words(3)),
                 'keywords_en' => implode(', ', $faker->words(3)),
                 'abstract_es' => $faker->paragraph(3),

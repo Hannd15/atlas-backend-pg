@@ -24,7 +24,10 @@ class RubricDeliverableSeeder extends Seeder
         $records = [];
         $used = [];
 
-        while (count($records) < 10) {
+        $maxCombinations = count($deliverableIds) * count($rubricIds);
+        $target = min(200, max(10, $maxCombinations));
+
+        while (count($records) < $target && count($used) < $maxCombinations) {
             $deliverable = $faker->randomElement($deliverableIds);
             $rubric = $faker->randomElement($rubricIds);
             $key = $rubric.'-'.$deliverable;

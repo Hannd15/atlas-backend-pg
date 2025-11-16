@@ -14,7 +14,7 @@ class FileSeeder extends Seeder
         $faker = fake();
         $records = [];
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $name = $faker->unique()->words(2, true);
             $extension = $faker->fileExtension();
             $path = 'seeded/'.
