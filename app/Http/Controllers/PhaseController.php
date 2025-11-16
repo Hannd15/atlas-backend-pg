@@ -24,6 +24,16 @@ use Illuminate\Http\JsonResponse;
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2025-01-01T12:00:00"),
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-01-15T18:30:00")
  * )
+ *
+ * @OA\Schema(
+ *     schema="PhaseSummaryResource",
+ *     type="object",
+ *
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="Proyecto de grado I"),
+ *     @OA\Property(property="start_date", type="string", format="date", example="2025-01-15"),
+ *     @OA\Property(property="end_date", type="string", format="date", example="2025-06-30"),
+ * )
  */
 class PhaseController extends Controller
 {
@@ -40,7 +50,7 @@ class PhaseController extends Controller
      *         @OA\JsonContent(
      *             type="array",
      *
-     *             @OA\Items(ref="#/components/schemas/PhaseResource")
+     *             @OA\Items(ref="#/components/schemas/PhaseSummaryResource")
      *         )
      *     )
      * )
@@ -54,6 +64,8 @@ class PhaseController extends Controller
                 ->map(fn (Phase $phase) => [
                     'id' => $phase->id,
                     'name' => $phase->name,
+                    'start_date' => $phase->start_date,
+                    'end_date' => $phase->end_date,
                 ])
                 ->values()
         );
@@ -152,7 +164,6 @@ class PhaseController extends Controller
             'name' => $phase->name,
             'start_date' => optional($phase->start_date)->toDateString(),
             'end_date' => optional($phase->end_date)->toDateString(),
-            'period_id' => $phase->period_id,
             'created_at' => optional($phase->created_at)->toDateTimeString(),
             'updated_at' => optional($phase->updated_at)->toDateTimeString(),
         ];

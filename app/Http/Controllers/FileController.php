@@ -31,12 +31,6 @@ use Illuminate\Support\Arr;
  *     @OA\Property(property="name", type="string", example="propuesta.pdf"),
  *     @OA\Property(property="extension", type="string", example="pdf"),
  *     @OA\Property(property="url", type="string", example="https://storage.test/pg/uploads/2025/propuesta.pdf"),
- *     @OA\Property(property="disk", type="string", example="public"),
- *     @OA\Property(property="path", type="string", example="pg/uploads/2025/01/15/propuesta.pdf"),
- *     @OA\Property(property="deliverable_ids", type="array", @OA\Items(type="integer", example=40)),
- *     @OA\Property(property="submission_ids", type="array", @OA\Items(type="integer", example=12)),
- *     @OA\Property(property="repository_project_ids", type="array", @OA\Items(type="integer", example=3)),
- *     @OA\Property(property="proposal_ids", type="array", @OA\Items(type="integer", example=8)),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -307,12 +301,6 @@ class FileController extends Controller
             'name' => $file->name,
             'extension' => $file->extension,
             'url' => $file->url,
-            'disk' => $file->disk,
-            'path' => $file->path,
-            'deliverable_ids' => $file->deliverables->pluck('id')->values()->all(),
-            'submission_ids' => $file->submissions->pluck('id')->values()->all(),
-            'repository_project_ids' => $file->repositoryProjects->pluck('id')->values()->all(),
-            'proposal_ids' => $file->proposals->pluck('id')->values()->all(),
             'created_at' => optional($file->created_at)->toDateTimeString(),
             'updated_at' => optional($file->updated_at)->toDateTimeString(),
         ];

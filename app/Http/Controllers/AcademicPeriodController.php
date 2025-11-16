@@ -21,7 +21,6 @@ use Illuminate\Support\Facades\DB;
  *
  *     @OA\Property(property="id", type="integer", example=3),
  *     @OA\Property(property="name", type="string", example="2025-1"),
- *     @OA\Property(property="state_id", type="integer", example=1, nullable=true),
  *     @OA\Property(property="state_name", type="string", example="Activo", nullable=true),
  *     @OA\Property(property="state_description", type="string", example="Periodo en curso", nullable=true)
  * )
@@ -266,7 +265,6 @@ class AcademicPeriodController extends Controller
         return [
             'id' => $period->id,
             'name' => $period->name,
-            'state_id' => $period->state?->id,
             'state_name' => $period->state?->name,
             'state_description' => $period->state?->description,
         ];
@@ -295,13 +293,27 @@ class AcademicPeriodController extends Controller
             return;
         }
 
-        $periodDates = [
-            'start_date' => $academicPeriod->start_date,
-            'end_date' => $academicPeriod->end_date,
+        $start = $academicPeriod->start_date;
+        $end = $academicPeriod->end_date;
+
+        // Calculate midpoint
+        $midpoint = $start->copy()->addDays((int) floor($start->diffInDays($end) / 2));
+
+        $phases = [
+            [
+                'name' => 'Proyecto de grado I',
+                'start_date' => $start,
+                'end_date' => $midpoint,
+            ],
+            [
+                'name' => 'Proyecto de grado II',
+                'start_date' => $midpoint->copy()->addDay(),
+                'end_date' => $end,
+            ],
         ];
 
-        foreach (['Proyecto de grado I', 'Proyecto de grado II'] as $index => $name) {
-            $academicPeriod->phases()->create(array_merge($periodDates, ['name' => $name]));
+        foreach ($phases as $phase) {
+            $academicPeriod->phases()->create($phase);
         }
     }
 }

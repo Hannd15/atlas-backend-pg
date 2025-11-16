@@ -38,6 +38,9 @@ class UserController extends Controller
      *                 @OA\Property(property="name", type="string"),
      *                 @OA\Property(property="email", type="string", format="email"),
      *                 @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
+     *                 @OA\Property(property="google_id", type="string", nullable=true),
+     *                 @OA\Property(property="avatar", type="string", format="uri", nullable=true),
+     *                 @OA\Property(property="roles_list", type="string", nullable=true, example="role-1, role-2"),
      *                 @OA\Property(property="project_position_eligibility_names", type="string", description="Comma-separated position names"),
      *                 @OA\Property(property="proposal_names", type="string", description="Comma-separated proposal names"),
      *                 @OA\Property(
@@ -107,11 +110,14 @@ class UserController extends Controller
      *             @OA\Property(property="name", type="string"),
      *             @OA\Property(property="email", type="string", format="email"),
      *             @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
+     *             @OA\Property(property="google_id", type="string", nullable=true),
+     *             @OA\Property(property="avatar", type="string", format="uri", nullable=true),
      *             @OA\Property(property="project_position_eligibility_ids", type="array", @OA\Items(type="integer")),
      *             @OA\Property(property="proposal_names", type="string", description="Comma-separated proposal names"),
      *             @OA\Property(property="eligible_positions", type="array", @OA\Items(type="object")),
      *             @OA\Property(property="proposals", type="array", @OA\Items(type="object")),
      *             @OA\Property(property="preferred_proposals", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="roles_list", type="string", nullable=true, example="role-1, role-2"),
      *             @OA\Property(property="created_at", type="string", format="date-time"),
      *             @OA\Property(property="updated_at", type="string", format="date-time")
      *         )
@@ -371,6 +377,23 @@ class UserController extends Controller
             unset($response['project_position_eligibility_names']);
         } else {
             $response['project_position_eligibility_names'] = $local['project_position_eligibility_names'];
+        }
+
+        if (array_key_exists('roles_list', $response)) {
+            $roles = $response['roles_list'];
+
+            if (is_array($roles)) {
+                $response['roles_list'] = collect($roles)
+                    ->filter(fn ($value) => $value !== null && $value !== '')
+                    ->map(fn ($value) => (string) $value)
+                    ->implode(', ');
+            } elseif ($roles === null || $roles === '') {
+                $response['roles_list'] = '';
+            } else {
+                $response['roles_list'] = (string) $roles;
+            }
+        } else {
+            $response['roles_list'] = '';
         }
 
         return $response;

@@ -30,7 +30,6 @@ use Illuminate\Support\Facades\Validator;
  *     type="object",
  *
  *     @OA\Property(property="id", type="integer", example=12),
- *     @OA\Property(property="phase_id", type="integer", example=7),
  *     @OA\Property(property="name", type="string", example="Entrega 1"),
  *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
  *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
@@ -42,7 +41,6 @@ use Illuminate\Support\Facades\Validator;
  *     schema="DeliverableCreatePayload",
  *     type="object",
  *     required={"name"},
-
  *
  *     @OA\Property(property="name", type="string", example="Entrega 1"),
  *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
@@ -99,9 +97,16 @@ class DeliverableController extends Controller
      *     @OA\Response(
      *         response=201,
      *         description="Deliverable created successfully",
+
      *
      *         @OA\JsonContent(ref="#/components/schemas/DeliverableResource")
      *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
      */
     public function store(Request $request, AcademicPeriod $academicPeriod, Phase $phase): JsonResponse
     {
@@ -190,6 +195,7 @@ class DeliverableController extends Controller
      *             mediaType="application/json",
      *
      *             @OA\Schema(
+     *                 type="object",
      *
      *                 @OA\Property(property="phase_id", type="integer", nullable=true),
      *                 @OA\Property(property="name", type="string", nullable=true),
@@ -269,18 +275,6 @@ class DeliverableController extends Controller
         return response()->json(['message' => 'Deliverable deleted successfully']);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/dropdown",
-     *     summary="Get deliverables for dropdown",
-     *     tags={"Deliverables"},
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="List of deliverables formatted for dropdowns"
-     *     )
-     * )
-     */
     protected function transformDeliverableSummary(Deliverable $deliverable): array
     {
         return [
@@ -294,7 +288,6 @@ class DeliverableController extends Controller
     {
         return [
             'id' => $deliverable->id,
-            'phase_id' => $deliverable->phase_id,
             'name' => $deliverable->name,
             'description' => $deliverable->description,
             'due_date' => optional($deliverable->due_date)->toDateTimeString(),
