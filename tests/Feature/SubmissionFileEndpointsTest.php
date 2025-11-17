@@ -18,6 +18,8 @@ class SubmissionFileEndpointsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -57,7 +59,13 @@ class SubmissionFileEndpointsTest extends TestCase
         [$submission, $file] = $this->createSubmissionAndFile();
         $submission->files()->attach($file);
 
-        $response = $this->getJson("/api/pg/submissions/{$submission->id}/files");
+        // Refresh to load relationships
+        $submission = $submission->fresh(['deliverable.phase.period']);
+        $deliverable = $submission->deliverable;
+        $phase = $deliverable->phase;
+        $period = $phase->period;
+
+        $response = $this->getJson("/api/pg/academic-periods/{$period->id}/phases/{$phase->id}/deliverables/{$deliverable->id}/submissions/{$submission->id}/files");
 
         $response->assertOk()
             ->assertJsonCount(1)
@@ -70,9 +78,15 @@ class SubmissionFileEndpointsTest extends TestCase
     {
         [$submission] = $this->createSubmissionAndFile(includeFile: false);
 
+        // Refresh to load relationships
+        $submission = $submission->fresh(['deliverable.phase.period']);
+        $deliverable = $submission->deliverable;
+        $phase = $deliverable->phase;
+        $period = $phase->period;
+
         $uploaded = UploadedFile::fake()->create('avance.pdf', 120, 'application/pdf');
 
-        $response = $this->postJson("/api/pg/submissions/{$submission->id}/files", [
+        $response = $this->postJson("/api/pg/academic-periods/{$period->id}/phases/{$phase->id}/deliverables/{$deliverable->id}/submissions/{$submission->id}/files", [
             'file' => $uploaded,
             'name' => 'Avance parcial',
         ]);

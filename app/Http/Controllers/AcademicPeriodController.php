@@ -67,7 +67,7 @@ class AcademicPeriodController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        return response()->json($academicPeriods->map(fn (AcademicPeriod $period) => $this->transformPeriodSummary($period)));
+        return response()->json($academicPeriods->map(fn (AcademicPeriod $period) => $this->transformPeriodSummary($period))->values());
     }
 
     /**
@@ -285,7 +285,7 @@ class AcademicPeriodController extends Controller
         $periods = AcademicPeriod::orderBy('start_date', 'desc')->get()->map(fn (AcademicPeriod $period) => [
             'value' => $period->id,
             'label' => $period->name,
-        ]);
+        ])->values();
 
         return response()->json($periods);
     }

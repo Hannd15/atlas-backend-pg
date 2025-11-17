@@ -15,6 +15,8 @@ class AcademicPeriodEndpointsTest extends TestCase
     use PgApiResponseHelpers;
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     protected bool $ensureActivePhase = false;
 
     protected function setUp(): void
@@ -22,6 +24,12 @@ class AcademicPeriodEndpointsTest extends TestCase
         parent::setUp();
 
         Carbon::setTestNow('2025-01-01 08:00:00');
+
+        // Seed required lookup tables
+        AcademicPeriodState::insert([
+            ['name' => AcademicPeriodState::NAME_ACTIVO, 'description' => 'El periodo académico está en curso.'],
+            ['name' => AcademicPeriodState::NAME_TERMINADO, 'description' => 'El periodo académico ha finalizado.'],
+        ]);
     }
 
     protected function tearDown(): void
@@ -33,10 +41,13 @@ class AcademicPeriodEndpointsTest extends TestCase
 
     public function test_index_returns_transformed_academic_periods(): void
     {
+        $activeState = AcademicPeriodState::where('name', AcademicPeriodState::NAME_ACTIVO)->first();
+
         $period = AcademicPeriod::create([
             'name' => '2025-1',
             'start_date' => '2025-01-15',
             'end_date' => '2025-06-30',
+            'state_id' => $activeState->id,
         ]);
 
         $phaseOne = $period->phases()->create([
@@ -74,6 +85,7 @@ class AcademicPeriodEndpointsTest extends TestCase
                     'id' => $period->id,
                     'name' => $period->name,
                     'state_name' => AcademicPeriodState::NAME_ACTIVO,
+                    'state_description' => 'El periodo académico está en curso.',
                 ],
             ]);
     }

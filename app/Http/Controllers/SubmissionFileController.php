@@ -79,7 +79,7 @@ class SubmissionFileController extends Controller
                 'extension' => $file?->extension,
                 'url' => $file?->url,
             ];
-        });
+        })->values();
 
         return response()->json($result);
     }

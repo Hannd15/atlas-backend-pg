@@ -18,16 +18,16 @@ trait PgApiResponseHelpers
 {
     protected function academicPeriodResource(AcademicPeriod $period): array
     {
+        $period->loadMissing('state');
+
         return [
             'id' => $period->id,
             'name' => $period->name,
             'start_date' => optional($period->start_date)->toDateString(),
             'end_date' => optional($period->end_date)->toDateString(),
-            'state' => $period->state ? [
-                'id' => $period->state->id,
-                'name' => $period->state->name,
-                'description' => $period->state->description,
-            ] : null,
+            'state_id' => $period->state?->id,
+            'state_name' => $period->state?->name,
+            'state_description' => $period->state?->description,
             'created_at' => optional($period->created_at)->toDateTimeString(),
             'updated_at' => optional($period->updated_at)->toDateTimeString(),
         ];
@@ -171,21 +171,31 @@ trait PgApiResponseHelpers
 
     protected function projectPositionIndexArray(Collection $positions): array
     {
-        $positions->each(function (ProjectPosition $position): void {
-            $position->eligible_user_names = $position->eligibleUsers->pluck('name')->implode(', ');
-            $position->staff_names = $position->staff->map(fn ($staff) => "Staff #{$staff->id}")->implode(', ');
-        });
-
-        return $positions->map(fn (ProjectPosition $position) => $position->toArray())->all();
+        return $positions->map(function (ProjectPosition $position) {
+            return [
+                'id' => $position->id,
+                'name' => $position->name,
+                'eligible_user_names' => $position->eligibleUsers->pluck('name')->implode(', '),
+                'eligible_user_count' => $position->eligibleUsers->count(),
+                'staff_count' => $position->staff->count(),
+                'created_at' => optional($position->created_at)->toDateTimeString(),
+                'updated_at' => optional($position->updated_at)->toDateTimeString(),
+            ];
+        })->all();
     }
 
     protected function projectPositionShowResource(ProjectPosition $projectPosition): array
     {
         $projectPosition->loadMissing('eligibleUsers', 'staff');
-        $projectPosition->eligible_user_ids = $projectPosition->eligibleUsers->pluck('id');
-        $projectPosition->staff_ids = $projectPosition->staff->pluck('id');
 
-        return $projectPosition->toArray();
+        return [
+            'id' => $projectPosition->id,
+            'name' => $projectPosition->name,
+            'eligible_user_ids' => $projectPosition->eligibleUsers->pluck('id')->values()->all(),
+            'staff_ids' => $projectPosition->staff->pluck('id')->values()->all(),
+            'created_at' => optional($projectPosition->created_at)->toDateTimeString(),
+            'updated_at' => optional($projectPosition->updated_at)->toDateTimeString(),
+        ];
     }
 
     protected function projectPositionDropdownArray(Collection $positions): array

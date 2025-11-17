@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\File;
 use App\Services\FileStorageService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
@@ -11,6 +12,10 @@ use Tests\TestCase;
 
 class FileStorageServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected bool $seed = false;
+
     protected function setUp(): void
     {
         parent::setUp();

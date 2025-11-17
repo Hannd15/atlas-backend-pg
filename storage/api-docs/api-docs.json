@@ -760,7 +760,7 @@
         "/api/pg/project-groups/{project_group}/members": {
             "get": {
                 "tags": [
-                    "Group Members"
+                    "Project Groups"
                 ],
                 "summary": "List members of a project group",
                 "operationId": "4c60c690c7a995fbe7efe01696210e65",
@@ -4705,6 +4705,16 @@
                         "example": "Sistema IoT",
                         "nullable": true
                     },
+                    "phase_name": {
+                        "type": "string",
+                        "example": "Fase 1",
+                        "nullable": true
+                    },
+                    "period_name": {
+                        "type": "string",
+                        "example": "2024-1",
+                        "nullable": true
+                    },
                     "member_user_ids": {
                         "type": "array",
                         "items": {
@@ -5460,10 +5470,6 @@
         {
             "name": "Files",
             "description": "API endpoints for managing files"
-        },
-        {
-            "name": "Group Members",
-            "description": "List members of a project group"
         },
         {
             "name": "Meetings",

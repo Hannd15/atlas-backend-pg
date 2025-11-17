@@ -11,6 +11,8 @@ class ThematicLineEndpointsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     public function test_index_returns_expected_payload(): void
     {
         $line = ThematicLine::create([

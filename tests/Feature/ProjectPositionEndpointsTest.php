@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\AcademicPeriod;
+use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ProjectPosition;
 use App\Models\ProjectStaff;
@@ -15,6 +17,8 @@ class ProjectPositionEndpointsTest extends TestCase
 {
     use PgApiResponseHelpers;
     use RefreshDatabase;
+
+    protected bool $seed = false;
 
     protected function setUp(): void
     {
@@ -32,6 +36,10 @@ class ProjectPositionEndpointsTest extends TestCase
 
     public function test_index_returns_expected_payload(): void
     {
+        // Create minimal phase structure for project
+        $period = AcademicPeriod::factory()->create();
+        $phase = Phase::factory()->create(['period_id' => $period->id]);
+
         $position = ProjectPosition::create(['name' => 'Director']);
 
         $userOne = User::factory()->create(['name' => 'Alice Example', 'email' => 'alice@example.com']);
@@ -40,6 +48,7 @@ class ProjectPositionEndpointsTest extends TestCase
 
         $project = Project::factory()->create([
             'title' => 'Project Uno',
+            'phase_id' => $phase->id,
         ]);
 
         ProjectStaff::create([
@@ -71,12 +80,17 @@ class ProjectPositionEndpointsTest extends TestCase
 
     public function test_show_returns_expected_resource(): void
     {
+        // Create minimal phase structure for project
+        $period = AcademicPeriod::factory()->create();
+        $phase = Phase::factory()->create(['period_id' => $period->id]);
+
         $position = ProjectPosition::create(['name' => 'Director']);
         $user = User::factory()->create(['name' => 'Alice Example', 'email' => 'alice@example.com']);
         $position->eligibleUsers()->sync([$user->id]);
 
         $project = Project::factory()->create([
             'title' => 'Project Uno',
+            'phase_id' => $phase->id,
         ]);
 
         ProjectStaff::create([
@@ -108,10 +122,9 @@ class ProjectPositionEndpointsTest extends TestCase
         $response = $this->putJson("/api/pg/project-positions/{$position->id}", $payload);
 
         $position->refresh();
-        $position->load('eligibleUsers');
-        $position->eligible_user_ids = $position->eligibleUsers->pluck('id');
+        $position->load('eligibleUsers', 'staff');
 
-        $response->assertOk()->assertExactJson($position->toArray());
+        $response->assertOk()->assertExactJson($this->projectPositionShowResource($position));
 
         $this->assertSame('Co-Director', $position->name);
         $this->assertEquals([$userB->id], $position->eligibleUsers->pluck('id')->all());

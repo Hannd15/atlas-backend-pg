@@ -18,6 +18,8 @@ class UserEndpointsTest extends TestCase
     use PgApiResponseHelpers;
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     protected function setUp(): void
     {
         parent::setUp();

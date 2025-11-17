@@ -31,7 +31,7 @@ class GroupMemberController extends Controller
      * @OA\Get(
      *     path="/api/pg/project-groups/{project_group}/members",
      *     summary="List members of a project group",
-     *     tags={"Group Members"},
+     *     tags={"Project Groups"},
      *
      *     @OA\Parameter(name="project_group", in="path", required=true, @OA\Schema(type="integer")),
      *

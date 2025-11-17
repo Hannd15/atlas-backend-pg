@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Phase;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\ValidationException;
 
 class UpdatePhaseRequest extends FormRequest
 {
@@ -72,22 +73,22 @@ class UpdatePhaseRequest extends FormRequest
             $startDate = $this->date('start_date') ?? $phase->start_date;
             $endDate = $this->date('end_date') ?? $phase->end_date;
 
+            $errors = [];
+
             // Validate dates don't exceed the academic period
             if ($phase->period) {
                 if ($startDate < $phase->period->start_date) {
-                    $this->validator->errors()->add(
-                        'start_date',
+                    $errors['start_date'] = [
                         'The start date cannot be before the academic period start date ('.
-                        $phase->period->start_date->format('Y-m-d').').'
-                    );
+                        $phase->period->start_date->format('Y-m-d').').',
+                    ];
                 }
 
                 if ($endDate > $phase->period->end_date) {
-                    $this->validator->errors()->add(
-                        'end_date',
+                    $errors['end_date'] = [
                         'The end date cannot be after the academic period end date ('.
-                        $phase->period->end_date->format('Y-m-d').').'
-                    );
+                        $phase->period->end_date->format('Y-m-d').').',
+                    ];
                 }
             }
 
@@ -106,10 +107,13 @@ class UpdatePhaseRequest extends FormRequest
                 ->exists();
 
             if ($overlappingPhases) {
-                $this->validator->errors()->add(
-                    'start_date',
-                    'The phase dates overlap with another phase in the same academic period.'
-                );
+                $errors['start_date'] = [
+                    'The phase dates overlap with another phase in the same academic period.',
+                ];
+            }
+
+            if (! empty($errors)) {
+                throw ValidationException::withMessages($errors);
             }
         }
     }

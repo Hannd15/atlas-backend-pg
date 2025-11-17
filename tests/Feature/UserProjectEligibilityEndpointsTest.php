@@ -13,6 +13,8 @@ class UserProjectEligibilityEndpointsTest extends TestCase
     use PgApiResponseHelpers;
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     public function test_by_user_returns_expected_summaries(): void
     {
         $this->createEligibilityFixtures();

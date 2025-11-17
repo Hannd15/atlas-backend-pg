@@ -5,12 +5,15 @@ namespace Tests\Feature\AuthIntegration;
 use App\Models\ProjectPosition;
 use App\Models\User;
 use App\Services\AtlasUserService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class UserAuthIntegrationTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();

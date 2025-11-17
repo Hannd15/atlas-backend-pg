@@ -50,6 +50,8 @@ use Illuminate\Validation\ValidationException;
  *     @OA\Property(property="name", type="string", example="Grupo Alfa"),
  *     @OA\Property(property="project_id", type="integer", nullable=true, example=7),
  *     @OA\Property(property="project_name", type="string", nullable=true, example="Sistema IoT"),
+ *     @OA\Property(property="phase_name", type="string", nullable=true, example="Fase 1"),
+ *     @OA\Property(property="period_name", type="string", nullable=true, example="2024-1"),
  *     @OA\Property(property="member_user_ids", type="array", @OA\Items(type="integer", example=25)),
  *     @OA\Property(property="member_user_names", type="string", example="Ana López, Juan Pérez"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
@@ -78,7 +80,7 @@ class ProjectGroupController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $groups = ProjectGroup::with('project', 'members')->orderByDesc('updated_at')->get();
+        $groups = ProjectGroup::with('project.phase.period', 'members')->orderByDesc('updated_at')->get();
 
         if ($groups->isEmpty()) {
             return response()->json([]);
@@ -272,6 +274,8 @@ class ProjectGroupController extends Controller
             'name' => $group->name,
             'project_id' => $group->project_id,
             'project_name' => $group->project?->title,
+            'phase_name' => $group->project?->phase?->name,
+            'period_name' => $group->project?->phase?->period?->name,
             'member_user_ids' => $memberIds,
             'member_user_names' => $this->implodeUserNames($memberIds, $userNames),
             'created_at' => optional($group->created_at)->toDateTimeString(),

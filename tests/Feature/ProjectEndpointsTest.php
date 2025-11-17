@@ -18,6 +18,8 @@ class ProjectEndpointsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     public function test_index_returns_expected_payload(): void
     {
         $project = Project::factory()->create([

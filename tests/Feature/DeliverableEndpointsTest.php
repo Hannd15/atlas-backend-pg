@@ -18,6 +18,8 @@ class DeliverableEndpointsTest extends TestCase
     use PgApiResponseHelpers;
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -67,12 +69,13 @@ class DeliverableEndpointsTest extends TestCase
 
         $response = $this->getJson($this->deliverablesRoute($phase));
 
-        $expected = $phase->deliverables()->with('phase.period', 'files', 'rubrics')->orderByDesc('updated_at')->get()
-            ->map(fn (Deliverable $item) => $this->deliverableResource($item))
-            ->values()
-            ->all();
-
-        $response->assertOk()->assertExactJson($expected);
+        $response->assertOk()->assertExactJson([
+            [
+                'id' => $deliverable->id,
+                'name' => 'Entrega 1',
+                'due_date' => '2025-04-15 18:00:00',
+            ],
+        ]);
     }
 
     public function test_store_creates_single_deliverable(): void

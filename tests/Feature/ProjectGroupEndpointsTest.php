@@ -29,13 +29,15 @@ class ProjectGroupEndpointsTest extends TestCase
 
         $response = $this->getJson('/api/pg/project-groups');
 
-        $groups = ProjectGroup::with('project', 'users')->orderByDesc('updated_at')->get();
+        $groups = ProjectGroup::with('project.phase.period', 'users')->orderByDesc('updated_at')->get();
 
         $expected = $groups->map(fn (ProjectGroup $item) => [
             'id' => $item->id,
             'name' => $item->name,
             'project_id' => $item->project_id,
             'project_name' => $item->project?->title,
+            'phase_name' => $item->project?->phase?->name,
+            'period_name' => $item->project?->phase?->period?->name,
             'member_user_ids' => $item->users->pluck('id')->values()->all(),
             'member_user_names' => $item->users->pluck('name')->implode(', '),
             'created_at' => optional($item->created_at)->toDateTimeString(),

@@ -8,11 +8,14 @@ use App\Models\AcademicPeriod;
 use App\Models\Deliverable;
 use App\Models\Phase;
 use App\Models\Project;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Tests\TestCase;
 
 class AtlasEndpointContractTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_academic_periods_index_returns_summary_schema(): void
     {
         $response = $this->getJson('/api/pg/academic-periods');

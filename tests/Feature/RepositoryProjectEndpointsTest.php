@@ -20,6 +20,8 @@ class RepositoryProjectEndpointsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     public function test_index_returns_expected_payload(): void
     {
         [$repositoryProject] = $this->createRepositoryProjectGraph();

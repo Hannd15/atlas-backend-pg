@@ -165,7 +165,7 @@ class ThematicLineController extends Controller
         $thematicLines = ThematicLine::orderBy('id')->get()->map(fn (ThematicLine $thematicLine) => [
             'value' => $thematicLine->id,
             'label' => $thematicLine->name,
-        ]);
+        ])->values();
 
         return response()->json($thematicLines);
     }
