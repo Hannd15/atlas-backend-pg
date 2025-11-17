@@ -76,8 +76,39 @@ class MeetingController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/pg/projects/{project}/meetings",
+     *     summary="List meetings for a project",
+     *     tags={"Meetings"},
+     *
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Meetings for the project",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(ref="#/components/schemas/MeetingDetailResource")
+     *         )
+     *     )
+     * )
+     */
+    public function projectMeetings(Project $project): JsonResponse
+    {
+        $meetings = $project->meetings()
+            ->with('project', 'creator', 'attendees')
+            ->orderByDesc('meeting_date')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json($meetings->map(fn (Meeting $meeting) => $this->transform($meeting))->values()->all());
+    }
+
+    /**
      * @OA\Post(
-     *     path="/api/pg/project/{project}/meeting",
+     *     path="/api/pg/projects/{project}/meetings",
      *     summary="Schedule a meeting for a project",
      *     tags={"Meetings"},
      *
@@ -118,17 +149,20 @@ class MeetingController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/meetings/{meeting}",
+     *     path="/api/pg/projects/{project}/meetings/{meeting}",
      *     summary="Show meeting",
      *     tags={"Meetings"},
      *
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="meeting", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(response=200, description="Meeting detail", @OA\JsonContent(ref="#/components/schemas/MeetingDetailResource"))
      * )
      */
-    public function show(Meeting $meeting): JsonResponse
+    public function show(Project $project, Meeting $meeting): JsonResponse
     {
+        abort_if($meeting->project_id !== $project->id, 404);
+
         $meeting->load('project', 'creator', 'attendees');
 
         return response()->json($this->transform($meeting));
@@ -136,10 +170,11 @@ class MeetingController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/pg/meetings/{meeting}",
+     *     path="/api/pg/projects/{project}/meetings/{meeting}",
      *     summary="Update meeting",
      *     tags={"Meetings"},
      *
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="meeting", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\RequestBody(
@@ -155,11 +190,11 @@ class MeetingController extends Controller
      *     @OA\Response(response=200, description="Meeting updated successfully", @OA\JsonContent(ref="#/components/schemas/MeetingDetailResource"))
      * )
      */
-    public function update(UpdateMeetingRequest $request, Meeting $meeting): JsonResponse
+    public function update(UpdateMeetingRequest $request, Project $project, Meeting $meeting): JsonResponse
     {
-        $meeting->update($request->validated());
+        abort_if($meeting->project_id !== $project->id, 404);
 
-        $project = $meeting->project()->firstOrFail();
+        $meeting->update($request->validated());
 
         $meeting->attendees()->sync($this->attendeeIdsForProject($project));
 
@@ -170,17 +205,20 @@ class MeetingController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/api/pg/meetings/{meeting}",
+     *     path="/api/pg/projects/{project}/meetings/{meeting}",
      *     summary="Delete meeting",
      *     tags={"Meetings"},
      *
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="meeting", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(response=200, description="Meeting deleted successfully")
      * )
      */
-    public function destroy(Meeting $meeting): JsonResponse
+    public function destroy(Project $project, Meeting $meeting): JsonResponse
     {
+        abort_if($meeting->project_id !== $project->id, 404);
+
         $meeting->delete();
 
         return response()->json(['message' => 'Meeting deleted successfully']);

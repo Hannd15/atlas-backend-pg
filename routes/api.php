@@ -73,8 +73,12 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     Route::apiResource('projects', ProjectController::class);
 
     // Meetings routes
-    Route::post('project/{project}/meeting', [MeetingController::class, 'store']);
-    Route::apiResource('meetings', MeetingController::class)->except('store');
+    Route::get('meetings', [MeetingController::class, 'index']);
+    Route::get('projects/{project}/meetings', [MeetingController::class, 'projectMeetings']);
+    Route::post('projects/{project}/meetings', [MeetingController::class, 'store']);
+    Route::get('projects/{project}/meetings/{meeting}', [MeetingController::class, 'show']);
+    Route::put('projects/{project}/meetings/{meeting}', [MeetingController::class, 'update']);
+    Route::delete('projects/{project}/meetings/{meeting}', [MeetingController::class, 'destroy']);
 
     // Repository Projects routes
     Route::get('repository-projects', [RepositoryProjectController::class, 'index']);

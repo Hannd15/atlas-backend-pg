@@ -25,11 +25,14 @@ class MeetingEndpointsTest extends TestCase
 
         $this->actingAs($staffUser);
 
-        $response = $this->postJson("/api/pg/project/{$project->id}/meeting", [
+        $response = $this->postJson("/api/pg/projects/{$project->id}/meetings", [
             'meeting_date' => $meetingDate->toDateString(),
         ]);
 
-        $meeting = Meeting::with('attendees')->firstOrFail();
+        $meeting = Meeting::with('attendees')
+            ->where('project_id', $project->id)
+            ->latest('id')
+            ->firstOrFail();
 
         $expectedUrl = sprintf('https://meetings.test/project-%s/%s', $project->id, $meetingDate->format('Ymd'));
 
@@ -59,11 +62,14 @@ class MeetingEndpointsTest extends TestCase
 
         $initialDate = Carbon::now()->addDay();
 
-        $this->postJson("/api/pg/project/{$project->id}/meeting", [
+        $this->postJson("/api/pg/projects/{$project->id}/meetings", [
             'meeting_date' => $initialDate->toDateString(),
         ])->assertCreated();
 
-        $meeting = Meeting::with('attendees')->firstOrFail();
+        $meeting = Meeting::with('attendees')
+            ->where('project_id', $project->id)
+            ->latest('id')
+            ->firstOrFail();
 
         $newMember = User::factory()->create();
         GroupMember::create([
@@ -74,7 +80,7 @@ class MeetingEndpointsTest extends TestCase
         $updatedDate = Carbon::now()->addDays(5);
         $otherUser = User::factory()->create();
 
-        $response = $this->putJson("/api/pg/meetings/{$meeting->id}", [
+        $response = $this->putJson("/api/pg/projects/{$project->id}/meetings/{$meeting->id}", [
             'meeting_date' => $updatedDate->toDateString(),
             'observations' => 'Agenda revisada',
             'created_by' => $otherUser->id,
@@ -107,20 +113,58 @@ class MeetingEndpointsTest extends TestCase
 
         $meetingDate = Carbon::parse('2025-01-15');
 
-        $this->postJson("/api/pg/project/{$project->id}/meeting", [
+        $this->postJson("/api/pg/projects/{$project->id}/meetings", [
             'meeting_date' => $meetingDate->toDateString(),
         ])->assertCreated();
 
-        $meeting = Meeting::firstOrFail();
+        $meeting = Meeting::query()
+            ->where('project_id', $project->id)
+            ->latest('id')
+            ->firstOrFail();
         $meeting->update(['observations' => 'Notas generales']);
 
-        $this->getJson('/api/pg/meetings')
+        $this->getJson("/api/pg/meetings?project_id={$project->id}")
             ->assertOk()
             ->assertExactJson([
                 [
                     'project_name' => 'Proyecto reducido',
                     'meeting_date' => '2025-01-15',
                     'observations' => 'Notas generales',
+                ],
+            ]);
+    }
+
+    public function test_project_meetings_endpoint_returns_full_details(): void
+    {
+        [$project, $memberUser, $staffUser] = $this->createProjectStructure('Proyecto completo');
+
+        $this->actingAs($staffUser);
+
+        $meetingDate = Carbon::parse('2025-03-01');
+
+        $this->postJson("/api/pg/projects/{$project->id}/meetings", [
+            'meeting_date' => $meetingDate->toDateString(),
+        ])->assertCreated();
+
+        $meeting = Meeting::query()
+            ->where('project_id', $project->id)
+            ->latest('id')
+            ->firstOrFail();
+        $meeting->update(['observations' => 'Plan de trabajo']);
+        $meeting->refresh();
+
+        $expectedUrl = sprintf('https://meetings.test/project-%s/%s', $project->id, $meetingDate->format('Ymd'));
+
+        $this->getJson("/api/pg/projects/{$project->id}/meetings")
+            ->assertOk()
+            ->assertExactJson([
+                [
+                    'id' => $meeting->id,
+                    'project_id' => $project->id,
+                    'project_name' => 'Proyecto completo',
+                    'meeting_date' => $meetingDate->toDateString(),
+                    'observations' => 'Plan de trabajo',
+                    'url' => $expectedUrl,
                 ],
             ]);
     }
