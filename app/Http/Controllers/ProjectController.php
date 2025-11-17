@@ -7,13 +7,10 @@ use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\Deliverable;
 use App\Models\Meeting;
 use App\Models\Project;
-use App\Models\ProjectStaff;
 use App\Models\ProjectStatus;
-use App\Models\Submission;
 use App\Services\AtlasUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 /**
  * @OA\Tag(
@@ -36,6 +33,7 @@ use Illuminate\Support\Carbon;
  * @OA\Schema(
  *     schema="ProjectDetailResource",
  *     type="object",
+ *     description="Minimal project representation; related entities available via dedicated endpoints.",
  *
  *     @OA\Property(property="id", type="integer", example=12),
  *     @OA\Property(property="title", type="string", example="Plataforma IoT"),
@@ -43,9 +41,9 @@ use Illuminate\Support\Carbon;
  *     @OA\Property(property="proposal_id", type="integer", nullable=true, example=5),
  *     @OA\Property(property="thematic_line_name", type="string", nullable=true, example="Inteligencia Artificial"),
  *     @OA\Property(property="member_names", type="string", example="Laura Proposer, Juan Developer"),
- *     @OA\Property(property="staff", type="array", @OA\Items(ref="#/components/schemas/ProjectStaffResource")),
- *     @OA\Property(property="meetings", type="array", @OA\Items(ref="#/components/schemas/ProjectMeetingResource")),
- *     @OA\Property(property="deliverables", type="array", @OA\Items(ref="#/components/schemas/ProjectDeliverableResource")),
+ *     @OA\Property(property="staff_names", type="string", example="Ana Directora, Luis Asistente"),
+ *     @OA\Property(property="deliverable_names", type="string", example="Plan de trabajo, Informe final"),
+ *     @OA\Property(property="meeting_count", type="integer", example=5),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -284,9 +282,8 @@ class ProjectController extends Controller
             'groups.members',
             'status',
             'staff.position',
-            'deliverables.phase',
+            'deliverables',
             'meetings',
-            'submissions.evaluations',
         ];
     }
 
@@ -301,86 +298,21 @@ class ProjectController extends Controller
             'proposal_id' => $project->proposal_id,
             'thematic_line_name' => $project->proposal?->thematicLine?->name,
             'member_names' => $this->memberNames($project, $userNames),
-            'staff' => $this->transformStaff($project, $userNames),
-            'meetings' => $this->transformMeetings($project),
-            'deliverables' => $this->transformDeliverables($project),
+            'staff_names' => $project->staff->map(fn ($s) => $s->position?->name)->filter()->unique()->implode(', '),
+            'deliverable_names' => $project->deliverables->sortBy('due_date')->pluck('name')->implode(', '),
+            'meeting_count' => $project->meetings->count(),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
         ];
     }
 
-    protected function transformStaff(Project $project, array $userNames): array
-    {
-        return $project->staff
-            ->map(function (ProjectStaff $staff) use ($userNames) {
-                $userId = $staff->user_id;
+    // Removed detailed staff representation; use dedicated endpoints in future.
 
-                return [
-                    'user_name' => $userId ? ($userNames[$userId] ?? "User #{$userId}") : null,
-                    'position_name' => $staff->position?->name,
-                ];
-            })
-            ->values()
-            ->all();
-    }
+    // Removed embedded meetings; use /projects/{project}/meetings endpoint.
 
-    protected function transformMeetings(Project $project): array
-    {
-        return $project->meetings
-            ->sortByDesc('meeting_date')
-            ->values()
-            ->map(fn (Meeting $meeting) => [
-                'id' => $meeting->id,
-                'meeting_date' => optional($meeting->meeting_date)->toDateString(),
-                'observations' => $meeting->observations,
-                'url' => $meeting->url,
-                'created_by' => $meeting->created_by,
-            ])
-            ->all();
-    }
+    // Removed embedded deliverables; use academic-period scoped deliverables endpoints.
 
-    protected function transformDeliverables(Project $project): array
-    {
-        $submissionsByDeliverable = $project->submissions->groupBy('deliverable_id');
-        $now = Carbon::now();
-
-        return $project->deliverables
-            ->sortBy('due_date')
-            ->values()
-            ->map(function (Deliverable $deliverable) use ($submissionsByDeliverable, $now) {
-                $submissionGroup = $submissionsByDeliverable->get($deliverable->id);
-                $submission = $submissionGroup ? $submissionGroup->sortByDesc('submission_date')->first() : null;
-                $averageGrade = $submission ? $submission->evaluations->avg('grade') : null;
-
-                return [
-                    'id' => $deliverable->id,
-                    'name' => $deliverable->name,
-                    'due_date' => optional($deliverable->due_date)->toDateTimeString(),
-                    'grading' => $averageGrade !== null ? round((float) $averageGrade, 2) : null,
-                    'state' => $this->resolveDeliverableState($deliverable, $submission, $now),
-                ];
-            })
-            ->all();
-    }
-
-    protected function resolveDeliverableState(Deliverable $deliverable, ?Submission $submission, Carbon $now): string
-    {
-        $dueDate = $deliverable->due_date ? $deliverable->due_date->copy() : null;
-
-        if ($submission === null) {
-            if ($dueDate === null || $now->lessThanOrEqualTo($dueDate)) {
-                return 'Pendiente de entrega';
-            }
-
-            return 'Atrasado';
-        }
-
-        if ($submission->evaluations->isEmpty()) {
-            return 'Pendiente por revisión';
-        }
-
-        return 'Al día';
-    }
+    // Removed deliverable state calculation from project context.
 
     protected function memberNames(Project $project, array $userNames): string
     {

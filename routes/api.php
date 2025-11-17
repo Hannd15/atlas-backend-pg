@@ -66,6 +66,8 @@ Route::scopeBindings()->prefix('pg')->group(function () {
 
     Route::middleware('auth.atlas')->group(function () {
         Route::apiResource('proposals', ProposalController::class);
+        Route::get('proposals/{proposal}/files', [\App\Http\Controllers\ProposalFileController::class, 'index']);
+        Route::post('proposals/{proposal}/files', [\App\Http\Controllers\ProposalFileController::class, 'store']);
     });
 
     // Projects routes

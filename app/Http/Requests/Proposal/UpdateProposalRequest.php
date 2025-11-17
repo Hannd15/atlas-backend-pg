@@ -13,10 +13,7 @@ class UpdateProposalRequest extends StoreProposalRequest
             'proposer_id' => ['sometimes', 'required', 'exists:users,id'],
             'preferred_director_id' => ['sometimes', 'nullable', 'exists:users,id'],
             'proposal_status_id' => ['sometimes', 'nullable', 'exists:proposal_statuses,id'],
-            'file_ids' => ['nullable', 'array'],
-            'file_ids.*' => ['integer', 'exists:files,id'],
-            'files' => ['nullable', 'array'],
-            'files.*' => ['file'],
+            // File management removed from update; use proposal file endpoints.
         ];
     }
 }

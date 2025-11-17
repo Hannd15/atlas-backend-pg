@@ -22,10 +22,7 @@ class StoreProposalRequest extends FormRequest
             'proposer_id' => ['required', 'exists:users,id'],
             'preferred_director_id' => ['nullable', 'exists:users,id'],
             'proposal_status_id' => ['nullable', 'exists:proposal_statuses,id'],
-            'file_ids' => ['nullable', 'array'],
-            'file_ids.*' => ['integer', 'exists:files,id'],
-            'files' => ['nullable', 'array'],
-            'files.*' => ['file'],
+            // File management is handled by dedicated proposal file endpoints now.
         ];
     }
 

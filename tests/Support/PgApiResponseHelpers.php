@@ -206,45 +206,19 @@ trait PgApiResponseHelpers
 
     protected function submissionResource(Submission $submission): array
     {
-        $submission->loadMissing('deliverable.phase.period', 'project.status', 'files', 'evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
+        $submission->loadMissing('deliverable.phase.period', 'project', 'files', 'evaluations');
 
         return [
             'id' => $submission->id,
-            'deliverable' => $submission->deliverable ? [
-                'id' => $submission->deliverable->id,
-                'name' => $submission->deliverable->name,
-                'description' => $submission->deliverable->description,
-                'phase' => $submission->deliverable->phase ? [
-                    'id' => $submission->deliverable->phase->id,
-                    'name' => $submission->deliverable->phase->name,
-                    'period' => $submission->deliverable->phase->period ? [
-                        'id' => $submission->deliverable->phase->period->id,
-                        'name' => $submission->deliverable->phase->period->name,
-                    ] : null,
-                ] : null,
-            ] : null,
-            'project' => $submission->project ? [
-                'id' => $submission->project->id,
-                'title' => $submission->project->title,
-                'status' => $submission->project->status ? [
-                    'id' => $submission->project->status->id,
-                    'name' => $submission->project->status->name,
-                ] : null,
-            ] : null,
             'deliverable_id' => $submission->deliverable_id,
             'project_id' => $submission->project_id,
             'submission_date' => optional($submission->submission_date)->toDateTimeString(),
-            'files' => $submission->files->map(fn (File $file) => [
-                'id' => $file->id,
-                'name' => $file->name,
-                'extension' => $file->extension,
-                'url' => $file->url,
-            ])->values()->all(),
-            'file_ids' => $submission->files->pluck('id')->values()->all(),
-            'evaluations' => $submission->evaluations
-                ->map(fn (Evaluation $evaluation) => $this->evaluationResource($evaluation))
-                ->values()
-                ->all(),
+            'deliverable_name' => $submission->deliverable?->name,
+            'project_title' => $submission->project?->title,
+            'phase_name' => $submission->deliverable?->phase?->name,
+            'period_name' => $submission->deliverable?->phase?->period?->name,
+            'file_count' => $submission->files->count(),
+            'evaluation_count' => $submission->evaluations->count(),
             'created_at' => optional($submission->created_at)->toDateTimeString(),
             'updated_at' => optional($submission->updated_at)->toDateTimeString(),
         ];
@@ -263,22 +237,9 @@ trait PgApiResponseHelpers
             'grade' => $evaluation->grade,
             'comments' => $evaluation->comments,
             'evaluation_date' => optional($evaluation->evaluation_date)->toDateTimeString(),
-            'user' => $evaluation->user ? [
-                'id' => $evaluation->user->id,
-                'name' => $evaluation->user->name,
-                'email' => $evaluation->user->email,
-            ] : null,
-            'evaluator' => $evaluation->evaluator ? [
-                'id' => $evaluation->evaluator->id,
-                'name' => $evaluation->evaluator->name,
-                'email' => $evaluation->evaluator->email,
-            ] : null,
-            'rubric' => $evaluation->rubric ? [
-                'id' => $evaluation->rubric->id,
-                'name' => $evaluation->rubric->name,
-                'min_value' => $evaluation->rubric->min_value,
-                'max_value' => $evaluation->rubric->max_value,
-            ] : null,
+            'user_name' => $evaluation->user?->name,
+            'evaluator_name' => $evaluation->evaluator?->name,
+            'rubric_name' => $evaluation->rubric?->name,
             'created_at' => optional($evaluation->created_at)->toDateTimeString(),
             'updated_at' => optional($evaluation->updated_at)->toDateTimeString(),
         ];

@@ -298,9 +298,7 @@ class RubricController extends Controller
             'min_value' => $rubric->min_value,
             'max_value' => $rubric->max_value,
             'thematic_line_names' => $rubric->thematicLines->pluck('name')->implode(', '),
-            'thematic_line_ids' => $rubric->thematicLines->pluck('id')->values()->all(),
             'deliverable_names' => $rubric->deliverables->pluck('name')->implode(', '),
-            'deliverable_ids' => $rubric->deliverables->pluck('id')->values()->all(),
             'created_at' => optional($rubric->created_at)->toDateTimeString(),
             'updated_at' => optional($rubric->updated_at)->toDateTimeString(),
         ];

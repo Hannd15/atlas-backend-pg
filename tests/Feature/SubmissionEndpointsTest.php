@@ -6,9 +6,7 @@ use App\Models\AcademicPeriod;
 use App\Models\File;
 use App\Models\Phase;
 use App\Models\Project;
-use App\Models\Rubric;
 use App\Models\Submission;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -59,28 +57,11 @@ class SubmissionEndpointsTest extends TestCase
         ]);
         $submission->files()->attach($file);
 
-        $rubric = Rubric::create([
-            'name' => 'Calidad técnica',
-            'description' => 'Se evalúa la calidad técnica del proyecto',
-            'min_value' => 0,
-            'max_value' => 5,
-        ]);
-
-        $student = User::factory()->create();
-        $evaluator = User::factory()->create();
-
-        $submission->evaluations()->create([
-            'user_id' => $student->id,
-            'evaluator_id' => $evaluator->id,
-            'rubric_id' => $rubric->id,
-            'grade' => 4.8,
-            'comments' => 'Excelente avance',
-            'evaluation_date' => '2025-04-11 12:00:00',
-        ]);
+        // Evaluations creation removed from submission payload; handled via dedicated endpoints.
 
         $response = $this->getJson('/api/pg/submissions');
 
-        $expected = Submission::with('deliverable.phase.period', 'project.status', 'files', 'evaluations.user', 'evaluations.evaluator', 'evaluations.rubric')
+        $expected = Submission::with('deliverable.phase.period', 'project', 'files', 'evaluations')
             ->orderByDesc('updated_at')
             ->get()
             ->map(fn (Submission $item) => $this->submissionResource($item))
@@ -90,7 +71,7 @@ class SubmissionEndpointsTest extends TestCase
         $response->assertOk()->assertExactJson($expected);
     }
 
-    public function test_store_creates_submission_with_files_and_evaluations(): void
+    public function test_store_creates_submission_with_files(): void
     {
         [$phase] = $this->createPhaseWithPeriod();
         $project = $this->createProject($phase, 'Proyecto Final');
@@ -108,35 +89,19 @@ class SubmissionEndpointsTest extends TestCase
             'path' => 'pg/uploads/final.pdf',
         ]);
 
-        $rubric = Rubric::create([
-            'name' => 'Impacto',
-            'description' => 'Impacto del proyecto',
-            'min_value' => 0,
-            'max_value' => 5,
-        ]);
-
-        $student = User::factory()->create();
-        $evaluator = User::factory()->create();
-
         $payload = [
             'deliverable_id' => $deliverable->id,
             'project_id' => $project->id,
             'submission_date' => '2025-04-28 16:00:00',
             'file_ids' => [$file->id],
-            'evaluations' => [
-                [
-                    'user_id' => $student->id,
-                    'evaluator_id' => $evaluator->id,
-                    'rubric_id' => $rubric->id,
-                    'grade' => 4.5,
-                    'comments' => 'Muy bien logrado',
-                ],
-            ],
         ];
 
         $response = $this->postJson('/api/pg/submissions', $payload);
 
-        $submission = Submission::with('deliverable.phase.period', 'project.status', 'files', 'evaluations.user', 'evaluations.evaluator', 'evaluations.rubric')->firstOrFail();
+        $createdId = $response->json('id');
+        $this->assertNotNull($createdId, 'Submission id missing in response');
+
+        $submission = Submission::with('deliverable.phase.period', 'project', 'files', 'evaluations')->findOrFail($createdId);
 
         $response->assertCreated()->assertExactJson($this->submissionResource($submission));
 
@@ -151,12 +116,7 @@ class SubmissionEndpointsTest extends TestCase
             'file_id' => $file->id,
         ]);
 
-        $this->assertDatabaseHas('evaluations', [
-            'submission_id' => $submission->id,
-            'user_id' => $student->id,
-            'evaluator_id' => $evaluator->id,
-            'rubric_id' => $rubric->id,
-        ]);
+        // No evaluation assertions; evaluations created via separate endpoints now.
     }
 
     public function test_show_returns_expected_resource(): void
@@ -224,7 +184,7 @@ class SubmissionEndpointsTest extends TestCase
 
         $response = $this->putJson("/api/pg/submissions/{$submission->id}", $payload);
 
-        $submission->refresh()->load('deliverable.phase.period', 'project.status', 'files', 'evaluations');
+        $submission->refresh()->load('deliverable.phase.period', 'project', 'files', 'evaluations');
 
         $response->assertOk()->assertExactJson($this->submissionResource($submission));
 

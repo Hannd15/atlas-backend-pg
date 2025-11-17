@@ -13,9 +13,10 @@ use Illuminate\Http\Request;
  *     description="Endpoints to manage evaluations per submission"
  * )
  *
- * @OA\Schema(
+ *     @OA\Schema(
  *     schema="SubmissionEvaluationResource",
  *     type="object",
+ *     description="Minimal evaluation representation without embedded relationship objects.",
  *
  *     @OA\Property(property="id", type="integer", example=90),
  *     @OA\Property(property="submission_id", type="integer", example=45),
@@ -25,31 +26,9 @@ use Illuminate\Http\Request;
  *     @OA\Property(property="grade", type="number", format="float", example=4.5),
  *     @OA\Property(property="comments", type="string", nullable=true, example="Gran trabajo"),
  *     @OA\Property(property="evaluation_date", type="string", format="date-time", example="2025-04-15T17:45:00"),
- *     @OA\Property(
- *         property="user",
- *         type="object",
- *         nullable=true,
- *         @OA\Property(property="id", type="integer"),
- *         @OA\Property(property="name", type="string"),
- *         @OA\Property(property="email", type="string")
- *     ),
- *     @OA\Property(
- *         property="evaluator",
- *         type="object",
- *         nullable=true,
- *         @OA\Property(property="id", type="integer"),
- *         @OA\Property(property="name", type="string"),
- *         @OA\Property(property="email", type="string")
- *     ),
- *     @OA\Property(
- *         property="rubric",
- *         type="object",
- *         nullable=true,
- *         @OA\Property(property="id", type="integer"),
- *         @OA\Property(property="name", type="string"),
- *         @OA\Property(property="min_value", type="integer"),
- *         @OA\Property(property="max_value", type="integer")
- *     ),
+ *     @OA\Property(property="user_name", type="string", nullable=true, example="Laura Pérez"),
+ *     @OA\Property(property="evaluator_name", type="string", nullable=true, example="Ing. Carlos"),
+ *     @OA\Property(property="rubric_name", type="string", nullable=true, example="Calidad técnica"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -250,22 +229,9 @@ class SubmissionEvaluationController extends Controller
             'grade' => $evaluation->grade,
             'comments' => $evaluation->comments,
             'evaluation_date' => optional($evaluation->evaluation_date)->toDateTimeString(),
-            'user' => $evaluation->user ? [
-                'id' => $evaluation->user->id,
-                'name' => $evaluation->user->name,
-                'email' => $evaluation->user->email,
-            ] : null,
-            'evaluator' => $evaluation->evaluator ? [
-                'id' => $evaluation->evaluator->id,
-                'name' => $evaluation->evaluator->name,
-                'email' => $evaluation->evaluator->email,
-            ] : null,
-            'rubric' => $evaluation->rubric ? [
-                'id' => $evaluation->rubric->id,
-                'name' => $evaluation->rubric->name,
-                'min_value' => $evaluation->rubric->min_value,
-                'max_value' => $evaluation->rubric->max_value,
-            ] : null,
+            'user_name' => $evaluation->user?->name,
+            'evaluator_name' => $evaluation->evaluator?->name,
+            'rubric_name' => $evaluation->rubric?->name,
             'created_at' => optional($evaluation->created_at)->toDateTimeString(),
             'updated_at' => optional($evaluation->updated_at)->toDateTimeString(),
         ];

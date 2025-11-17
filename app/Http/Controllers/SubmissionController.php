@@ -10,75 +10,23 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * @OA\Tag(
- *     name="Submissions",
- *     description="API endpoints for project deliverable submissions"
- * )
+ * @OA\Tag(name="Submissions", description="API endpoints for project deliverable submissions")
  *
  * @OA\Schema(
  *     schema="SubmissionResource",
  *     type="object",
+ *     description="Minimal submission representation. Related files and evaluations available via dedicated endpoints.",
  *
  *     @OA\Property(property="id", type="integer", example=45),
  *     @OA\Property(property="deliverable_id", type="integer", example=12),
  *     @OA\Property(property="project_id", type="integer", example=30),
  *     @OA\Property(property="submission_date", type="string", format="date-time", example="2025-04-19T10:00:00"),
- *     @OA\Property(
- *         property="deliverable",
- *         type="object",
- *         @OA\Property(property="id", type="integer"),
- *         @OA\Property(property="name", type="string"),
- *         @OA\Property(property="description", type="string", nullable=true),
- *         @OA\Property(
- *             property="phase",
- *             type="object",
- *             nullable=true,
- *             @OA\Property(property="id", type="integer"),
- *             @OA\Property(property="name", type="string"),
- *             @OA\Property(
- *                 property="period",
- *                 type="object",
- *                 nullable=true,
- *                 @OA\Property(property="id", type="integer"),
- *                 @OA\Property(property="name", type="string")
- *             )
- *         )
- *     ),
- *     @OA\Property(
- *         property="project",
- *         type="object",
- *         nullable=true,
- *         @OA\Property(property="id", type="integer"),
- *         @OA\Property(property="title", type="string"),
- *         @OA\Property(
- *             property="status",
- *             type="object",
- *             nullable=true,
- *             @OA\Property(property="id", type="integer"),
- *             @OA\Property(property="name", type="string")
- *         )
- *     ),
- *     @OA\Property(
- *         property="files",
- *         type="array",
- *
- *         @OA\Items(
- *             type="object",
- *
- *             @OA\Property(property="id", type="integer"),
- *             @OA\Property(property="name", type="string"),
- *             @OA\Property(property="extension", type="string"),
- *             @OA\Property(property="url", type="string")
- *         )
- *     ),
- *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer")),
- *     @OA\Property(
- *         property="evaluations",
- *         type="array",
- *
- *         @OA\Items(ref="#/components/schemas/SubmissionEvaluationResource")
- *     ),
- *
+ *     @OA\Property(property="deliverable_name", type="string", nullable=true, example="Entrega Parcial"),
+ *     @OA\Property(property="project_title", type="string", nullable=true, example="Proyecto Integrador"),
+ *     @OA\Property(property="phase_name", type="string", nullable=true, example="PG I"),
+ *     @OA\Property(property="period_name", type="string", nullable=true, example="2025-1"),
+ *     @OA\Property(property="file_count", type="integer", example=3),
+ *     @OA\Property(property="evaluation_count", type="integer", example=2),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -91,13 +39,7 @@ use Illuminate\Support\Facades\Validator;
  *     @OA\Property(property="deliverable_id", type="integer", example=12),
  *     @OA\Property(property="project_id", type="integer", example=30),
  *     @OA\Property(property="submission_date", type="string", format="date-time", example="2025-04-19T10:00:00"),
- *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer")),
- *     @OA\Property(
- *         property="evaluations",
- *         type="array",
- *
- *         @OA\Items(ref="#/components/schemas/SubmissionEvaluationCreatePayload")
- *     )
+ *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer"))
  * )
  *
  * @OA\Schema(
@@ -134,16 +76,13 @@ class SubmissionController extends Controller
     {
         $submissions = Submission::with([
             'deliverable.phase.period',
-            'project.status',
+            'project',
+            'deliverable.phase.period',
             'files',
-            'evaluations.user',
-            'evaluations.evaluator',
-            'evaluations.rubric',
+            'evaluations',
         ])->orderByDesc('updated_at')->get();
 
-        return response()->json(
-            $submissions->map(fn (Submission $submission) => $this->transformSubmission($submission))
-        );
+        return response()->json($submissions->map(fn (Submission $submission) => $this->transformSubmission($submission)));
     }
 
     public function store(Request $request): JsonResponse
@@ -154,13 +93,6 @@ class SubmissionController extends Controller
             'submission_date' => 'required|date',
             'file_ids' => 'sometimes|array',
             'file_ids.*' => 'integer|exists:files,id',
-            'evaluations' => 'sometimes|array',
-            'evaluations.*.user_id' => 'required|exists:users,id',
-            'evaluations.*.rubric_id' => 'required|exists:rubrics,id',
-            'evaluations.*.grade' => 'required|numeric',
-            'evaluations.*.comments' => 'nullable|string',
-            'evaluations.*.evaluation_date' => 'nullable|date',
-            'evaluations.*.evaluator_id' => 'required|exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -169,33 +101,18 @@ class SubmissionController extends Controller
 
         $data = $validator->validated();
         $fileIds = $this->normalizeIds($data['file_ids'] ?? null);
-        $evaluationsPayload = $data['evaluations'] ?? null;
+        unset($data['file_ids']);
 
-        unset($data['file_ids'], $data['evaluations']);
-
-        $submission = DB::transaction(function () use ($data, $fileIds, $evaluationsPayload) {
+        $submission = DB::transaction(function () use ($data, $fileIds) {
             $submission = Submission::create($data);
 
             if ($fileIds !== null) {
                 $submission->files()->sync($fileIds);
             }
 
-            if ($evaluationsPayload !== null) {
-                $submission->evaluations()->createMany(
-                    collect($evaluationsPayload)
-                        ->map(function (array $evaluation) {
-                            $evaluation['evaluation_date'] = $evaluation['evaluation_date'] ?? now();
-
-                            return $evaluation;
-                        })
-                        ->all()
-                );
-            }
-
             return $submission;
         });
-
-        $submission->load('deliverable.phase.period', 'project.status', 'files', 'evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
+        $submission->load('deliverable.phase.period', 'project', 'files', 'evaluations');
 
         return response()->json($this->transformSubmission($submission), 201);
     }
@@ -224,7 +141,7 @@ class SubmissionController extends Controller
      */
     public function show(Submission $submission): JsonResponse
     {
-        $submission->load('deliverable.phase.period', 'project.status', 'files', 'evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
+        $submission->load('deliverable.phase.period', 'project', 'files', 'evaluations');
 
         return response()->json($this->transformSubmission($submission));
     }
@@ -268,7 +185,7 @@ class SubmissionController extends Controller
             }
         });
 
-        $submission->load('deliverable.phase.period', 'project.status', 'files', 'evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
+        $submission->load('deliverable.phase.period', 'project', 'files', 'evaluations');
 
         return response()->json($this->transformSubmission($submission));
     }
@@ -320,83 +237,24 @@ class SubmissionController extends Controller
      */
     protected function transformSubmission(Submission $submission): array
     {
-        $submission->loadMissing('deliverable.phase.period', 'project.status', 'files', 'evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
+        $submission->loadMissing('deliverable.phase.period', 'project', 'files', 'evaluations');
 
         return [
             'id' => $submission->id,
-            'deliverable' => $submission->deliverable ? [
-                'id' => $submission->deliverable->id,
-                'name' => $submission->deliverable->name,
-                'description' => $submission->deliverable->description,
-                'phase' => $submission->deliverable->phase ? [
-                    'id' => $submission->deliverable->phase->id,
-                    'name' => $submission->deliverable->phase->name,
-                    'period' => $submission->deliverable->phase->period ? [
-                        'id' => $submission->deliverable->phase->period->id,
-                        'name' => $submission->deliverable->phase->period->name,
-                    ] : null,
-                ] : null,
-            ] : null,
-            'project' => $submission->project ? [
-                'id' => $submission->project->id,
-                'title' => $submission->project->title,
-                'status' => $submission->project->status ? [
-                    'id' => $submission->project->status->id,
-                    'name' => $submission->project->status->name,
-                ] : null,
-            ] : null,
             'deliverable_id' => $submission->deliverable_id,
             'project_id' => $submission->project_id,
             'submission_date' => optional($submission->submission_date)->toDateTimeString(),
-            'files' => $submission->files->map(fn ($file) => [
-                'id' => $file->id,
-                'name' => $file->name,
-                'extension' => $file->extension,
-                'url' => $file->url,
-            ])->values()->all(),
-            'file_ids' => $submission->files->pluck('id')->values()->all(),
-            'evaluations' => $submission->evaluations
-                ->map(fn (Evaluation $evaluation) => $this->transformEvaluation($evaluation))
-                ->values()
-                ->all(),
+            'deliverable_name' => $submission->deliverable?->name,
+            'project_title' => $submission->project?->title,
+            'phase_name' => $submission->deliverable?->phase?->name,
+            'period_name' => $submission->deliverable?->phase?->period?->name,
+            'file_count' => $submission->files->count(),
+            'evaluation_count' => $submission->evaluations->count(),
             'created_at' => optional($submission->created_at)->toDateTimeString(),
             'updated_at' => optional($submission->updated_at)->toDateTimeString(),
         ];
     }
-
-    protected function transformEvaluation(Evaluation $evaluation): array
-    {
-        $evaluation->loadMissing('user', 'evaluator', 'rubric');
-
-        return [
-            'id' => $evaluation->id,
-            'submission_id' => $evaluation->submission_id,
-            'user_id' => $evaluation->user_id,
-            'evaluator_id' => $evaluation->evaluator_id,
-            'rubric_id' => $evaluation->rubric_id,
-            'grade' => $evaluation->grade,
-            'comments' => $evaluation->comments,
-            'evaluation_date' => optional($evaluation->evaluation_date)->toDateTimeString(),
-            'user' => $evaluation->user ? [
-                'id' => $evaluation->user->id,
-                'name' => $evaluation->user->name,
-                'email' => $evaluation->user->email,
-            ] : null,
-            'evaluator' => $evaluation->evaluator ? [
-                'id' => $evaluation->evaluator->id,
-                'name' => $evaluation->evaluator->name,
-                'email' => $evaluation->evaluator->email,
-            ] : null,
-            'rubric' => $evaluation->rubric ? [
-                'id' => $evaluation->rubric->id,
-                'name' => $evaluation->rubric->name,
-                'min_value' => $evaluation->rubric->min_value,
-                'max_value' => $evaluation->rubric->max_value,
-            ] : null,
-            'created_at' => optional($evaluation->created_at)->toDateTimeString(),
-            'updated_at' => optional($evaluation->updated_at)->toDateTimeString(),
-        ];
-    }
+    // Detailed evaluation representation removed; use SubmissionEvaluationController endpoints.
 
     /**
      * @param  array<int, int|string>|null  $ids

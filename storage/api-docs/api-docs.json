@@ -8,6 +8,12 @@
         },
         "version": "1.0.0"
     },
+    "servers": [
+        {
+            "url": "/api",
+            "description": "API Server"
+        }
+    ],
     "paths": {
         "/api/pg/academic-periods": {
             "get": {
@@ -768,13 +774,45 @@
                 }
             }
         },
-        "/api/pg/project/{project}/meeting": {
+        "/api/pg/projects/{project}/meetings": {
+            "get": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "List meetings for a project",
+                "operationId": "5b40b18b688d96bc2c1ffb0cb2f3e82d",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Meetings for the project",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MeetingDetailResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "tags": [
                     "Meetings"
                 ],
                 "summary": "Schedule a meeting for a project",
-                "operationId": "4a48ff6d6538c20b33807c3aa5f233d6",
+                "operationId": "094ddf2d8250ce8983f3e4fad4669941",
                 "parameters": [
                     {
                         "name": "project",
@@ -819,14 +857,22 @@
                 }
             }
         },
-        "/api/pg/meetings/{meeting}": {
+        "/api/pg/projects/{project}/meetings/{meeting}": {
             "get": {
                 "tags": [
                     "Meetings"
                 ],
                 "summary": "Show meeting",
-                "operationId": "5eff38eeffda7c75fd4c1a0058616368",
+                "operationId": "ec264ccc2c1f8c0ad50edee462dccfd8",
                 "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "meeting",
                         "in": "path",
@@ -854,8 +900,16 @@
                     "Meetings"
                 ],
                 "summary": "Update meeting",
-                "operationId": "09f6246b9ce8c7d44e71a173a289b71f",
+                "operationId": "91cd2ee8af8a731d86178772fd62167d",
                 "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "meeting",
                         "in": "path",
@@ -903,8 +957,16 @@
                     "Meetings"
                 ],
                 "summary": "Delete meeting",
-                "operationId": "413570614e75c829636baea7607637a8",
+                "operationId": "f3ff9dd659226ebd83cc2dc7c011cf1b",
                 "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "meeting",
                         "in": "path",
@@ -1751,6 +1813,91 @@
                     },
                     "404": {
                         "description": "Proposal not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/proposals/{proposal}/files": {
+            "get": {
+                "tags": [
+                    "Proposal Files"
+                ],
+                "summary": "List files for a proposal",
+                "operationId": "18cd91e4f3c622301a110e937000dc53",
+                "parameters": [
+                    {
+                        "name": "proposal",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Files for the proposal",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProposalFileResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Proposal Files"
+                ],
+                "summary": "Upload and attach a file to a proposal",
+                "operationId": "6f02961511d35ebbc4777609ed8e8ed6",
+                "parameters": [
+                    {
+                        "name": "proposal",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "file"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "File uploaded",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalFileResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 }
             }
@@ -3472,11 +3619,6 @@
                         "type": "string",
                         "example": "2025-1"
                     },
-                    "state_id": {
-                        "type": "integer",
-                        "example": 1,
-                        "nullable": true
-                    },
                     "state_name": {
                         "type": "string",
                         "example": "Activo",
@@ -3562,10 +3704,6 @@
                     "id": {
                         "type": "integer",
                         "example": 12
-                    },
-                    "phase_id": {
-                        "type": "integer",
-                        "example": 7
                     },
                     "name": {
                         "type": "string",
@@ -3678,42 +3816,6 @@
                         "type": "string",
                         "example": "https://storage.test/pg/uploads/2025/propuesta.pdf"
                     },
-                    "disk": {
-                        "type": "string",
-                        "example": "public"
-                    },
-                    "path": {
-                        "type": "string",
-                        "example": "pg/uploads/2025/01/15/propuesta.pdf"
-                    },
-                    "deliverable_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 40
-                        }
-                    },
-                    "submission_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 12
-                        }
-                    },
-                    "repository_project_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 3
-                        }
-                    },
-                    "proposal_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 8
-                        }
-                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time"
@@ -3766,10 +3868,6 @@
                         "type": "string",
                         "example": "Proyecto de grado I"
                     },
-                    "period_id": {
-                        "type": "integer",
-                        "example": 3
-                    },
                     "start_date": {
                         "type": "string",
                         "format": "date",
@@ -3802,6 +3900,16 @@
                     "name": {
                         "type": "string",
                         "example": "Proyecto de grado I"
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-01-15"
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-06-30"
                     }
                 },
                 "type": "object"
@@ -3836,6 +3944,7 @@
                 "type": "object"
             },
             "ProjectDetailResource": {
+                "description": "Minimal project representation; related entities available via dedicated endpoints.",
                 "properties": {
                     "id": {
                         "type": "integer",
@@ -3863,23 +3972,17 @@
                         "type": "string",
                         "example": "Laura Proposer, Juan Developer"
                     },
-                    "staff": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ProjectStaffResource"
-                        }
+                    "staff_names": {
+                        "type": "string",
+                        "example": "Ana Directora, Luis Asistente"
                     },
-                    "meetings": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ProjectMeetingResource"
-                        }
+                    "deliverable_names": {
+                        "type": "string",
+                        "example": "Plan de trabajo, Informe final"
                     },
-                    "deliverables": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ProjectDeliverableResource"
-                        }
+                    "meeting_count": {
+                        "type": "integer",
+                        "example": 5
                     },
                     "created_at": {
                         "type": "string",
@@ -4063,25 +4166,12 @@
                         "type": "integer",
                         "example": 2,
                         "nullable": true
-                    },
-                    "file_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 77
-                        }
-                    },
-                    "files": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "binary"
-                        }
                     }
                 },
                 "type": "object"
             },
             "ProposalResource": {
+                "description": "Minimal proposal representation without embedded relationship objects.",
                 "properties": {
                     "id": {
                         "type": "integer",
@@ -4095,95 +4185,30 @@
                         "type": "string",
                         "nullable": true
                     },
-                    "proposal_type": {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 2
-                            },
-                            "code": {
-                                "type": "string",
-                                "example": "made_by_teacher"
-                            },
-                            "name": {
-                                "type": "string",
-                                "example": "Docente"
-                            }
-                        },
-                        "type": "object",
+                    "proposal_type_name": {
+                        "type": "string",
+                        "example": "Docente",
                         "nullable": true
                     },
-                    "proposal_status": {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 4
-                            },
-                            "code": {
-                                "type": "string",
-                                "example": "pending"
-                            },
-                            "name": {
-                                "type": "string",
-                                "example": "Pendiente"
-                            }
-                        },
-                        "type": "object",
+                    "proposal_status_name": {
+                        "type": "string",
+                        "example": "Pendiente",
                         "nullable": true
                     },
-                    "proposer": {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 9
-                            },
-                            "name": {
-                                "type": "string",
-                                "example": "Laura Mejía"
-                            }
-                        },
-                        "type": "object",
+                    "proposer_name": {
+                        "type": "string",
+                        "example": "Laura Mejía",
                         "nullable": true
                     },
-                    "preferred_director": {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 23
-                            },
-                            "name": {
-                                "type": "string",
-                                "example": "Ing. Carlos"
-                            }
-                        },
-                        "type": "object",
+                    "preferred_director_name": {
+                        "type": "string",
+                        "example": "Ing. Carlos",
                         "nullable": true
                     },
-                    "thematic_line": {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 3
-                            },
-                            "name": {
-                                "type": "string",
-                                "example": "IoT"
-                            }
-                        },
-                        "type": "object",
+                    "thematic_line_name": {
+                        "type": "string",
+                        "example": "IoT",
                         "nullable": true
-                    },
-                    "file_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
-                    },
-                    "file_names": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     },
                     "created_at": {
                         "type": "string",
@@ -4192,6 +4217,27 @@
                     "updated_at": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ProposalFileResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 120
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "resumen.pdf"
+                    },
+                    "extension": {
+                        "type": "string",
+                        "example": "pdf"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://storage.test/pg/uploads/2025/resumen.pdf"
                     }
                 },
                 "type": "object"
@@ -4486,6 +4532,7 @@
                 "type": "object"
             },
             "SubmissionResource": {
+                "description": "Minimal submission representation. Related files and evaluations available via dedicated endpoints.",
                 "properties": {
                     "id": {
                         "type": "integer",
@@ -4504,100 +4551,33 @@
                         "format": "date-time",
                         "example": "2025-04-19T10:00:00"
                     },
-                    "deliverable": {
-                        "properties": {
-                            "id": {
-                                "type": "integer"
-                            },
-                            "name": {
-                                "type": "string"
-                            },
-                            "description": {
-                                "type": "string",
-                                "nullable": true
-                            },
-                            "phase": {
-                                "properties": {
-                                    "id": {
-                                        "type": "integer"
-                                    },
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "period": {
-                                        "properties": {
-                                            "id": {
-                                                "type": "integer"
-                                            },
-                                            "name": {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "type": "object",
-                                        "nullable": true
-                                    }
-                                },
-                                "type": "object",
-                                "nullable": true
-                            }
-                        },
-                        "type": "object"
-                    },
-                    "project": {
-                        "properties": {
-                            "id": {
-                                "type": "integer"
-                            },
-                            "title": {
-                                "type": "string"
-                            },
-                            "status": {
-                                "properties": {
-                                    "id": {
-                                        "type": "integer"
-                                    },
-                                    "name": {
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object",
-                                "nullable": true
-                            }
-                        },
-                        "type": "object",
+                    "deliverable_name": {
+                        "type": "string",
+                        "example": "Entrega Parcial",
                         "nullable": true
                     },
-                    "files": {
-                        "type": "array",
-                        "items": {
-                            "properties": {
-                                "id": {
-                                    "type": "integer"
-                                },
-                                "name": {
-                                    "type": "string"
-                                },
-                                "extension": {
-                                    "type": "string"
-                                },
-                                "url": {
-                                    "type": "string"
-                                }
-                            },
-                            "type": "object"
-                        }
+                    "project_title": {
+                        "type": "string",
+                        "example": "Proyecto Integrador",
+                        "nullable": true
                     },
-                    "file_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
+                    "phase_name": {
+                        "type": "string",
+                        "example": "PG I",
+                        "nullable": true
                     },
-                    "evaluations": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/SubmissionEvaluationResource"
-                        }
+                    "period_name": {
+                        "type": "string",
+                        "example": "2025-1",
+                        "nullable": true
+                    },
+                    "file_count": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "evaluation_count": {
+                        "type": "integer",
+                        "example": 2
                     },
                     "created_at": {
                         "type": "string",
@@ -4635,12 +4615,6 @@
                         "items": {
                             "type": "integer"
                         }
-                    },
-                    "evaluations": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/SubmissionEvaluationCreatePayload"
-                        }
                     }
                 },
                 "type": "object"
@@ -4667,6 +4641,7 @@
                 "type": "object"
             },
             "SubmissionEvaluationResource": {
+                "description": "Minimal evaluation representation without embedded relationship objects.",
                 "properties": {
                     "id": {
                         "type": "integer",
@@ -4703,52 +4678,19 @@
                         "format": "date-time",
                         "example": "2025-04-15T17:45:00"
                     },
-                    "user": {
-                        "properties": {
-                            "id": {
-                                "type": "integer"
-                            },
-                            "name": {
-                                "type": "string"
-                            },
-                            "email": {
-                                "type": "string"
-                            }
-                        },
-                        "type": "object",
+                    "user_name": {
+                        "type": "string",
+                        "example": "Laura Pérez",
                         "nullable": true
                     },
-                    "evaluator": {
-                        "properties": {
-                            "id": {
-                                "type": "integer"
-                            },
-                            "name": {
-                                "type": "string"
-                            },
-                            "email": {
-                                "type": "string"
-                            }
-                        },
-                        "type": "object",
+                    "evaluator_name": {
+                        "type": "string",
+                        "example": "Ing. Carlos",
                         "nullable": true
                     },
-                    "rubric": {
-                        "properties": {
-                            "id": {
-                                "type": "integer"
-                            },
-                            "name": {
-                                "type": "string"
-                            },
-                            "min_value": {
-                                "type": "integer"
-                            },
-                            "max_value": {
-                                "type": "integer"
-                            }
-                        },
-                        "type": "object",
+                    "rubric_name": {
+                        "type": "string",
+                        "example": "Calidad técnica",
                         "nullable": true
                     },
                     "created_at": {
@@ -4949,6 +4891,10 @@
         {
             "name": "Proposals",
             "description": "Endpoints for viewing and managing research proposals"
+        },
+        {
+            "name": "Proposal Files",
+            "description": "Endpoints for uploading and listing files associated with proposals"
         },
         {
             "name": "Repository Projects",
