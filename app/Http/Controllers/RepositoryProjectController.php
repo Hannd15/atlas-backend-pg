@@ -57,6 +57,7 @@ use Illuminate\Support\Arr;
  *     @OA\Property(property="title", type="string", example="Proyecto de grado"),
  *     @OA\Property(property="repository_title", type="string", nullable=true),
  *     @OA\Property(property="description", type="string", nullable=true),
+ *     @OA\Property(property="url", type="string", format="uri", nullable=true),
  *     @OA\Property(property="authors", type="string", nullable=true, example="Ana Pérez, Juan López"),
  *     @OA\Property(property="advisors", type="string", nullable=true, example="Dr. Gómez, Dra. Ruiz"),
  *     @OA\Property(property="keywords_es", type="string", nullable=true),
@@ -65,8 +66,6 @@ use Illuminate\Support\Arr;
  *     @OA\Property(property="publish_date", type="string", format="date", nullable=true),
  *     @OA\Property(property="abstract_es", type="string", nullable=true),
  *     @OA\Property(property="abstract_en", type="string", nullable=true),
- *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer")),
- *     @OA\Property(property="file_names", type="array", @OA\Items(type="string")),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -83,6 +82,11 @@ class RepositoryProjectController extends Controller
      *     summary="List repository projects",
      *     tags={"Repository Projects"},
      *
+     *     @OA\Parameter(name="year", in="query", description="Filter by specific year", @OA\Schema(type="integer", example=2025)),
+     *     @OA\Parameter(name="year_from", in="query", description="Filter by year range (start)", @OA\Schema(type="integer", example=2024)),
+     *     @OA\Parameter(name="year_to", in="query", description="Filter by year range (end)", @OA\Schema(type="integer", example=2025)),
+     *     @OA\Parameter(name="thematic_line_id", in="query", description="Filter by thematic line", @OA\Schema(type="integer", example=3)),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Array of repository projects",
@@ -93,7 +97,32 @@ class RepositoryProjectController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $repositoryProjects = RepositoryProject::withDetails()->orderByDesc('updated_at')->get();
+        $query = RepositoryProject::withDetails();
+
+        // Filter by specific year or year range
+        if ($request->has('year')) {
+            $year = (int) $request->input('year');
+            $query->whereYear('publish_date', $year);
+        } elseif ($request->has('year_from') || $request->has('year_to')) {
+            if ($request->has('year_from')) {
+                $yearFrom = (int) $request->input('year_from');
+                $query->whereYear('publish_date', '>=', $yearFrom);
+            }
+            if ($request->has('year_to')) {
+                $yearTo = (int) $request->input('year_to');
+                $query->whereYear('publish_date', '<=', $yearTo);
+            }
+        }
+
+        // Filter by thematic line
+        if ($request->has('thematic_line_id')) {
+            $thematicLineId = (int) $request->input('thematic_line_id');
+            $query->whereHas('project.proposal', function ($q) use ($thematicLineId) {
+                $q->where('thematic_line_id', $thematicLineId);
+            });
+        }
+
+        $repositoryProjects = $query->orderByDesc('updated_at')->get();
 
         if ($repositoryProjects->isEmpty()) {
             return response()->json([]);
@@ -123,7 +152,6 @@ class RepositoryProjectController extends Controller
     public function show(Request $request, RepositoryProject $repositoryProject): JsonResponse
     {
         $repositoryProject->loadMissing(
-            'files',
             'project.groups.members',
             'project.staff',
             'project.proposal.thematicLine'
@@ -169,7 +197,6 @@ class RepositoryProjectController extends Controller
         $repositoryProject = RepositoryProject::create($attributes);
 
         $repositoryProject->loadMissing(
-            'files',
             'project.groups.members',
             'project.staff',
             'project.proposal.thematicLine'
@@ -214,7 +241,6 @@ class RepositoryProjectController extends Controller
         }
 
         $repositoryProject->loadMissing(
-            'files',
             'project.groups.members',
             'project.staff',
             'project.proposal.thematicLine'
@@ -248,10 +274,10 @@ class RepositoryProjectController extends Controller
             [
                 'repository_title' => $repositoryProject->title,
                 'project_id' => $repositoryProject->project_id,
+                'description' => $repositoryProject->description,
+                'url' => $repositoryProject->url,
                 'keywords_en' => $repositoryProject->keywords_en,
                 'abstract_en' => $repositoryProject->abstract_en,
-                'file_ids' => $repositoryProject->files->pluck('id')->values()->all(),
-                'file_names' => $repositoryProject->files->pluck('name')->values()->all(),
             ]
         );
     }

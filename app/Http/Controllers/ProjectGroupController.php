@@ -31,7 +31,20 @@ use Illuminate\Validation\ValidationException;
  * @OA\Schema(
  *     schema="ProjectGroupResource",
  *     type="object",
- *     description="Minimal project group representation. Related entities accessible via id fields.",
+ *     description="Minimal project group representation. Members accessible via /project-groups/{id}/members endpoint.",
+ *
+ *     @OA\Property(property="id", type="integer", example=3),
+ *     @OA\Property(property="name", type="string", example="Grupo Alfa"),
+ *     @OA\Property(property="project_id", type="integer", nullable=true, example=7),
+ *     @OA\Property(property="project_name", type="string", nullable=true, example="Sistema IoT"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="ProjectGroupIndexResource",
+ *     type="object",
+ *     description="Extended project group list representation including member information.",
  *
  *     @OA\Property(property="id", type="integer", example=3),
  *     @OA\Property(property="name", type="string", example="Grupo Alfa"),
@@ -59,7 +72,7 @@ class ProjectGroupController extends Controller
      *         response=200,
      *         description="Array of project groups",
      *
-     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/ProjectGroupResource"))
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/ProjectGroupIndexResource"))
      *     )
      * )
      */
@@ -118,11 +131,9 @@ class ProjectGroupController extends Controller
 
             $this->syncMembers($group, $request->memberUserIds(), $token);
 
-            $group->load('project', 'members');
+            $group->loadMissing('project');
 
-            $userNames = $this->userNamesForIds($group->members->pluck('user_id')->all(), $token);
-
-            return response()->json($this->transformForShow($group, $userNames), 201);
+            return response()->json($this->transformForShow($group), 201);
         });
     }
 
@@ -140,11 +151,9 @@ class ProjectGroupController extends Controller
      */
     public function show(Request $request, ProjectGroup $projectGroup): JsonResponse
     {
-        $projectGroup->load('project', 'members');
+        $projectGroup->loadMissing('project');
 
-        $userNames = $this->userNamesForIds($projectGroup->members->pluck('user_id')->all(), trim((string) $request->bearerToken()));
-
-        return response()->json($this->transformForShow($projectGroup, $userNames));
+        return response()->json($this->transformForShow($projectGroup));
     }
 
     /**
@@ -170,11 +179,9 @@ class ProjectGroupController extends Controller
 
             $this->syncMembers($projectGroup, $request->memberUserIds(), $token);
 
-            $projectGroup->load('project', 'members');
+            $projectGroup->loadMissing('project');
 
-            $userNames = $this->userNamesForIds($projectGroup->members->pluck('user_id')->all(), $token);
-
-            return response()->json($this->transformForShow($projectGroup, $userNames));
+            return response()->json($this->transformForShow($projectGroup));
         });
     }
 
@@ -272,17 +279,13 @@ class ProjectGroupController extends Controller
         ];
     }
 
-    protected function transformForShow(ProjectGroup $group, array $userNames): array
+    protected function transformForShow(ProjectGroup $group): array
     {
-        $memberIds = $group->members->pluck('user_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
-
         return [
             'id' => $group->id,
             'name' => $group->name,
             'project_id' => $group->project_id,
             'project_name' => $group->project?->title,
-            'member_user_ids' => $memberIds,
-            'member_user_names' => $this->implodeUserNames($memberIds, $userNames),
             'created_at' => optional($group->created_at)->toDateTimeString(),
             'updated_at' => optional($group->updated_at)->toDateTimeString(),
         ];

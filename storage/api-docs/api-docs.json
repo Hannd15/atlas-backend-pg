@@ -757,6 +757,43 @@
                 }
             }
         },
+        "/api/pg/project-groups/{project_group}/members": {
+            "get": {
+                "tags": [
+                    "Group Members"
+                ],
+                "summary": "List members of a project group",
+                "operationId": "4c60c690c7a995fbe7efe01696210e65",
+                "parameters": [
+                    {
+                        "name": "project_group",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of group members",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/GroupMemberResource"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Project group not found"
+                    }
+                }
+            }
+        },
         "/api/pg/projects/{project}/meetings": {
             "get": {
                 "tags": [
@@ -1346,6 +1383,65 @@
                 }
             }
         },
+        "/api/pg/projects/{id}/deliverables": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Get deliverables for a project with computed status",
+                "description": "Returns deliverables where phase_id matches project's phase_id, with status computed based on submission and evaluation state",
+                "operationId": "344f90e09068332d8a8617defa2d285d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of deliverables with computed status",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "example": "Entrega 1"
+                                            },
+                                            "due_date": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "example": "2025-04-30 18:00:00"
+                                            },
+                                            "status": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "Pendiente",
+                                                    "Atrasado",
+                                                    "Pendiente de revisión",
+                                                    "Al día"
+                                                ],
+                                                "example": "Al día"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Project not found"
+                    }
+                }
+            }
+        },
         "/api/pg/project-groups": {
             "get": {
                 "tags": [
@@ -1361,7 +1457,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/ProjectGroupResource"
+                                        "$ref": "#/components/schemas/ProjectGroupIndexResource"
                                     }
                                 }
                             }
@@ -1970,6 +2066,44 @@
                 ],
                 "summary": "List repository projects",
                 "operationId": "4f4847a5dadd0780e21980a28c299cd4",
+                "parameters": [
+                    {
+                        "name": "year",
+                        "in": "query",
+                        "description": "Filter by specific year",
+                        "schema": {
+                            "type": "integer",
+                            "example": 2025
+                        }
+                    },
+                    {
+                        "name": "year_from",
+                        "in": "query",
+                        "description": "Filter by year range (start)",
+                        "schema": {
+                            "type": "integer",
+                            "example": 2024
+                        }
+                    },
+                    {
+                        "name": "year_to",
+                        "in": "query",
+                        "description": "Filter by year range (end)",
+                        "schema": {
+                            "type": "integer",
+                            "example": 2025
+                        }
+                    },
+                    {
+                        "name": "thematic_line_id",
+                        "in": "query",
+                        "description": "Filter by thematic line",
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Array of repository projects",
@@ -2431,6 +2565,80 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/api/pg/rubrics/{rubric}/thematic-lines": {
+            "get": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Get thematic lines associated with a rubric",
+                "operationId": "3c6fa9bb5055b8c759280101d873f89d",
+                "parameters": [
+                    {
+                        "name": "rubric",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of thematic lines",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RubricThematicLineResource"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rubric not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/rubrics/{rubric}/deliverables": {
+            "get": {
+                "tags": [
+                    "Rubrics"
+                ],
+                "summary": "Get deliverables associated with a rubric",
+                "operationId": "3c7394315cc7e06f6e387904cab76387",
+                "parameters": [
+                    {
+                        "name": "rubric",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of deliverables",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RubricDeliverableResource"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rubric not found"
                     }
                 }
             }
@@ -3734,6 +3942,67 @@
                 }
             }
         },
+        "/api/pg/users/{id}/projects": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get projects related to a user",
+                "description": "Returns projects where user is either a staff member or group member with computed role",
+                "operationId": "b82801b402940b66c37eb4cc9bbd8ee2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of projects related to the user",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 12
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "example": "Sistema IoT"
+                                            },
+                                            "thematic_line_name": {
+                                                "type": "string",
+                                                "example": "Internet de las Cosas"
+                                            },
+                                            "group_members_names": {
+                                                "type": "string",
+                                                "example": "Ana López, Juan Pérez"
+                                            },
+                                            "user_role": {
+                                                "description": "Position name from project_staff or 'Miembro del grupo'",
+                                                "type": "string",
+                                                "example": "Director"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            }
+        },
         "/api/pg/users/dropdown": {
             "get": {
                 "tags": [
@@ -4113,6 +4382,19 @@
                 },
                 "type": "object"
             },
+            "GroupMemberResource": {
+                "properties": {
+                    "user_id": {
+                        "type": "integer",
+                        "example": 25
+                    },
+                    "user_name": {
+                        "type": "string",
+                        "example": "Ana López"
+                    }
+                },
+                "type": "object"
+            },
             "MeetingDetailResource": {
                 "properties": {
                     "id": {
@@ -4371,7 +4653,39 @@
                 "type": "object"
             },
             "ProjectGroupResource": {
-                "description": "Minimal project group representation. Related entities accessible via id fields.",
+                "description": "Minimal project group representation. Members accessible via /project-groups/{id}/members endpoint.",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Grupo Alfa"
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 7,
+                        "nullable": true
+                    },
+                    "project_name": {
+                        "type": "string",
+                        "example": "Sistema IoT",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ProjectGroupIndexResource": {
+                "description": "Extended project group list representation including member information.",
                 "properties": {
                     "id": {
                         "type": "integer",
@@ -4642,6 +4956,11 @@
                         "type": "string",
                         "nullable": true
                     },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
+                    },
                     "authors": {
                         "type": "string",
                         "example": "Ana Pérez, Juan López",
@@ -4677,18 +4996,6 @@
                     "abstract_en": {
                         "type": "string",
                         "nullable": true
-                    },
-                    "file_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
-                    },
-                    "file_names": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     },
                     "created_at": {
                         "type": "string",
@@ -4758,6 +5065,7 @@
                 "type": "object"
             },
             "RubricResource": {
+                "description": "Minimal rubric representation. Relationships accessible via dedicated subroutes.",
                 "properties": {
                     "id": {
                         "type": "integer",
@@ -4779,26 +5087,6 @@
                         "type": "integer",
                         "nullable": true
                     },
-                    "thematic_line_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
-                    },
-                    "thematic_line_names": {
-                        "type": "string",
-                        "example": "Investigación, IoT"
-                    },
-                    "deliverable_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
-                    },
-                    "deliverable_names": {
-                        "type": "string",
-                        "example": "Entrega 1, Entrega 2"
-                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time"
@@ -4806,6 +5094,32 @@
                     "updated_at": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "RubricThematicLineResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "IoT"
+                    }
+                },
+                "type": "object"
+            },
+            "RubricDeliverableResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Entrega 1"
                     }
                 },
                 "type": "object"
@@ -5146,6 +5460,10 @@
         {
             "name": "Files",
             "description": "API endpoints for managing files"
+        },
+        {
+            "name": "Group Members",
+            "description": "List members of a project group"
         },
         {
             "name": "Meetings",

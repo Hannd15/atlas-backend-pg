@@ -258,6 +258,74 @@ class ProjectController extends Controller
         return response()->json($projects);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/projects/{id}/deliverables",
+     *     summary="Get deliverables for a project with computed status",
+     *     tags={"Projects"},
+     *     description="Returns deliverables where phase_id matches project's phase_id, with status computed based on submission and evaluation state",
+     *
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of deliverables with computed status",
+     *
+     *         @OA\JsonContent(type="array", @OA\Items(
+     *
+     *             @OA\Property(property="name", type="string", example="Entrega 1"),
+     *             @OA\Property(property="due_date", type="string", format="date-time", example="2025-04-30 18:00:00"),
+     *             @OA\Property(property="status", type="string", enum={"Pendiente", "Atrasado", "Pendiente de revisión", "Al día"}, example="Al día")
+     *         ))
+     *     ),
+     *
+     *     @OA\Response(response=404, description="Project not found")
+     * )
+     */
+    public function deliverables(Project $project): JsonResponse
+    {
+        $project->loadMissing('phase');
+
+        if (! $project->phase_id) {
+            return response()->json([]);
+        }
+
+        $deliverables = \App\Models\Deliverable::query()
+            ->where('phase_id', $project->phase_id)
+            ->with(['submissions' => function ($query) use ($project) {
+                $query->where('project_id', $project->id)
+                    ->with('evaluations');
+            }])
+            ->orderBy('due_date')
+            ->get()
+            ->map(function ($deliverable) {
+                $submission = $deliverable->submissions->first();
+
+                if ($submission) {
+                    if ($submission->evaluations->isNotEmpty()) {
+                        $status = 'Al día';
+                    } else {
+                        $status = 'Pendiente de revisión';
+                    }
+                } else {
+                    $now = now();
+                    if ($now->lte($deliverable->due_date)) {
+                        $status = 'Pendiente';
+                    } else {
+                        $status = 'Atrasado';
+                    }
+                }
+
+                return [
+                    'name' => $deliverable->name,
+                    'due_date' => optional($deliverable->due_date)->toDateTimeString(),
+                    'status' => $status,
+                ];
+            });
+
+        return response()->json($deliverables);
+    }
+
     protected function formatProjectForIndex(Project $project, array $userNames): array
     {
         $project->loadMissing('groups.members', 'status');

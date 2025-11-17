@@ -180,6 +180,113 @@ class UserController extends Controller
 
     /**
      * @OA\Get(
+     *     path="/api/pg/users/{id}/projects",
+     *     summary="Get projects related to a user",
+     *     tags={"Users"},
+     *     description="Returns projects where user is either a staff member or group member with computed role",
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of projects related to the user",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *
+     *                 @OA\Property(property="id", type="integer", example=12),
+     *                 @OA\Property(property="name", type="string", example="Sistema IoT"),
+     *                 @OA\Property(property="thematic_line_name", type="string", example="Internet de las Cosas"),
+     *                 @OA\Property(property="group_members_names", type="string", example="Ana López, Juan Pérez"),
+     *                 @OA\Property(property="user_role", type="string", example="Director", description="Position name from project_staff or 'Miembro del grupo'")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=404, description="User not found")
+     * )
+     */
+    public function projects(Request $request, int $id): \Illuminate\Http\JsonResponse
+    {
+        $token = trim((string) $request->bearerToken());
+
+        $staffProjects = \App\Models\ProjectStaff::query()
+            ->where('user_id', $id)
+            ->with([
+                'project.proposal.thematicLine',
+                'project.groups.members',
+                'projectPosition',
+            ])
+            ->get()
+            ->map(function ($staff) use ($token) {
+                $memberIds = $staff->project->groups
+                    ->flatMap(fn ($group) => $group->members->pluck('user_id'))
+                    ->filter()
+                    ->map(fn ($userId) => (int) $userId)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $memberNames = empty($memberIds)
+                    ? ''
+                    : $this->getMemberNames($memberIds, $token);
+
+                return [
+                    'id' => $staff->project->id,
+                    'name' => $staff->project->title,
+                    'thematic_line_name' => $staff->project->proposal?->thematicLine?->name,
+                    'group_members_names' => $memberNames,
+                    'user_role' => $staff->projectPosition?->name ?? 'Staff',
+                ];
+            });
+
+        $groupProjects = \App\Models\GroupMember::query()
+            ->where('user_id', $id)
+            ->with([
+                'group.project.proposal.thematicLine',
+                'group.project.groups.members',
+            ])
+            ->get()
+            ->filter(fn ($member) => $member->group?->project !== null)
+            ->map(function ($member) use ($token) {
+                $project = $member->group->project;
+
+                $memberIds = $project->groups
+                    ->flatMap(fn ($group) => $group->members->pluck('user_id'))
+                    ->filter()
+                    ->map(fn ($userId) => (int) $userId)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $memberNames = empty($memberIds)
+                    ? ''
+                    : $this->getMemberNames($memberIds, $token);
+
+                return [
+                    'id' => $project->id,
+                    'name' => $project->title,
+                    'thematic_line_name' => $project->proposal?->thematicLine?->name,
+                    'group_members_names' => $memberNames,
+                    'user_role' => 'Miembro del grupo',
+                ];
+            });
+
+        $projects = $staffProjects->merge($groupProjects)->unique('id')->values();
+
+        return response()->json($projects);
+    }
+
+    /**
+     * @OA\Get(
      *     path="/api/pg/users/dropdown",
      *     summary="Get users dropdown from Atlas authentication module",
      *     tags={"Users"},
@@ -195,6 +302,17 @@ class UserController extends Controller
         $token = $this->requireToken($request->bearerToken());
 
         return response()->json($this->atlasUserService->dropdown($token));
+    }
+
+    protected function getMemberNames(array $userIds, string $token): string
+    {
+        $userNames = $this->atlasUserService->namesByIds($token, $userIds);
+
+        return collect($userIds)
+            ->map(fn ($id) => $userNames[$id] ?? "User #{$id}")
+            ->filter()
+            ->unique()
+            ->implode(', ');
     }
 
     protected function requireToken(?string $token): string

@@ -68,6 +68,8 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     // Rubrics routes
     Route::get('rubrics/dropdown', [RubricController::class, 'dropdown']);
     Route::apiResource('rubrics', RubricController::class);
+    Route::get('rubrics/{rubric}/thematic-lines', [RubricController::class, 'getThematicLines']);
+    Route::get('rubrics/{rubric}/deliverables', [RubricController::class, 'getDeliverables']);
     Route::post('rubrics/{rubric}/thematic-lines/{thematicLine}', [RubricController::class, 'attachThematicLine']);
     Route::delete('rubrics/{rubric}/thematic-lines/{thematicLine}', [RubricController::class, 'detachThematicLine']);
     Route::post('rubrics/{rubric}/deliverables/{deliverable}', [RubricController::class, 'attachDeliverable']);
@@ -83,6 +85,7 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     // Projects routes
     Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
     Route::apiResource('projects', ProjectController::class);
+    Route::get('projects/{project}/deliverables', [ProjectController::class, 'deliverables']);
 
     // Meetings routes (project-scoped only)
     Route::get('projects/{project}/meetings', [MeetingController::class, 'projectMeetings']);
@@ -105,12 +108,14 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     // Project Groups routes
     Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
     Route::apiResource('project-groups', ProjectGroupController::class);
+    Route::get('project-groups/{project_group}/members', [\App\Http\Controllers\GroupMemberController::class, 'index']);
 
     // Users routes (all user data proxied from Atlas auth module)
     Route::get('users/dropdown', [UserController::class, 'dropdown']);
     Route::get('users', [UserController::class, 'index']);
     Route::post('users', [UserController::class, 'store']);
     Route::get('users/{id}', [UserController::class, 'show']);
+    Route::get('users/{id}/projects', [UserController::class, 'projects']);
     Route::put('users/{id}', [UserController::class, 'update']);
     Route::delete('users/{id}', [UserController::class, 'destroy']);
 
