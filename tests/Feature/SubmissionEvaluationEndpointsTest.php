@@ -102,7 +102,7 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluation_date' => '2025-04-11 10:00:00',
         ]);
 
-        $response = $this->getJson("/api/pg/evaluations/{$evaluation->id}");
+        $response = $this->getJson("/api/pg/submissions/{$submission->id}/evaluations/{$evaluation->id}");
 
         $evaluation->load('user', 'evaluator', 'rubric');
 
@@ -134,7 +134,7 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluation_date' => '2025-04-15 17:45:00',
         ];
 
-        $response = $this->putJson("/api/pg/evaluations/{$evaluation->id}", $payload);
+        $response = $this->putJson("/api/pg/submissions/{$submission->id}/evaluations/{$evaluation->id}", $payload);
 
         $evaluation->refresh()->load('user', 'evaluator', 'rubric');
 
@@ -162,7 +162,7 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluation_date' => '2025-04-16 09:00:00',
         ]);
 
-        $this->deleteJson("/api/pg/evaluations/{$evaluation->id}")
+        $this->deleteJson("/api/pg/submissions/{$submission->id}/evaluations/{$evaluation->id}")
             ->assertOk()
             ->assertExactJson(['message' => 'Evaluation deleted successfully']);
 
@@ -171,7 +171,9 @@ class SubmissionEvaluationEndpointsTest extends TestCase
 
     public function test_show_returns_not_found_for_missing_evaluation(): void
     {
-        $this->getJson('/api/pg/evaluations/999999')
+        $submission = $this->createSubmission();
+
+        $this->getJson("/api/pg/submissions/{$submission->id}/evaluations/999999")
             ->assertNotFound();
     }
 

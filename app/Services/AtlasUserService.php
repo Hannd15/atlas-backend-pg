@@ -31,9 +31,26 @@ class AtlasUserService extends AtlasAuthService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
+    public function createUser(string $token, array $payload): array
+    {
+        return $this->sendRequest(fn () => $this->client($token)->post($this->serviceUrl().'/api/auth/users', $payload));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
     public function updateUser(string $token, int $userId, array $payload): array
     {
         return $this->sendRequest(fn () => $this->client($token)->put($this->serviceUrl()."/api/auth/users/{$userId}", $payload));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function deleteUser(string $token, int $userId): array
+    {
+        return $this->sendRequest(fn () => $this->client($token)->delete($this->serviceUrl()."/api/auth/users/{$userId}"));
     }
 
     /**

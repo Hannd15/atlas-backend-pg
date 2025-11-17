@@ -9,6 +9,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+/**
+ * Local User model for maintaining project-specific relationships.
+ *
+ * IMPORTANT: All user display data (name, email, avatar, roles, etc.) comes from the remote Atlas
+ * authentication service via AtlasUserService. This local model exists solely to maintain foreign key
+ * relationships for the project domain:
+ * - Project position eligibilities (pivot: user_project_eligibilities)
+ * - Proposals (proposer_id, preferred_director_id)
+ * - Project groups (via group_members)
+ * - Project staff assignments
+ * - Meeting creators
+ *
+ * When displaying user data, always fetch from Atlas and enrich with local relationships.
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */

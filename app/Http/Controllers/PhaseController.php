@@ -157,6 +157,46 @@ class PhaseController extends Controller
         return response()->json($this->transformPhase($phase));
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/academic-periods/{academic_period}/phases/dropdown",
+     *     summary="Get phases for dropdown (scoped to academic period)",
+     *     tags={"Phases"},
+     *
+     *     @OA\Parameter(
+     *         name="academic_period",
+     *         in="path",
+     *         required=true,
+     *
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Pairs ready for selects",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *
+     *                 @OA\Property(property="value", type="integer", example=1),
+     *                 @OA\Property(property="label", type="string", example="Proyecto de grado I")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function dropdown(AcademicPeriod $academicPeriod): JsonResponse
+    {
+        $phases = $academicPeriod->phases()->orderBy('name')->get()->map(fn (Phase $phase) => [
+            'value' => $phase->id,
+            'label' => $phase->name,
+        ]);
+
+        return response()->json($phases);
+    }
+
     private function transformPhase(Phase $phase): array
     {
         return [

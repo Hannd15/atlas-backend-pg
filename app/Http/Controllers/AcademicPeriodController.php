@@ -258,6 +258,38 @@ class AcademicPeriodController extends Controller
         return response()->json(['message' => 'Academic period deleted successfully']);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/academic-periods/dropdown",
+     *     summary="Get academic periods for dropdown",
+     *     tags={"Academic Periods"},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Pairs ready for selects",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *
+     *                 @OA\Property(property="value", type="integer", example=3),
+     *                 @OA\Property(property="label", type="string", example="2025-1")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function dropdown(): JsonResponse
+    {
+        $periods = AcademicPeriod::orderBy('start_date', 'desc')->get()->map(fn (AcademicPeriod $period) => [
+            'value' => $period->id,
+            'label' => $period->name,
+        ]);
+
+        return response()->json($periods);
+    }
+
     protected function transformPeriodSummary(AcademicPeriod $period): array
     {
         $period->loadMissing('state');

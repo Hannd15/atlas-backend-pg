@@ -330,5 +330,37 @@ class ProposalController extends Controller
         return $defaultStatusId;
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/proposals/dropdown",
+     *     summary="Get proposals for dropdown",
+     *     tags={"Proposals"},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Pairs ready for selects",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *
+     *                 @OA\Property(property="value", type="integer", example=15),
+     *                 @OA\Property(property="label", type="string", example="Sistema de monitoreo")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function dropdown(): JsonResponse
+    {
+        $proposals = Proposal::orderBy('title')->get()->map(fn (Proposal $proposal) => [
+            'value' => $proposal->id,
+            'label' => $proposal->title,
+        ]);
+
+        return response()->json($proposals);
+    }
+
     // File relation logic moved to ProposalFileController.
 }

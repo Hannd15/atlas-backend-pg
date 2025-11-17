@@ -7,7 +7,6 @@ use App\Http\Requests\Meeting\UpdateMeetingRequest;
 use App\Models\Meeting;
 use App\Models\Project;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -31,50 +30,6 @@ use Illuminate\Validation\ValidationException;
  */
 class MeetingController extends Controller
 {
-    /**
-     * @OA\Get(
-     *     path="/api/pg/meetings",
-     *     summary="List meetings",
-     *     tags={"Meetings"},
-     *
-     *     @OA\Parameter(
-     *         name="project_id",
-     *         in="query",
-     *         required=false,
-     *
-     *         @OA\Schema(type="integer"),
-     *         description="Filter meetings by project"
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Meetings listing project name, date, and observations",
-     *
-     *         @OA\JsonContent(
-     *             type="array",
-     *
-     *             @OA\Items(
-     *                 type="object",
-     *
-     *                 @OA\Property(property="project_name", type="string", example="Proyecto Principal"),
-     *                 @OA\Property(property="meeting_date", type="string", format="date", example="2025-02-14"),
-     *                 @OA\Property(property="observations", type="string", nullable=true, example="Notas generales")
-     *             )
-     *         )
-     *     )
-     * )
-     */
-    public function index(Request $request): JsonResponse
-    {
-        $meetings = Meeting::with('project')
-            ->when($request->query('project_id'), fn ($query, $projectId) => $query->where('project_id', $projectId))
-            ->orderByDesc('meeting_date')
-            ->orderByDesc('id')
-            ->get();
-
-        return response()->json($meetings->map(fn (Meeting $meeting) => $this->transformForIndex($meeting))->values()->all());
-    }
-
     /**
      * @OA\Get(
      *     path="/api/pg/projects/{project}/meetings",
@@ -233,15 +188,6 @@ class MeetingController extends Controller
             'meeting_date' => optional($meeting->meeting_date)->toDateString(),
             'observations' => $meeting->observations,
             'url' => $meeting->url,
-        ];
-    }
-
-    protected function transformForIndex(Meeting $meeting): array
-    {
-        return [
-            'project_name' => $meeting->project?->title,
-            'meeting_date' => optional($meeting->meeting_date)->toDateString(),
-            'observations' => $meeting->observations,
         ];
     }
 

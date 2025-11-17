@@ -31,6 +31,7 @@ use Illuminate\Validation\ValidationException;
  * @OA\Schema(
  *     schema="ProjectGroupResource",
  *     type="object",
+ *     description="Minimal project group representation. Related entities accessible via id fields.",
  *
  *     @OA\Property(property="id", type="integer", example=3),
  *     @OA\Property(property="name", type="string", example="Grupo Alfa"),

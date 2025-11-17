@@ -62,10 +62,13 @@ class SubmissionEvaluationController extends Controller
 {
     /**
      * @OA\Get(
-     *     path="/api/pg/submissions/{submission}/evaluations",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations",
      *     summary="List evaluations for a submission",
      *     tags={"Submission Evaluations"},
      *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -80,7 +83,7 @@ class SubmissionEvaluationController extends Controller
      *     )
      * )
      */
-    public function index(Submission $submission): JsonResponse
+    public function index($academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
     {
         $submission->load('evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
 
@@ -94,10 +97,13 @@ class SubmissionEvaluationController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/pg/submissions/{submission}/evaluations",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations",
      *     summary="Create evaluation",
      *     tags={"Submission Evaluations"},
      *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\RequestBody(required=true, @OA\JsonContent(ref="#/components/schemas/SubmissionEvaluationCreatePayload")),
@@ -112,7 +118,7 @@ class SubmissionEvaluationController extends Controller
      *     @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function store(Request $request, Submission $submission): JsonResponse
+    public function store(Request $request, $academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
     {
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
@@ -133,10 +139,14 @@ class SubmissionEvaluationController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/evaluations/{evaluation}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}",
      *     summary="Show evaluation",
      *     tags={"Submission Evaluations"},
      *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="evaluation", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -147,7 +157,7 @@ class SubmissionEvaluationController extends Controller
      *     )
      * )
      */
-    public function show(Evaluation $evaluation): JsonResponse
+    public function show($academicPeriod, $phase, $deliverable, Submission $submission, Evaluation $evaluation): JsonResponse
     {
         $evaluation->load('user', 'evaluator', 'rubric');
 
@@ -156,10 +166,14 @@ class SubmissionEvaluationController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/pg/evaluations/{evaluation}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}",
      *     summary="Update evaluation",
      *     tags={"Submission Evaluations"},
      *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="evaluation", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/SubmissionEvaluationUpdatePayload")),
@@ -172,7 +186,7 @@ class SubmissionEvaluationController extends Controller
      *     )
      * )
      */
-    public function update(Request $request, Evaluation $evaluation): JsonResponse
+    public function update(Request $request, $academicPeriod, $phase, $deliverable, Submission $submission, Evaluation $evaluation): JsonResponse
     {
         $validated = $request->validate([
             'user_id' => 'sometimes|required|exists:users,id',
@@ -191,10 +205,14 @@ class SubmissionEvaluationController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/api/pg/evaluations/{evaluation}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}",
      *     summary="Delete evaluation",
      *     tags={"Submission Evaluations"},
      *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="evaluation", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -209,7 +227,7 @@ class SubmissionEvaluationController extends Controller
      *     )
      * )
      */
-    public function destroy(Evaluation $evaluation): JsonResponse
+    public function destroy($academicPeriod, $phase, $deliverable, Submission $submission, Evaluation $evaluation): JsonResponse
     {
         $evaluation->delete();
 

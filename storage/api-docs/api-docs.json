@@ -225,6 +225,40 @@
                 }
             }
         },
+        "/api/pg/academic-periods/dropdown": {
+            "get": {
+                "tags": [
+                    "Academic Periods"
+                ],
+                "summary": "Get academic periods for dropdown",
+                "operationId": "5fa378d21ced40786c74e01f16e74857",
+                "responses": {
+                    "200": {
+                        "description": "Pairs ready for selects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 3
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "2025-1"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables": {
             "get": {
                 "tags": [
@@ -723,57 +757,6 @@
                 }
             }
         },
-        "/api/pg/meetings": {
-            "get": {
-                "tags": [
-                    "Meetings"
-                ],
-                "summary": "List meetings",
-                "operationId": "0f5ff3d640b32abb2310c456ca837faf",
-                "parameters": [
-                    {
-                        "name": "project_id",
-                        "in": "query",
-                        "description": "Filter meetings by project",
-                        "required": false,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Meetings listing project name, date, and observations",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "project_name": {
-                                                "type": "string",
-                                                "example": "Proyecto Principal"
-                                            },
-                                            "meeting_date": {
-                                                "type": "string",
-                                                "format": "date",
-                                                "example": "2025-02-14"
-                                            },
-                                            "observations": {
-                                                "type": "string",
-                                                "example": "Notas generales",
-                                                "nullable": true
-                                            }
-                                        },
-                                        "type": "object"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/pg/projects/{project}/meetings": {
             "get": {
                 "tags": [
@@ -1101,6 +1084,50 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/academic-periods/{academic_period}/phases/dropdown": {
+            "get": {
+                "tags": [
+                    "Phases"
+                ],
+                "summary": "Get phases for dropdown (scoped to academic period)",
+                "operationId": "bd31034082ea0680657b32f19d7f4e17",
+                "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pairs ready for selects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Proyecto de grado I"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1817,6 +1844,40 @@
                 }
             }
         },
+        "/api/pg/proposals/dropdown": {
+            "get": {
+                "tags": [
+                    "Proposals"
+                ],
+                "summary": "Get proposals for dropdown",
+                "operationId": "3c43a7184aae4fc0e6aff39b6b86d8e4",
+                "responses": {
+                    "200": {
+                        "description": "Pairs ready for selects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 15
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Sistema de monitoreo"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/pg/proposals/{proposal}/files": {
             "get": {
                 "tags": [
@@ -2510,13 +2571,39 @@
                 }
             }
         },
-        "/api/pg/submissions": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions": {
             "get": {
                 "tags": [
                     "Submissions"
                 ],
-                "summary": "List submissions",
-                "operationId": "ac2849fa8cd5a9cb2c2ad49090f0e050",
+                "summary": "List submissions for a deliverable",
+                "operationId": "518b53f6e54a0272c09dd59a27f75ccc",
+                "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Array of submissions",
@@ -2537,8 +2624,34 @@
                 "tags": [
                     "Submissions"
                 ],
-                "summary": "Create a submission",
-                "operationId": "b74d1a3873cefccf3905c24daa18cdee",
+                "summary": "Create a submission for a deliverable",
+                "operationId": "df5bde30aa0e5357f8caccf1e29b9b32",
+                "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -2566,14 +2679,38 @@
                 }
             }
         },
-        "/api/pg/submissions/{submission}": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}": {
             "get": {
                 "tags": [
                     "Submissions"
                 ],
                 "summary": "Show submission",
-                "operationId": "58f1cd3a1ab75c817b76b89ca0484441",
+                "operationId": "d27800556b7a6be1f9c520c34daa65ea",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "submission",
                         "in": "path",
@@ -2601,8 +2738,32 @@
                     "Submissions"
                 ],
                 "summary": "Update submission",
-                "operationId": "09951d9a8c01158f2b2e3fe5d76644cb",
+                "operationId": "f031df49c46be5a08fa190bdcd1f6c4d",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "submission",
                         "in": "path",
@@ -2639,8 +2800,32 @@
                     "Submissions"
                 ],
                 "summary": "Delete submission",
-                "operationId": "71cb76df44f6ff5ec088f7beb85b34f3",
+                "operationId": "dfb8be09f2faf5e9b601b0a10fb44dce",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "submission",
                         "in": "path",
@@ -2670,14 +2855,72 @@
                 }
             }
         },
-        "/api/pg/submissions/{submission}/evaluations": {
+        "/api/pg/submissions/dropdown": {
+            "get": {
+                "tags": [
+                    "Submissions"
+                ],
+                "summary": "Get submissions for dropdown",
+                "operationId": "e2985fed5ebe036a6095a1ce7175419e",
+                "responses": {
+                    "200": {
+                        "description": "Pairs ready for selects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 45
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Proyecto Integrador - Entrega Parcial"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations": {
             "get": {
                 "tags": [
                     "Submission Evaluations"
                 ],
                 "summary": "List evaluations for a submission",
-                "operationId": "d9516e31c5da30d2c9c2754d9e2f2658",
+                "operationId": "dbdaad302885be181dfcb2125243a411",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "submission",
                         "in": "path",
@@ -2708,8 +2951,32 @@
                     "Submission Evaluations"
                 ],
                 "summary": "Create evaluation",
-                "operationId": "23979e754b427d1c0149b4caeda2bccb",
+                "operationId": "3dbbe41953d340cd56413513844b135a",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "submission",
                         "in": "path",
@@ -2746,14 +3013,46 @@
                 }
             }
         },
-        "/api/pg/evaluations/{evaluation}": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}": {
             "get": {
                 "tags": [
                     "Submission Evaluations"
                 ],
                 "summary": "Show evaluation",
-                "operationId": "d0b823ba996d83b181c2312a126c6be4",
+                "operationId": "6a3084418ec547329d8763cba0caf114",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "evaluation",
                         "in": "path",
@@ -2781,8 +3080,40 @@
                     "Submission Evaluations"
                 ],
                 "summary": "Update evaluation",
-                "operationId": "0de85acc34d97a6e82e1bd950d4460c8",
+                "operationId": "b085ba6dbc6b75afa1117a7bbc25f587",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "evaluation",
                         "in": "path",
@@ -2819,8 +3150,40 @@
                     "Submission Evaluations"
                 ],
                 "summary": "Delete evaluation",
-                "operationId": "aef7de0e209f7e5144c208b7ce5f531d",
+                "operationId": "b531eb505e43b4080c839eabfe25ca73",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "evaluation",
                         "in": "path",
@@ -2894,14 +3257,38 @@
                 }
             }
         },
-        "/api/pg/submissions/{submission}/files": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files": {
             "get": {
                 "tags": [
                     "Submission Files"
                 ],
                 "summary": "Get files associated with a submission",
-                "operationId": "eda278c6808dbbb8460235ab2457c65f",
+                "operationId": "d902b0c2f8279ac36332207a6c6ad694",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "submission",
                         "in": "path",
@@ -2932,8 +3319,32 @@
                     "Submission Files"
                 ],
                 "summary": "Upload and associate a file with a submission",
-                "operationId": "0d7179ff566a03567da006fb148b3e2a",
+                "operationId": "88ef90248d3e8d98bb84d9aae9c3f040",
                 "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
                     {
                         "name": "submission",
                         "in": "path",
@@ -3177,98 +3588,49 @@
                 "tags": [
                     "Users"
                 ],
-                "summary": "Get all users",
+                "summary": "Get all users from Atlas authentication module",
                 "operationId": "6b7feb892674bdbd2489e028fd56dd49",
                 "responses": {
                     "200": {
-                        "description": "List of users with comma-separated project position eligibility names",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "id": {
-                                                "type": "integer"
-                                            },
-                                            "name": {
-                                                "type": "string"
-                                            },
-                                            "email": {
-                                                "type": "string",
-                                                "format": "email"
-                                            },
-                                            "email_verified_at": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "nullable": true
-                                            },
-                                            "google_id": {
-                                                "type": "string",
-                                                "nullable": true
-                                            },
-                                            "avatar": {
-                                                "type": "string",
-                                                "format": "uri",
-                                                "nullable": true
-                                            },
-                                            "roles_list": {
-                                                "type": "string",
-                                                "example": "role-1, role-2",
-                                                "nullable": true
-                                            },
-                                            "project_position_eligibility_names": {
-                                                "description": "Comma-separated position names",
-                                                "type": "string"
-                                            },
-                                            "proposal_names": {
-                                                "description": "Comma-separated proposal names",
-                                                "type": "string"
-                                            },
-                                            "eligible_positions": {
-                                                "type": "array",
-                                                "items": {
-                                                    "properties": {
-                                                        "id": {
-                                                            "type": "integer"
-                                                        },
-                                                        "name": {
-                                                            "type": "string"
-                                                        },
-                                                        "pivot": {
-                                                            "type": "object",
-                                                            "nullable": true
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "proposals": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "preferred_proposals": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "created_at": {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            "updated_at": {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            }
-                                        },
-                                        "type": "object"
+                        "description": "List of users from Atlas authentication service"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Create a new user via Atlas authentication module",
+                "operationId": "eb83381b952d32fcff55bf075d6a8b88",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
                                     }
-                                }
+                                },
+                                "type": "object"
                             }
                         }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 }
             }
@@ -3278,7 +3640,7 @@
                 "tags": [
                     "Users"
                 ],
-                "summary": "Get a specific user",
+                "summary": "Get a specific user from Atlas authentication module",
                 "operationId": "82365ad68a62a0adf93fdfbd70c989f8",
                 "parameters": [
                     {
@@ -3292,81 +3654,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "User details with array of project position eligibility IDs",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer"
-                                        },
-                                        "name": {
-                                            "type": "string"
-                                        },
-                                        "email": {
-                                            "type": "string",
-                                            "format": "email"
-                                        },
-                                        "email_verified_at": {
-                                            "type": "string",
-                                            "format": "date-time",
-                                            "nullable": true
-                                        },
-                                        "google_id": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "avatar": {
-                                            "type": "string",
-                                            "format": "uri",
-                                            "nullable": true
-                                        },
-                                        "project_position_eligibility_ids": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "integer"
-                                            }
-                                        },
-                                        "proposal_names": {
-                                            "description": "Comma-separated proposal names",
-                                            "type": "string"
-                                        },
-                                        "eligible_positions": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        },
-                                        "proposals": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        },
-                                        "preferred_proposals": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        },
-                                        "roles_list": {
-                                            "type": "string",
-                                            "example": "role-1, role-2",
-                                            "nullable": true
-                                        },
-                                        "created_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        },
-                                        "updated_at": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "User details from Atlas authentication service"
                     },
                     "404": {
                         "description": "User not found"
@@ -3377,7 +3665,7 @@
                 "tags": [
                     "Users"
                 ],
-                "summary": "Update a user",
+                "summary": "Update a user via Atlas authentication module",
                 "operationId": "2fe1714e472adabc9dc037858e132349",
                 "parameters": [
                     {
@@ -3401,13 +3689,6 @@
                                     "email": {
                                         "type": "string",
                                         "format": "email"
-                                    },
-                                    "project_position_eligibility_ids": {
-                                        "description": "Array of project position IDs. Empty array removes all eligibilities. Null or missing field is ignored.",
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer"
-                                        }
                                     }
                                 },
                                 "type": "object"
@@ -3426,6 +3707,31 @@
                         "description": "Validation error"
                     }
                 }
+            },
+            "delete": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Delete a user via Atlas authentication module",
+                "operationId": "8b74b0219c3e4749fe8e1833b7626f2d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User deleted successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
             }
         },
         "/api/pg/users/dropdown": {
@@ -3433,31 +3739,11 @@
                 "tags": [
                     "Users"
                 ],
-                "summary": "Get users for dropdown",
+                "summary": "Get users dropdown from Atlas authentication module",
                 "operationId": "81dfd57b411a5700af5e4b9a6a132a82",
                 "responses": {
                     "200": {
-                        "description": "List of users formatted for dropdowns",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "value": {
-                                                "type": "integer",
-                                                "example": 5
-                                            },
-                                            "label": {
-                                                "type": "string",
-                                                "example": "Jane Doe"
-                                            }
-                                        },
-                                        "type": "object"
-                                    }
-                                }
-                            }
-                        }
+                        "description": "List of users from Atlas authentication service formatted for dropdowns"
                     }
                 }
             }
@@ -3976,14 +4262,6 @@
                         "type": "string",
                         "example": "Ana Directora, Luis Asistente"
                     },
-                    "deliverable_names": {
-                        "type": "string",
-                        "example": "Plan de trabajo, Informe final"
-                    },
-                    "meeting_count": {
-                        "type": "integer",
-                        "example": 5
-                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time"
@@ -4093,6 +4371,7 @@
                 "type": "object"
             },
             "ProjectGroupResource": {
+                "description": "Minimal project group representation. Related entities accessible via id fields.",
                 "properties": {
                     "id": {
                         "type": "integer",
@@ -4926,7 +5205,7 @@
         },
         {
             "name": "Users",
-            "description": "API endpoints for managing users and their project position eligibilities"
+            "description": "Proxy endpoints to Atlas authentication module for user management"
         },
         {
             "name": "User Project Eligibilities",

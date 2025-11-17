@@ -56,9 +56,13 @@ class SubmissionController extends Controller
 {
     /**
      * @OA\Get(
-     *     path="/api/pg/submissions",
-     *     summary="List submissions",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions",
+     *     summary="List submissions for a deliverable",
      *     tags={"Submissions"},
+     *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
      *         response=200,
@@ -72,23 +76,48 @@ class SubmissionController extends Controller
      *     )
      * )
      */
-    public function index(): JsonResponse
+    public function index($academicPeriod, $phase, $deliverable): JsonResponse
     {
-        $submissions = Submission::with([
-            'deliverable.phase.period',
-            'project',
-            'deliverable.phase.period',
-            'files',
-            'evaluations',
-        ])->orderByDesc('updated_at')->get();
+        $submissions = Submission::where('deliverable_id', $deliverable)
+            ->with([
+                'deliverable.phase.period',
+                'project',
+                'files',
+                'evaluations',
+            ])->orderByDesc('updated_at')->get();
 
         return response()->json($submissions->map(fn (Submission $submission) => $this->transformSubmission($submission)));
     }
 
-    public function store(Request $request): JsonResponse
+    /**
+     * @OA\Post(
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions",
+     *     summary="Create a submission for a deliverable",
+     *     tags={"Submissions"},
+     *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/SubmissionCreatePayload")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=201,
+     *         description="Submission created",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/SubmissionResource")
+     *     ),
+     *
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
+    public function store(Request $request, $academicPeriod, $phase, $deliverable): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'deliverable_id' => 'required|exists:deliverables,id',
             'project_id' => 'required|exists:projects,id',
             'submission_date' => 'required|date',
             'file_ids' => 'sometimes|array',
@@ -100,6 +129,7 @@ class SubmissionController extends Controller
         }
 
         $data = $validator->validated();
+        $data['deliverable_id'] = $deliverable;
         $fileIds = $this->normalizeIds($data['file_ids'] ?? null);
         unset($data['file_ids']);
 
@@ -118,40 +148,14 @@ class SubmissionController extends Controller
     }
 
     /**
-     * @OA\Post(
-     *     path="/api/pg/submissions",
-     *     summary="Create a submission",
-     *     tags={"Submissions"},
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *
-     *         @OA\JsonContent(ref="#/components/schemas/SubmissionCreatePayload")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=201,
-     *         description="Submission created",
-     *
-     *         @OA\JsonContent(ref="#/components/schemas/SubmissionResource")
-     *     ),
-     *
-     *     @OA\Response(response=422, description="Validation error")
-     * )
-     */
-    public function show(Submission $submission): JsonResponse
-    {
-        $submission->load('deliverable.phase.period', 'project', 'files', 'evaluations');
-
-        return response()->json($this->transformSubmission($submission));
-    }
-
-    /**
      * @OA\Get(
-     *     path="/api/pg/submissions/{submission}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}",
      *     summary="Show submission",
      *     tags={"Submissions"},
      *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -162,7 +166,35 @@ class SubmissionController extends Controller
      *     )
      * )
      */
-    public function update(Request $request, Submission $submission): JsonResponse
+    public function show($academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
+    {
+        $submission->load('deliverable.phase.period', 'project', 'files', 'evaluations');
+
+        return response()->json($this->transformSubmission($submission));
+    }
+
+    /**
+     * @OA\Put(
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}",
+     *     summary="Update submission",
+     *     tags={"Submissions"},
+     *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/SubmissionUpdatePayload")),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Updated submission",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/SubmissionResource")
+     *     )
+     * )
+     */
+    public function update(Request $request, $academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
     {
         $validated = $request->validate([
             'deliverable_id' => 'sometimes|required|exists:deliverables,id',
@@ -191,36 +223,14 @@ class SubmissionController extends Controller
     }
 
     /**
-     * @OA\Put(
-     *     path="/api/pg/submissions/{submission}",
-     *     summary="Update submission",
-     *     tags={"Submissions"},
-     *
-     *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
-     *
-     *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/SubmissionUpdatePayload")),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Updated submission",
-     *
-     *         @OA\JsonContent(ref="#/components/schemas/SubmissionResource")
-     *     )
-     * )
-     */
-    public function destroy(Submission $submission): JsonResponse
-    {
-        $submission->delete();
-
-        return response()->json(['message' => 'Submission deleted successfully']);
-    }
-
-    /**
      * @OA\Delete(
-     *     path="/api/pg/submissions/{submission}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}",
      *     summary="Delete submission",
      *     tags={"Submissions"},
      *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -235,6 +245,13 @@ class SubmissionController extends Controller
      *     )
      * )
      */
+    public function destroy($academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
+    {
+        $submission->delete();
+
+        return response()->json(['message' => 'Submission deleted successfully']);
+    }
+
     protected function transformSubmission(Submission $submission): array
     {
         $submission->loadMissing('deliverable.phase.period', 'project', 'files', 'evaluations');
@@ -255,6 +272,45 @@ class SubmissionController extends Controller
         ];
     }
     // Detailed evaluation representation removed; use SubmissionEvaluationController endpoints.
+
+    /**
+     * @OA\Get(
+     *     path="/api/pg/submissions/dropdown",
+     *     summary="Get submissions for dropdown",
+     *     tags={"Submissions"},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Pairs ready for selects",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *
+     *                 @OA\Property(property="value", type="integer", example=45),
+     *                 @OA\Property(property="label", type="string", example="Proyecto Integrador - Entrega Parcial")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function dropdown(): JsonResponse
+    {
+        $submissions = Submission::with('project', 'deliverable')->orderBy('submission_date', 'desc')->get()->map(function (Submission $submission) {
+            $label = $submission->project?->title;
+            if ($submission->deliverable?->name) {
+                $label .= ' - '.$submission->deliverable->name;
+            }
+
+            return [
+                'value' => $submission->id,
+                'label' => $label,
+            ];
+        });
+
+        return response()->json($submissions);
+    }
 
     /**
      * @param  array<int, int|string>|null  $ids

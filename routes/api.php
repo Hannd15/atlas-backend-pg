@@ -23,8 +23,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::scopeBindings()->prefix('pg')->group(function () {
     // Academic Periods routes
+    Route::get('academic-periods/dropdown', [AcademicPeriodController::class, 'dropdown']);
     Route::apiResource('academic-periods', AcademicPeriodController::class);
 
+    Route::get('academic-periods/{academic_period}/phases/dropdown', [PhaseController::class, 'dropdown']);
     Route::apiResource('academic-periods.phases', PhaseController::class)->only(['index', 'show', 'update']);
 
     Route::apiResource('academic-periods.phases.deliverables', DeliverableController::class);
@@ -34,23 +36,30 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files', [DeliverableFileController::class, 'index']);
     Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files', [DeliverableFileController::class, 'store']);
 
-    // Submission Files routes
+    // Submissions routes (nested under deliverables) and nested evaluations
+    Route::get('submissions/dropdown', [SubmissionController::class, 'dropdown']);
     Route::get('submission-files', [SubmissionFileController::class, 'getAll']);
-    Route::get('submissions/{submission_id}/files', [SubmissionFileController::class, 'index']);
-    Route::post('submissions/{submission_id}/files', [SubmissionFileController::class, 'store']);
+    Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions', [SubmissionController::class, 'index']);
+    Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions', [SubmissionController::class, 'store']);
+    Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}', [SubmissionController::class, 'show']);
+    Route::put('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}', [SubmissionController::class, 'update']);
+    Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}', [SubmissionController::class, 'destroy']);
+
+    // Submission Files routes (nested under submissions)
+    Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files', [SubmissionFileController::class, 'index']);
+    Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files', [SubmissionFileController::class, 'store']);
+
+    // Submission Evaluations routes (nested under submissions)
+    Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'index']);
+    Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'store']);
+    Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}', [SubmissionEvaluationController::class, 'show']);
+    Route::put('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}', [SubmissionEvaluationController::class, 'update']);
+    Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}', [SubmissionEvaluationController::class, 'destroy']);
 
     // Files routes (handles show/update/delete for all files)
     Route::get('files/dropdown', [FileController::class, 'dropdown']);
     Route::get('files/{file}/download', [FileController::class, 'download']);
     Route::apiResource('files', FileController::class)->except('store', 'create');
-
-    // Submissions routes and nested evaluations
-    Route::apiResource('submissions', SubmissionController::class);
-    Route::get('submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'index']);
-    Route::post('submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'store']);
-    Route::get('evaluations/{evaluation}', [SubmissionEvaluationController::class, 'show']);
-    Route::put('evaluations/{evaluation}', [SubmissionEvaluationController::class, 'update']);
-    Route::delete('evaluations/{evaluation}', [SubmissionEvaluationController::class, 'destroy']);
 
     // Thematic Lines routes
     Route::get('thematic-lines/dropdown', [ThematicLineController::class, 'dropdown']);
@@ -65,6 +74,7 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     Route::delete('rubrics/{rubric}/deliverables/{deliverable}', [RubricController::class, 'detachDeliverable']);
 
     Route::middleware('auth.atlas')->group(function () {
+        Route::get('proposals/dropdown', [ProposalController::class, 'dropdown']);
         Route::apiResource('proposals', ProposalController::class);
         Route::get('proposals/{proposal}/files', [\App\Http\Controllers\ProposalFileController::class, 'index']);
         Route::post('proposals/{proposal}/files', [\App\Http\Controllers\ProposalFileController::class, 'store']);
@@ -74,8 +84,7 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
     Route::apiResource('projects', ProjectController::class);
 
-    // Meetings routes
-    Route::get('meetings', [MeetingController::class, 'index']);
+    // Meetings routes (project-scoped only)
     Route::get('projects/{project}/meetings', [MeetingController::class, 'projectMeetings']);
     Route::post('projects/{project}/meetings', [MeetingController::class, 'store']);
     Route::get('projects/{project}/meetings/{meeting}', [MeetingController::class, 'show']);
@@ -97,11 +106,13 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
     Route::apiResource('project-groups', ProjectGroupController::class);
 
-    // Users routes
+    // Users routes (all user data proxied from Atlas auth module)
     Route::get('users/dropdown', [UserController::class, 'dropdown']);
     Route::get('users', [UserController::class, 'index']);
-    Route::get('users/{user}', [UserController::class, 'show']);
-    Route::put('users/{user}', [UserController::class, 'update']);
+    Route::post('users', [UserController::class, 'store']);
+    Route::get('users/{id}', [UserController::class, 'show']);
+    Route::put('users/{id}', [UserController::class, 'update']);
+    Route::delete('users/{id}', [UserController::class, 'destroy']);
 
     // Project Positions routes
     Route::get('project-positions/dropdown', [ProjectPositionController::class, 'dropdown']);

@@ -86,10 +86,13 @@ class SubmissionFileController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/submissions/{submission}/files",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files",
      *     summary="Get files associated with a submission",
      *     tags={"Submission Files"},
      *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -104,7 +107,7 @@ class SubmissionFileController extends Controller
      *     )
      * )
      */
-    public function index(int $submissionId): JsonResponse
+    public function index($academicPeriod, $phase, $deliverable, int $submissionId): JsonResponse
     {
         $submission = Submission::findOrFail($submissionId);
         $files = $submission->files()->orderByDesc('updated_at')->get();
@@ -116,10 +119,13 @@ class SubmissionFileController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/pg/submissions/{submission}/files",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files",
      *     summary="Upload and associate a file with a submission",
      *     tags={"Submission Files"},
      *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\RequestBody(
@@ -147,7 +153,7 @@ class SubmissionFileController extends Controller
      *     @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function store(Request $request, int $submissionId): JsonResponse
+    public function store(Request $request, $academicPeriod, $phase, $deliverable, int $submissionId): JsonResponse
     {
         $submission = Submission::findOrFail($submissionId);
 

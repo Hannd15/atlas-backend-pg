@@ -51,19 +51,23 @@ class ProjectPositionController extends Controller
             ? []
             : $this->userNamesForIds($userIds, $token);
 
-        $positions->each(function (ProjectPosition $position) use ($userNames) {
+        return response()->json($positions->map(function (ProjectPosition $position) use ($userNames) {
             $ids = $position->eligibleUsers->pluck('id')->filter()->map(fn ($id) => (int) $id)->values();
 
-            $position->eligible_user_names = $ids
-                ->map(fn ($id) => $userNames[$id] ?? "User #{$id}")
-                ->filter()
-                ->unique()
-                ->implode(', ');
-
-            $position->staff_names = $position->staff->map(fn ($staff) => "Staff #{$staff->id}")->implode(', ');
-        });
-
-        return response()->json($positions);
+            return [
+                'id' => $position->id,
+                'name' => $position->name,
+                'eligible_user_names' => $ids
+                    ->map(fn ($id) => $userNames[$id] ?? "User #{$id}")
+                    ->filter()
+                    ->unique()
+                    ->implode(', '),
+                'eligible_user_count' => $position->eligibleUsers->count(),
+                'staff_count' => $position->staff->count(),
+                'created_at' => optional($position->created_at)->toDateTimeString(),
+                'updated_at' => optional($position->updated_at)->toDateTimeString(),
+            ];
+        }));
     }
 
     /**
@@ -127,10 +131,14 @@ class ProjectPositionController extends Controller
     {
         $projectPosition->load('eligibleUsers', 'staff');
 
-        $projectPosition->eligible_user_ids = $projectPosition->eligibleUsers->pluck('id');
-        $projectPosition->staff_ids = $projectPosition->staff->pluck('id');
-
-        return response()->json($projectPosition);
+        return response()->json([
+            'id' => $projectPosition->id,
+            'name' => $projectPosition->name,
+            'eligible_user_ids' => $projectPosition->eligibleUsers->pluck('id')->values()->all(),
+            'staff_ids' => $projectPosition->staff->pluck('id')->values()->all(),
+            'created_at' => optional($projectPosition->created_at)->toDateTimeString(),
+            'updated_at' => optional($projectPosition->updated_at)->toDateTimeString(),
+        ]);
     }
 
     /**
@@ -183,10 +191,16 @@ class ProjectPositionController extends Controller
             $projectPosition->eligibleUsers()->sync($request->input('eligible_user_ids', []));
         }
 
-        $projectPosition->load('eligibleUsers');
-        $projectPosition->eligible_user_ids = $projectPosition->eligibleUsers->pluck('id');
+        $projectPosition->load('eligibleUsers', 'staff');
 
-        return response()->json($projectPosition);
+        return response()->json([
+            'id' => $projectPosition->id,
+            'name' => $projectPosition->name,
+            'eligible_user_ids' => $projectPosition->eligibleUsers->pluck('id')->values()->all(),
+            'staff_ids' => $projectPosition->staff->pluck('id')->values()->all(),
+            'created_at' => optional($projectPosition->created_at)->toDateTimeString(),
+            'updated_at' => optional($projectPosition->updated_at)->toDateTimeString(),
+        ]);
     }
 
     /**

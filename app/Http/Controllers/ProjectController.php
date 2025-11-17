@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
-use App\Models\Deliverable;
 use App\Models\Meeting;
 use App\Models\Project;
 use App\Models\ProjectStatus;
@@ -42,8 +41,6 @@ use Illuminate\Http\Request;
  *     @OA\Property(property="thematic_line_name", type="string", nullable=true, example="Inteligencia Artificial"),
  *     @OA\Property(property="member_names", type="string", example="Laura Proposer, Juan Developer"),
  *     @OA\Property(property="staff_names", type="string", example="Ana Directora, Luis Asistente"),
- *     @OA\Property(property="deliverable_names", type="string", example="Plan de trabajo, Informe final"),
- *     @OA\Property(property="meeting_count", type="integer", example=5),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -299,20 +296,10 @@ class ProjectController extends Controller
             'thematic_line_name' => $project->proposal?->thematicLine?->name,
             'member_names' => $this->memberNames($project, $userNames),
             'staff_names' => $project->staff->map(fn ($s) => $s->position?->name)->filter()->unique()->implode(', '),
-            'deliverable_names' => $project->deliverables->sortBy('due_date')->pluck('name')->implode(', '),
-            'meeting_count' => $project->meetings->count(),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
         ];
     }
-
-    // Removed detailed staff representation; use dedicated endpoints in future.
-
-    // Removed embedded meetings; use /projects/{project}/meetings endpoint.
-
-    // Removed embedded deliverables; use academic-period scoped deliverables endpoints.
-
-    // Removed deliverable state calculation from project context.
 
     protected function memberNames(Project $project, array $userNames): string
     {
