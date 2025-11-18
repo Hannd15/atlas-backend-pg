@@ -52,7 +52,6 @@ use Illuminate\Validation\ValidationException;
  *     @OA\Property(property="project_name", type="string", nullable=true, example="Sistema IoT"),
  *     @OA\Property(property="phase_name", type="string", nullable=true, example="Fase 1"),
  *     @OA\Property(property="period_name", type="string", nullable=true, example="2024-1"),
- *     @OA\Property(property="member_user_ids", type="array", @OA\Items(type="integer", example=25)),
  *     @OA\Property(property="member_user_names", type="string", example="Ana López, Juan Pérez"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
@@ -276,7 +275,6 @@ class ProjectGroupController extends Controller
             'project_name' => $group->project?->title,
             'phase_name' => $group->project?->phase?->name,
             'period_name' => $group->project?->phase?->period?->name,
-            'member_user_ids' => $memberIds,
             'member_user_names' => $this->implodeUserNames($memberIds, $userNames),
             'created_at' => optional($group->created_at)->toDateTimeString(),
             'updated_at' => optional($group->updated_at)->toDateTimeString(),

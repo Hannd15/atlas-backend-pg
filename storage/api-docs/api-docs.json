@@ -856,6 +856,23 @@
                                         "type": "string",
                                         "format": "date",
                                         "example": "2025-02-14"
+                                    },
+                                    "start_time": {
+                                        "description": "Start time in HH:mm format",
+                                        "type": "string",
+                                        "format": "time",
+                                        "example": "10:00"
+                                    },
+                                    "end_time": {
+                                        "description": "End time in HH:mm format (must be after start_time)",
+                                        "type": "string",
+                                        "format": "time",
+                                        "example": "11:00"
+                                    },
+                                    "timezone": {
+                                        "description": "Timezone for the meeting (defaults to app timezone)",
+                                        "type": "string",
+                                        "example": "America/New_York"
                                     }
                                 },
                                 "type": "object"
@@ -4391,6 +4408,10 @@
                     "user_name": {
                         "type": "string",
                         "example": "Ana López"
+                    },
+                    "user_email": {
+                        "type": "string",
+                        "example": "ana.lopez@example.com"
                     }
                 },
                 "type": "object"
@@ -4414,6 +4435,23 @@
                         "format": "date",
                         "example": "2025-02-14"
                     },
+                    "start_time": {
+                        "type": "string",
+                        "format": "time",
+                        "example": "10:00",
+                        "nullable": true
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "format": "time",
+                        "example": "11:00",
+                        "nullable": true
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "example": "America/New_York",
+                        "nullable": true
+                    },
                     "observations": {
                         "type": "string",
                         "example": "Revisión semanal",
@@ -4422,6 +4460,11 @@
                     "url": {
                         "type": "string",
                         "example": "https://meetings.test/project-12/20250214"
+                    },
+                    "google_meet_url": {
+                        "type": "string",
+                        "example": "https://meet.google.com/abc-defg-hij",
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -4714,13 +4757,6 @@
                         "type": "string",
                         "example": "2024-1",
                         "nullable": true
-                    },
-                    "member_user_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 25
-                        }
                     },
                     "member_user_names": {
                         "type": "string",

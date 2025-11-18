@@ -13,14 +13,19 @@ class Meeting extends Model
     protected $fillable = [
         'project_id',
         'meeting_date',
+        'start_time',
+        'end_time',
+        'timezone',
         'observations',
         'created_by',
+        'google_calendar_event_id',
+        'google_meet_url',
     ];
 
     protected function casts(): array
     {
         return [
-            'meeting_date' => 'date',
+            'meeting_date' => 'datetime',
         ];
     }
 

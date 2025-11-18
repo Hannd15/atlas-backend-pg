@@ -19,7 +19,7 @@ class Deliverable extends Model
     protected function casts(): array
     {
         return [
-            'due_date' => 'datetime',
+            'due_date' => 'date',
         ];
     }
 

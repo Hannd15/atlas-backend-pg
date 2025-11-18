@@ -6,8 +6,13 @@ use App\Http\Requests\Meeting\StoreMeetingRequest;
 use App\Http\Requests\Meeting\UpdateMeetingRequest;
 use App\Models\Meeting;
 use App\Models\Project;
+use App\Services\AtlasUserService;
+use App\Services\GoogleCalendarService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -24,12 +29,21 @@ use Illuminate\Validation\ValidationException;
  *     @OA\Property(property="project_id", type="integer", example=12),
  *     @OA\Property(property="project_name", type="string", example="Proyecto Principal"),
  *     @OA\Property(property="meeting_date", type="string", format="date", example="2025-02-14"),
+ *     @OA\Property(property="start_time", type="string", format="time", nullable=true, example="10:00"),
+ *     @OA\Property(property="end_time", type="string", format="time", nullable=true, example="11:00"),
+ *     @OA\Property(property="timezone", type="string", nullable=true, example="America/New_York"),
  *     @OA\Property(property="observations", type="string", nullable=true, example="Revisión semanal"),
- *     @OA\Property(property="url", type="string", example="https://meetings.test/project-12/20250214")
+ *     @OA\Property(property="url", type="string", example="https://meetings.test/project-12/20250214"),
+ *     @OA\Property(property="google_meet_url", type="string", nullable=true, example="https://meet.google.com/abc-defg-hij")
  * )
  */
 class MeetingController extends Controller
 {
+    public function __construct(
+        protected GoogleCalendarService $googleCalendarService,
+        protected AtlasUserService $atlasUserService
+    ) {}
+
     /**
      * @OA\Get(
      *     path="/api/pg/projects/{project}/meetings",
@@ -75,7 +89,10 @@ class MeetingController extends Controller
      *         @OA\JsonContent(
      *             required={"meeting_date"},
      *
-     *             @OA\Property(property="meeting_date", type="string", format="date", example="2025-02-14")
+     *             @OA\Property(property="meeting_date", type="string", format="date", example="2025-02-14"),
+     *             @OA\Property(property="start_time", type="string", format="time", example="10:00", description="Start time in HH:mm format"),
+     *             @OA\Property(property="end_time", type="string", format="time", example="11:00", description="End time in HH:mm format (must be after start_time)"),
+     *             @OA\Property(property="timezone", type="string", example="America/New_York", description="Timezone for the meeting (defaults to app timezone)")
      *         )
      *     ),
      *
@@ -91,11 +108,17 @@ class MeetingController extends Controller
         $meeting = Meeting::create([
             'project_id' => $project->id,
             'meeting_date' => $payload['meeting_date'],
+            'start_time' => $payload['start_time'] ?? null,
+            'end_time' => $payload['end_time'] ?? null,
+            'timezone' => 'America/Bogota',
             'observations' => null,
             'created_by' => $creatorId,
         ]);
 
         $meeting->attendees()->sync($attendeeIds);
+
+        // Try to create Google Meet
+        $this->createGoogleMeetForMeeting($request, $meeting, $attendeeIds);
 
         $meeting->load('project', 'creator', 'attendees');
 
@@ -149,9 +172,23 @@ class MeetingController extends Controller
     {
         abort_if($meeting->project_id !== $project->id, 404);
 
+        $oldDate = $meeting->meeting_date;
+        $oldStartTime = $meeting->start_time;
+        $oldEndTime = $meeting->end_time;
+
         $meeting->update($request->validated());
 
-        $meeting->attendees()->sync($this->attendeeIdsForProject($project));
+        $attendeeIds = $this->attendeeIdsForProject($project);
+        $meeting->attendees()->sync($attendeeIds);
+
+        // Check if meeting date/time changed, and recreate Google Meet
+        $dateOrTimeChanged = $meeting->meeting_date != $oldDate
+            || $meeting->start_time != $oldStartTime
+            || $meeting->end_time != $oldEndTime;
+
+        if ($dateOrTimeChanged || $request->filled(['start_time', 'end_time'])) {
+            $this->createGoogleMeetForMeeting($request, $meeting, $attendeeIds);
+        }
 
         $meeting->load('project', 'creator', 'attendees');
 
@@ -186,9 +223,89 @@ class MeetingController extends Controller
             'project_id' => $meeting->project_id,
             'project_name' => $meeting->project?->title,
             'meeting_date' => optional($meeting->meeting_date)->toDateString(),
+            'start_time' => $meeting->start_time ? Carbon::parse($meeting->start_time)->format('H:i') : null,
+            'end_time' => $meeting->end_time ? Carbon::parse($meeting->end_time)->format('H:i') : null,
+            'timezone' => $meeting->timezone,
             'observations' => $meeting->observations,
             'url' => $meeting->url,
+            'google_meet_url' => $meeting->google_meet_url,
         ];
+    }
+
+    /**
+     * Create or update Google Meet for a meeting.
+     */
+    protected function createGoogleMeetForMeeting(Request $request, Meeting $meeting, array $attendeeIds): void
+    {
+        // Skip if no time information provided
+        if (! $meeting->start_time || ! $meeting->end_time) {
+            Log::info('Skipping Google Meet creation - no time information', ['meeting_id' => $meeting->id]);
+
+            return;
+        }
+
+        try {
+            $bearerToken = $request->header('Authorization');
+
+            if (! $bearerToken) {
+                Log::warning('No authorization token available for Google Meet creation', ['meeting_id' => $meeting->id]);
+
+                return;
+            }
+
+            // Get attendee emails
+            $token = trim(str_replace('Bearer ', '', $bearerToken));
+            $users = $this->atlasUserService->fetchUsersByIds($token, $attendeeIds);
+
+            $attendees = collect($users)->map(fn ($user) => [
+                'email' => $user['email'] ?? null,
+            ])->filter(fn ($attendee) => ! empty($attendee['email']))->values()->all();
+
+            // Build datetime strings - use UTC if no timezone specified
+            $timezone = $meeting->timezone ?: config('app.timezone', 'UTC');
+            $dateStr = Carbon::parse($meeting->meeting_date)->format('Y-m-d');
+            $startDateTime = Carbon::parse("{$dateStr} {$meeting->start_time}", $timezone);
+            $endDateTime = Carbon::parse("{$dateStr} {$meeting->end_time}", $timezone);
+
+            $meetingData = [
+                'summary' => "Reunión Proyecto de Grado: {$meeting->project?->title}",
+                'description' => $meeting->observations ?? 'Reunión de proyecto de grado programada desde Atlas.',
+                'start' => [
+                    'dateTime' => $startDateTime->toIso8601String(),
+                    'timeZone' => $timezone,
+                ],
+                'end' => [
+                    'dateTime' => $endDateTime->toIso8601String(),
+                    'timeZone' => $timezone,
+                ],
+                'attendees' => $attendees,
+            ];
+
+            $result = $this->googleCalendarService->createMeetWithRetry($bearerToken, $meetingData);
+
+            if ($result['success'] && isset($result['data'])) {
+                $meeting->update([
+                    'google_calendar_event_id' => $result['data']['id'] ?? null,
+                    'google_meet_url' => $result['data']['hangoutLink'] ?? null,
+                ]);
+
+                Log::info('Google Meet created successfully', [
+                    'meeting_id' => $meeting->id,
+                    'meet_url' => $meeting->google_meet_url,
+                ]);
+            } else {
+                Log::warning('Failed to create Google Meet', [
+                    'meeting_id' => $meeting->id,
+                    'error' => $result['error'] ?? 'Unknown error',
+                    'status' => $result['status'] ?? null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception creating Google Meet', [
+                'meeting_id' => $meeting->id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function resolveCreatorId(Project $project): int

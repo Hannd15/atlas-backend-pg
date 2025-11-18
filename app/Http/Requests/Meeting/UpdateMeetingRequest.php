@@ -24,6 +24,16 @@ class UpdateMeetingRequest extends FormRequest
         return [
             'meeting_date' => ['sometimes', 'required', 'date'],
             'observations' => ['sometimes', 'nullable', 'string'],
+            'start_time' => ['nullable', 'date_format:H:i'],
+            'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
+            'timezone' => ['nullable', 'string', 'timezone'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'end_time.after' => 'The end time must be after the start time.',
         ];
     }
 }

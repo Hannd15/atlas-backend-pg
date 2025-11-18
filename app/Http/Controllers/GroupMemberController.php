@@ -18,7 +18,8 @@ use Illuminate\Http\Request;
  *     type="object",
  *
  *     @OA\Property(property="user_id", type="integer", example=25),
- *     @OA\Property(property="user_name", type="string", example="Ana López")
+ *     @OA\Property(property="user_name", type="string", example="Ana López"),
+ *     @OA\Property(property="user_email", type="string", example="ana.lopez@example.com")
  * )
  */
 class GroupMemberController extends Controller
@@ -61,11 +62,12 @@ class GroupMemberController extends Controller
         }
 
         $token = trim((string) $request->bearerToken());
-        $userNames = $this->atlasUserService->namesByIds($token, $memberIds);
+        $users = $this->atlasUserService->fetchUsersByIds($token, $memberIds);
 
         $members = collect($memberIds)->map(fn ($userId) => [
             'user_id' => $userId,
-            'user_name' => $userNames[$userId] ?? "User #{$userId}",
+            'user_name' => $users[$userId]['name'] ?? "User #{$userId}",
+            'user_email' => $users[$userId]['email'] ?? null,
         ]);
 
         return response()->json($members);

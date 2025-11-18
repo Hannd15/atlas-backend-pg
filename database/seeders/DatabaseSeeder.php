@@ -58,7 +58,6 @@ class DatabaseSeeder extends Seeder
         Schema::enableForeignKeyConstraints();
 
         $this->call([
-            UserSeeder::class,
             AcademicPeriodStateSeeder::class,
             AcademicPeriodSeeder::class,
             PhaseSeeder::class,
