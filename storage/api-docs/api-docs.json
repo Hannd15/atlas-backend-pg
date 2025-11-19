@@ -432,6 +432,67 @@
                 }
             }
         },
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/rubrics": {
+            "get": {
+                "tags": [
+                    "Deliverables"
+                ],
+                "summary": "Get rubrics assigned to a deliverable",
+                "operationId": "4b0a0a3899241396f5466db52f29e8d5",
+                "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rubrics assigned to the deliverable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Deliverable not found"
+                    }
+                }
+            }
+        },
         "/api/pg/deliverable-files": {
             "get": {
                 "tags": [
@@ -3774,6 +3835,51 @@
                 }
             }
         },
+        "/api/pg/thematic-lines/{thematic_line}/rubrics": {
+            "get": {
+                "tags": [
+                    "Thematic Lines"
+                ],
+                "summary": "Get rubrics assigned to a thematic line",
+                "operationId": "412309947c34e2bb7b60e9d231a051c7",
+                "parameters": [
+                    {
+                        "name": "thematic_line",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rubrics assigned to the thematic line",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Thematic line not found"
+                    }
+                }
+            }
+        },
         "/api/pg/thematic-lines/dropdown": {
             "get": {
                 "tags": [
@@ -4292,6 +4398,16 @@
                         "example": "2025-03-15T23:59:00",
                         "nullable": true
                     },
+                    "rubric_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "rubric_names": {
+                        "type": "string",
+                        "example": "Rubric OC-13, Rubric AA-94"
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -4323,6 +4439,14 @@
                         "type": "string",
                         "format": "date-time",
                         "example": "2025-03-15T23:59:00",
+                        "nullable": true
+                    },
+                    "rubric_ids": {
+                        "description": "Rubric identifiers to sync with the deliverable",
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
                         "nullable": true
                     }
                 },
@@ -5459,6 +5583,14 @@
                     "description": {
                         "type": "string",
                         "nullable": true
+                    },
+                    "rubric_ids": {
+                        "description": "Rubric identifiers to sync with the thematic line",
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -5480,6 +5612,16 @@
                     "created_at": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "rubric_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "rubric_names": {
+                        "type": "string",
+                        "example": "IoT Basics, Advanced IoT"
                     },
                     "updated_at": {
                         "type": "string",

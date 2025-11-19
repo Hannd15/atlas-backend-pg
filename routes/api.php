@@ -30,6 +30,7 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     Route::apiResource('academic-periods.phases', PhaseController::class)->only(['index', 'show', 'update']);
 
     Route::apiResource('academic-periods.phases.deliverables', DeliverableController::class);
+    Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/rubrics', [DeliverableController::class, 'getRubrics']);
 
     // Deliverable Files routes (fully scoped under academic periods > phases > deliverables)
     Route::get('deliverable-files', [DeliverableFileController::class, 'getAll']);
@@ -63,6 +64,7 @@ Route::scopeBindings()->prefix('pg')->group(function () {
 
     // Thematic Lines routes
     Route::get('thematic-lines/dropdown', [ThematicLineController::class, 'dropdown']);
+    Route::get('thematic-lines/{thematic_line}/rubrics', [ThematicLineController::class, 'getRubrics']);
     Route::apiResource('thematic-lines', ThematicLineController::class);
 
     // Rubrics routes

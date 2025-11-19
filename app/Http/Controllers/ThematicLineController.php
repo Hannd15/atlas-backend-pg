@@ -19,7 +19,15 @@ use Illuminate\Http\JsonResponse;
  *     required={"name"},
  *
  *     @OA\Property(property="name", type="string", example="IoT"),
- *     @OA\Property(property="description", type="string", nullable=true)
+ *     @OA\Property(property="description", type="string", nullable=true),
+ *     @OA\Property(
+ *         property="rubric_ids",
+ *         type="array",
+ *         nullable=true,
+ *
+ *         @OA\Items(type="integer"),
+ *         description="Rubric identifiers to sync with the thematic line"
+ *     )
  * )
  *
  * @OA\Schema(
@@ -30,6 +38,8 @@ use Illuminate\Http\JsonResponse;
  *     @OA\Property(property="name", type="string", example="IoT"),
  *     @OA\Property(property="description", type="string", nullable=true),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="rubric_ids", type="array", @OA\Items(type="integer")),
+ *     @OA\Property(property="rubric_names", type="string", example="IoT Basics, Advanced IoT"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  */
@@ -136,6 +146,36 @@ class ThematicLineController extends Controller
         $thematicLine->delete();
 
         return response()->json(['message' => 'Thematic line deleted successfully']);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/pg/thematic-lines/{thematic_line}/rubrics",
+     *     summary="Get rubrics assigned to a thematic line",
+     *     tags={"Thematic Lines"},
+     *
+     *     @OA\Parameter(name="thematic_line", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Rubrics assigned to the thematic line",
+     *
+     *         @OA\JsonContent(type="array", @OA\Items(type="object", @OA\Property(property="id", type="integer"), @OA\Property(property="name", type="string")))
+     *     ),
+     *
+     *     @OA\Response(response=404, description="Thematic line not found")
+     * )
+     */
+    public function getRubrics(ThematicLine $thematicLine): JsonResponse
+    {
+        $thematicLine->loadMissing('rubrics');
+
+        $rubrics = $thematicLine->rubrics->map(fn ($rubric) => [
+            'id' => $rubric->id,
+            'name' => $rubric->name,
+        ]);
+
+        return response()->json($rubrics);
     }
 
     /**

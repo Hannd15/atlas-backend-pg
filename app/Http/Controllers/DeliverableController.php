@@ -33,6 +33,8 @@ use Illuminate\Support\Facades\Validator;
  *     @OA\Property(property="name", type="string", example="Entrega 1"),
  *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
  *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
+ *     @OA\Property(property="rubric_ids", type="array", @OA\Items(type="integer")),
+ *     @OA\Property(property="rubric_names", type="string", example="Rubric OC-13, Rubric AA-94"),
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2025-01-01T12:00:00"),
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-01-15T18:30:00")
  * )
@@ -44,7 +46,15 @@ use Illuminate\Support\Facades\Validator;
  *
  *     @OA\Property(property="name", type="string", example="Entrega 1"),
  *     @OA\Property(property="description", type="string", nullable=true, example="Documento PDF con la propuesta"),
- *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00")
+ *     @OA\Property(property="due_date", type="string", format="date-time", nullable=true, example="2025-03-15T23:59:00"),
+ *     @OA\Property(
+ *         property="rubric_ids",
+ *         type="array",
+ *         nullable=true,
+ *
+ *         @OA\Items(type="integer"),
+ *         description="Rubric identifiers to sync with the deliverable"
+ *     )
  * )
  */
 class DeliverableController extends Controller
@@ -275,6 +285,38 @@ class DeliverableController extends Controller
         return response()->json(['message' => 'Deliverable deleted successfully']);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/rubrics",
+     *     summary="Get rubrics assigned to a deliverable",
+     *     tags={"Deliverables"},
+     *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Rubrics assigned to the deliverable",
+     *
+     *         @OA\JsonContent(type="array", @OA\Items(type="object", @OA\Property(property="id", type="integer"), @OA\Property(property="name", type="string")))
+     *     ),
+     *
+     *     @OA\Response(response=404, description="Deliverable not found")
+     * )
+     */
+    public function getRubrics(AcademicPeriod $academicPeriod, Phase $phase, Deliverable $deliverable): JsonResponse
+    {
+        $deliverable->loadMissing('rubrics');
+
+        $rubrics = $deliverable->rubrics->map(fn ($rubric) => [
+            'id' => $rubric->id,
+            'name' => $rubric->name,
+        ]);
+
+        return response()->json($rubrics);
+    }
+
     protected function transformDeliverableSummary(Deliverable $deliverable): array
     {
         return [
@@ -286,11 +328,15 @@ class DeliverableController extends Controller
 
     protected function transformDeliverableDetail(Deliverable $deliverable): array
     {
+        $deliverable->loadMissing('rubrics');
+
         return [
             'id' => $deliverable->id,
             'name' => $deliverable->name,
             'description' => $deliverable->description,
             'due_date' => optional($deliverable->due_date)->toDateTimeString(),
+            'rubric_ids' => $deliverable->rubrics->pluck('id')->values()->all(),
+            'rubric_names' => $deliverable->rubrics->pluck('name')->implode(', '),
             'created_at' => optional($deliverable->created_at)->toDateTimeString(),
             'updated_at' => optional($deliverable->updated_at)->toDateTimeString(),
         ];
