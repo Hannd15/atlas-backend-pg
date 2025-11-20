@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Date;
 
 class Project extends Model
@@ -16,6 +17,8 @@ class Project extends Model
     protected $fillable = [
         'proposal_id',
         'title',
+        'description',
+        'thematic_line_id',
         'status_id',
         'phase_id',
     ];
@@ -38,6 +41,11 @@ class Project extends Model
     public function proposal()
     {
         return $this->belongsTo(Proposal::class);
+    }
+
+    public function thematicLine(): BelongsTo
+    {
+        return $this->belongsTo(ThematicLine::class);
     }
 
     public function phase(): BelongsTo
@@ -73,6 +81,11 @@ class Project extends Model
     public function submissions(): HasMany
     {
         return $this->hasMany(Submission::class);
+    }
+
+    public function repositoryProject(): HasOne
+    {
+        return $this->hasOne(RepositoryProject::class);
     }
 
     protected static function resolveCurrentPhaseId(): int

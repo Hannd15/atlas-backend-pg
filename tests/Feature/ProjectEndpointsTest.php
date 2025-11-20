@@ -9,6 +9,8 @@ use App\Models\Project;
 use App\Models\ProjectGroup;
 use App\Models\ProjectPosition;
 use App\Models\ProjectStaff;
+use App\Models\ProjectStatus;
+use App\Models\RepositoryProject;
 use App\Models\Submission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -87,7 +89,7 @@ class ProjectEndpointsTest extends TestCase
 
         $response = $this->getJson('/api/pg/projects');
 
-        $projects = Project::orderByDesc('updated_at')->with(['groups.members.user', 'status'])->get();
+        $projects = Project::orderByDesc('updated_at')->with(['groups.members.user', 'status', 'thematicLine'])->get();
 
         $expected = $projects->map(fn (Project $item) => $this->transformForIndexExpectation($item))->values()->all();
 
@@ -235,14 +237,48 @@ class ProjectEndpointsTest extends TestCase
             ]);
     }
 
+    public function test_completed_dropdown_returns_only_finished_projects_without_repository(): void
+    {
+        $terminadoStatus = ProjectStatus::firstOrCreate(['name' => 'Terminado']);
+        $activoStatus = ProjectStatus::firstOrCreate(['name' => 'Activo']);
+
+        $eligibleProject = Project::factory()->create([
+            'title' => 'Proyecto Terminado Elegible',
+            'status_id' => $terminadoStatus->id,
+        ]);
+
+        $assignedProject = Project::factory()->create([
+            'title' => 'Proyecto Terminado Asignado',
+            'status_id' => $terminadoStatus->id,
+        ]);
+
+        RepositoryProject::create([
+            'project_id' => $assignedProject->id,
+            'title' => 'Repositorio de proyecto asignado',
+        ]);
+
+        Project::factory()->create([
+            'title' => 'Proyecto Activo',
+            'status_id' => $activoStatus->id,
+        ]);
+
+        $this->getJson('/api/pg/projects/dropdown/completed')
+            ->assertOk()
+            ->assertExactJson([
+                ['value' => $eligibleProject->id, 'label' => 'Proyecto Terminado Elegible'],
+            ]);
+    }
+
     private function transformForIndexExpectation(Project $project): array
     {
-        $project->loadMissing('groups.members.user', 'status');
+        $project->loadMissing('groups.members.user', 'status', 'thematicLine');
 
         return [
             'id' => $project->id,
             'title' => $project->title,
             'status' => $project->status?->name,
+            'description' => $project->description,
+            'thematic_line_name' => $project->thematicLine?->name,
             'member_names' => $this->memberNames($project),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
@@ -252,57 +288,26 @@ class ProjectEndpointsTest extends TestCase
     private function transformForExpectation(Project $project): array
     {
         $project->loadMissing([
-            'proposal.thematicLine',
+            'thematicLine',
             'groups.members.user',
             'status',
-            'staff.user',
             'staff.position',
-            'deliverables',
-            'meetings',
-            'submissions',
         ]);
-
-        $submissionsByDeliverable = $project->submissions->groupBy('deliverable_id');
 
         return [
             'id' => $project->id,
             'title' => $project->title,
             'status' => $project->status?->name,
             'proposal_id' => $project->proposal_id,
-            'thematic_line_name' => $project->proposal?->thematicLine?->name,
+            'description' => $project->description,
+            'thematic_line_id' => $project->thematic_line_id,
+            'thematic_line_name' => $project->thematicLine?->name,
             'member_names' => $this->memberNames($project),
-            'staff' => $project->staff->map(fn (ProjectStaff $staff) => [
-                'user_name' => $staff->user?->name,
-                'position_name' => $staff->position?->name,
-            ])->values()->all(),
-            'meetings' => $project->meetings
-                ->sortByDesc('meeting_date')
-                ->values()
-                ->map(fn (Meeting $meeting) => [
-                    'id' => $meeting->id,
-                    'meeting_date' => optional($meeting->meeting_date)->toDateString(),
-                    'observations' => $meeting->observations,
-                    'created_by' => $meeting->created_by,
-                ])->all(),
-            'deliverables' => $project->deliverables
-                ->sortBy('due_date')
-                ->values()
-                ->map(function (Deliverable $deliverable) use ($submissionsByDeliverable) {
-                    $submissionGroup = $submissionsByDeliverable->get($deliverable->id);
-                    $submission = $submissionGroup ? $submissionGroup->sortByDesc('submission_date')->first() : null;
-
-                    return [
-                        'id' => $deliverable->id,
-                        'name' => $deliverable->name,
-                        'description' => $deliverable->description,
-                        'due_date' => optional($deliverable->due_date)->toDateTimeString(),
-                        'status' => $submission ? 'submitted' : 'pending',
-                        'submission' => $submission ? [
-                            'id' => $submission->id,
-                            'submitted_at' => optional($submission->submission_date)->toDateTimeString(),
-                        ] : null,
-                    ];
-                })->all(),
+            'staff_names' => $project->staff
+                ->map(fn (ProjectStaff $staff) => $staff->position?->name)
+                ->filter()
+                ->unique()
+                ->implode(', '),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
         ];

@@ -44,7 +44,7 @@ class RepositoryProjectEndpointsTest extends TestCase
             'files',
             'project.groups.members.user',
             'project.staff.user',
-            'project.proposal.thematicLine'
+            'project.thematicLine'
         );
 
         $response->assertOk()->assertExactJson($this->transformForShowExpectation($repositoryProject));
@@ -68,7 +68,7 @@ class RepositoryProjectEndpointsTest extends TestCase
         $repositoryProject = RepositoryProject::withDetails()->latest('id')->first();
         $this->assertNotNull($repositoryProject);
 
-        $repositoryProject->loadMissing('files');
+        $repositoryProject->loadMissing('files', 'project.thematicLine');
 
         $response->assertCreated()->assertExactJson($this->transformForShowExpectation($repositoryProject));
 
@@ -99,7 +99,7 @@ class RepositoryProjectEndpointsTest extends TestCase
             'abstract_en' => 'Updated project abstract.',
         ]);
 
-        $repositoryProject->refresh()->loadMissing('files', 'project');
+        $repositoryProject->refresh()->loadMissing('files', 'project.thematicLine');
 
         $response->assertOk()->assertExactJson($this->transformForShowExpectation($repositoryProject));
 
@@ -138,6 +138,8 @@ class RepositoryProjectEndpointsTest extends TestCase
         $project = Project::factory()->create([
             'proposal_id' => $proposal->id,
             'title' => 'Sistema de monitoreo implementado',
+            'description' => 'Implementación final del sistema de monitoreo.',
+            'thematic_line_id' => $thematicLine->id,
         ]);
 
         $group = ProjectGroup::create([
@@ -163,6 +165,7 @@ class RepositoryProjectEndpointsTest extends TestCase
             'project_id' => $project->id,
             'title' => 'Repositorio Sistema de Monitoreo',
             'description' => 'Versión final del proyecto',
+            'url' => 'https://example.com/repositorio-sistema-monitoreo',
             'publish_date' => Carbon::parse('2025-05-01'),
             'keywords_es' => 'Monitorización, Energía',
             'keywords_en' => 'Monitoring, Energy',
@@ -189,7 +192,7 @@ class RepositoryProjectEndpointsTest extends TestCase
             'files',
             'project.groups.members.user',
             'project.staff.user',
-            'project.proposal.thematicLine'
+            'project.thematicLine'
         );
 
         return [
@@ -198,7 +201,7 @@ class RepositoryProjectEndpointsTest extends TestCase
             'authors' => $this->aggregateAuthorNames($repositoryProject),
             'advisors' => $this->aggregateAdvisorNames($repositoryProject),
             'keywords_es' => $repositoryProject->keywords_es,
-            'thematic_line' => $repositoryProject->project?->proposal?->thematicLine?->name,
+            'thematic_line' => $repositoryProject->project?->thematicLine?->name,
             'publish_date' => optional($repositoryProject->publish_date)->toDateString(),
             'abstract_es' => $repositoryProject->abstract_es,
             'created_at' => optional($repositoryProject->created_at)->toDateTimeString(),
@@ -213,10 +216,10 @@ class RepositoryProjectEndpointsTest extends TestCase
             [
                 'repository_title' => $repositoryProject->title,
                 'project_id' => $repositoryProject->project_id,
+                'description' => $repositoryProject->description,
+                'url' => $repositoryProject->url,
                 'keywords_en' => $repositoryProject->keywords_en,
                 'abstract_en' => $repositoryProject->abstract_en,
-                'file_ids' => $repositoryProject->files->pluck('id')->values()->all(),
-                'file_names' => $repositoryProject->files->pluck('name')->values()->all(),
             ]
         );
     }

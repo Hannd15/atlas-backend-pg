@@ -8,12 +8,6 @@
         },
         "version": "1.0.0"
     },
-    "servers": [
-        {
-            "url": "/api",
-            "description": "API Server"
-        }
-    ],
     "paths": {
         "/api/pg/academic-periods": {
             "get": {
@@ -625,6 +619,57 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files/{file}": {
+            "delete": {
+                "tags": [
+                    "Deliverable Files"
+                ],
+                "summary": "Detach a file from a deliverable",
+                "operationId": "f499a4ecf4f0511c35b0ae17d74425c7",
+                "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "file",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File detached from deliverable"
+                    },
+                    "404": {
+                        "description": "Deliverable or file not found"
                     }
                 }
             }
@@ -1289,6 +1334,16 @@
                                         "type": "string",
                                         "example": "Nuevo proyecto"
                                     },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Descripción del proyecto",
+                                        "nullable": true
+                                    },
+                                    "thematic_line_id": {
+                                        "type": "integer",
+                                        "example": 4,
+                                        "nullable": true
+                                    },
                                     "proposal_id": {
                                         "type": "integer",
                                         "example": 8,
@@ -1374,6 +1429,14 @@
                                 "properties": {
                                     "title": {
                                         "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "thematic_line_id": {
+                                        "type": "integer",
+                                        "nullable": true
                                     },
                                     "status_id": {
                                         "type": "integer",
@@ -2137,6 +2200,41 @@
                 }
             }
         },
+        "/api/pg/proposals/{proposal}/files/{file}": {
+            "delete": {
+                "tags": [
+                    "Proposal Files"
+                ],
+                "summary": "Detach a file from a proposal",
+                "operationId": "4ef4d0bab49d060b5cbc17e15440107f",
+                "parameters": [
+                    {
+                        "name": "proposal",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "file",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File detached from proposal"
+                    },
+                    "404": {
+                        "description": "Proposal or file not found"
+                    }
+                }
+            }
+        },
         "/api/pg/repository-projects": {
             "get": {
                 "tags": [
@@ -2173,12 +2271,16 @@
                         }
                     },
                     {
-                        "name": "thematic_line_id",
+                        "name": "thematic_line_ids[]",
                         "in": "query",
-                        "description": "Filter by thematic line",
+                        "description": "Filter by one or more thematic line identifiers",
+                        "style": "form",
+                        "explode": true,
                         "schema": {
-                            "type": "integer",
-                            "example": 3
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
                         }
                     }
                 ],
@@ -2421,6 +2523,41 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/pg/repository-projects/{repositoryProject}/files/{file}": {
+            "delete": {
+                "tags": [
+                    "Repository Project Files"
+                ],
+                "summary": "Detach a file from a repository project",
+                "operationId": "3eb528e3e20cd58d058b9826792a7b0c",
+                "parameters": [
+                    {
+                        "name": "repositoryProject",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "file",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File detached from repository project"
+                    },
+                    "404": {
+                        "description": "Repository project or file not found"
                     }
                 }
             }
@@ -3679,6 +3816,65 @@
                 }
             }
         },
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files/{file}": {
+            "delete": {
+                "tags": [
+                    "Submission Files"
+                ],
+                "summary": "Detach a file from a submission",
+                "operationId": "b4f1c5fd3fcb52c0fc0267e7393574ff",
+                "parameters": [
+                    {
+                        "name": "academic_period",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "phase",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "submission",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "file",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File detached from submission"
+                    },
+                    "404": {
+                        "description": "Submission or file not found"
+                    }
+                }
+            }
+        },
         "/api/pg/thematic-lines": {
             "get": {
                 "tags": [
@@ -4659,9 +4855,19 @@
                         "type": "string",
                         "example": "Plataforma IoT"
                     },
+                    "description": {
+                        "type": "string",
+                        "example": "Sistema para monitorear sensores IoT",
+                        "nullable": true
+                    },
                     "status": {
                         "type": "string",
                         "example": "Activo"
+                    },
+                    "thematic_line_name": {
+                        "type": "string",
+                        "example": "Inteligencia Artificial",
+                        "nullable": true
                     },
                     "member_names": {
                         "type": "string",
@@ -4689,6 +4895,11 @@
                         "type": "string",
                         "example": "Plataforma IoT"
                     },
+                    "description": {
+                        "type": "string",
+                        "example": "Sistema para monitorear sensores IoT",
+                        "nullable": true
+                    },
                     "status": {
                         "type": "string",
                         "example": "Activo"
@@ -4696,6 +4907,11 @@
                     "proposal_id": {
                         "type": "integer",
                         "example": 5,
+                        "nullable": true
+                    },
+                    "thematic_line_id": {
+                        "type": "integer",
+                        "example": 7,
                         "nullable": true
                     },
                     "thematic_line_name": {

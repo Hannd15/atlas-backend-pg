@@ -24,7 +24,9 @@ class ProjectFactory extends Factory
 
         return [
             'title' => $this->faker->sentence(3),
+            'description' => $this->faker->paragraph(),
             'status_id' => $defaultStatus->id,
+            'thematic_line_id' => null,
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\AcademicPeriodState;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -22,6 +23,7 @@ class AcademicPeriodFactory extends Factory
             'name' => $this->faker->word(),
             'start_date' => $startDate,
             'end_date' => $this->faker->dateTimeBetween($startDate, '+1 year'),
+            'state_id' => AcademicPeriodState::activeId(),
         ];
     }
 }

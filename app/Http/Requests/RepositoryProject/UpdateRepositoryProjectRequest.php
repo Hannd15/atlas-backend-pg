@@ -14,6 +14,7 @@ class UpdateRepositoryProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'project_id' => ['prohibited'],
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'url' => ['sometimes', 'nullable', 'url', 'max:2048'],

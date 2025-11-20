@@ -15,6 +15,8 @@ class UpdateProjectRequest extends FormRequest
     {
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string'],
+            'thematic_line_id' => ['sometimes', 'nullable', 'exists:thematic_lines,id'],
             'status_id' => ['sometimes', 'nullable', 'exists:project_statuses,id'],
         ];
     }

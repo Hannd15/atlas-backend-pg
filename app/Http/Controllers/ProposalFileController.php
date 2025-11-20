@@ -93,6 +93,30 @@ class ProposalFileController extends Controller
         return response()->json($this->transform($file), 201);
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/api/pg/proposals/{proposal}/files/{file}",
+     *     summary="Detach a file from a proposal",
+     *     tags={"Proposal Files"},
+     *
+     *     @OA\Parameter(name="proposal", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="file", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=200, description="File detached from proposal"),
+     *     @OA\Response(response=404, description="Proposal or file not found")
+     * )
+     */
+    public function destroy(Proposal $proposal, File $file): JsonResponse
+    {
+        if (! $proposal->files()->where('files.id', $file->id)->exists()) {
+            abort(404, 'File not associated with this proposal');
+        }
+
+        $proposal->files()->detach($file->id);
+
+        return response()->json(['message' => 'File detached successfully']);
+    }
+
     private function transform(File $file): array
     {
         return [

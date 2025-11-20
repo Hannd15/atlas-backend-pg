@@ -192,6 +192,35 @@ class SubmissionFileController extends Controller
         return response()->json($this->transformFileForSubmission($file, $submissionId), 201);
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files/{file}",
+     *     summary="Detach a file from a submission",
+     *     tags={"Submission Files"},
+     *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="file", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=200, description="File detached from submission"),
+     *     @OA\Response(response=404, description="Submission or file not found")
+     * )
+     */
+    public function destroy($academicPeriod, $phase, $deliverable, int $submissionId, File $file): JsonResponse
+    {
+        $submission = Submission::findOrFail($submissionId);
+
+        if (! $submission->files()->where('files.id', $file->id)->exists()) {
+            abort(404, 'File not associated with this submission');
+        }
+
+        $submission->files()->detach($file->id);
+
+        return response()->json(['message' => 'File detached successfully']);
+    }
+
     protected function transformFileForSubmission(File $file, int $submissionId): array
     {
         return [

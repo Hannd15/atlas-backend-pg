@@ -7,9 +7,11 @@ use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\Meeting;
 use App\Models\Project;
 use App\Models\ProjectStatus;
+use App\Models\Proposal;
 use App\Services\AtlasUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 /**
  * @OA\Tag(
@@ -23,7 +25,9 @@ use Illuminate\Http\Request;
  *
  *     @OA\Property(property="id", type="integer", example=12),
  *     @OA\Property(property="title", type="string", example="Plataforma IoT"),
+ *     @OA\Property(property="description", type="string", nullable=true, example="Sistema para monitorear sensores IoT"),
  *     @OA\Property(property="status", type="string", example="Activo"),
+ *     @OA\Property(property="thematic_line_name", type="string", nullable=true, example="Inteligencia Artificial"),
  *     @OA\Property(property="member_names", type="string", example="Laura Proposer, Juan Developer"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
@@ -36,8 +40,10 @@ use Illuminate\Http\Request;
  *
  *     @OA\Property(property="id", type="integer", example=12),
  *     @OA\Property(property="title", type="string", example="Plataforma IoT"),
+ *     @OA\Property(property="description", type="string", nullable=true, example="Sistema para monitorear sensores IoT"),
  *     @OA\Property(property="status", type="string", example="Activo"),
  *     @OA\Property(property="proposal_id", type="integer", nullable=true, example=5),
+ *     @OA\Property(property="thematic_line_id", type="integer", nullable=true, example=7),
  *     @OA\Property(property="thematic_line_name", type="string", nullable=true, example="Inteligencia Artificial"),
  *     @OA\Property(property="member_names", type="string", example="Laura Proposer, Juan Developer"),
  *     @OA\Property(property="staff_names", type="string", example="Ana Directora, Luis Asistente"),
@@ -102,7 +108,7 @@ class ProjectController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $projects = Project::with(['groups.members', 'status'])->orderByDesc('updated_at')->get();
+        $projects = Project::with(['groups.members', 'status', 'thematicLine'])->orderByDesc('updated_at')->get();
 
         if ($projects->isEmpty()) {
             return response()->json([]);
@@ -131,6 +137,8 @@ class ProjectController extends Controller
 
      *
      *             @OA\Property(property="title", type="string", example="Nuevo proyecto"),
+     *             @OA\Property(property="description", type="string", nullable=true, example="Descripción del proyecto"),
+     *             @OA\Property(property="thematic_line_id", type="integer", nullable=true, example=4),
      *             @OA\Property(property="proposal_id", type="integer", nullable=true, example=8)
      *         )
      *     ),
@@ -141,11 +149,29 @@ class ProjectController extends Controller
      */
     public function store(StoreProjectRequest $request): JsonResponse
     {
-        $data = $request->safe()->only(['title', 'proposal_id']);
+        $validated = $request->validated();
+
+        $payload = [
+            'title' => $validated['title'],
+            'proposal_id' => $validated['proposal_id'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'thematic_line_id' => $validated['thematic_line_id'] ?? null,
+        ];
+
+        if ($payload['proposal_id'] !== null && ($payload['description'] === null || $payload['thematic_line_id'] === null)) {
+            $proposal = Proposal::query()
+                ->select(['id', 'title', 'description', 'thematic_line_id'])
+                ->find($payload['proposal_id']);
+
+            if ($proposal) {
+                $payload['description'] ??= $proposal->description;
+                $payload['thematic_line_id'] ??= $proposal->thematic_line_id;
+            }
+        }
 
         $activoStatusId = ProjectStatus::firstOrCreate(['name' => 'Activo'])->id;
 
-        $project = Project::create($data + ['status_id' => $activoStatusId]);
+        $project = Project::create($payload + ['status_id' => $activoStatusId]);
         $project->load($this->projectRelations());
 
         $userNames = $this->resolveProjectUserNames($project, trim((string) $request->bearerToken()));
@@ -188,6 +214,8 @@ class ProjectController extends Controller
      *         @OA\JsonContent(
      *
      *             @OA\Property(property="title", type="string"),
+     *             @OA\Property(property="description", type="string", nullable=true),
+     *             @OA\Property(property="thematic_line_id", type="integer", nullable=true),
      *             @OA\Property(property="status_id", type="integer", nullable=true)
      *         )
      *     ),
@@ -198,7 +226,11 @@ class ProjectController extends Controller
      */
     public function update(UpdateProjectRequest $request, Project $project): JsonResponse
     {
-        $project->update($request->safe()->only(['title', 'status_id']));
+        $payload = Arr::only($request->validated(), ['title', 'description', 'thematic_line_id', 'status_id']);
+
+        if (! empty($payload)) {
+            $project->update($payload);
+        }
 
         $project->load($this->projectRelations());
 
@@ -254,6 +286,30 @@ class ProjectController extends Controller
             'value' => $project->id,
             'label' => $project->title,
         ]);
+
+        return response()->json($projects);
+    }
+
+    public function completedDropdown(): JsonResponse
+    {
+        $statusId = ProjectStatus::query()
+            ->where('name', 'Terminado')
+            ->value('id');
+
+        if (! $statusId) {
+            return response()->json([]);
+        }
+
+        $projects = Project::query()
+            ->select(['id', 'title'])
+            ->where('status_id', $statusId)
+            ->whereDoesntHave('repositoryProject')
+            ->orderBy('title')
+            ->get()
+            ->map(fn (Project $project) => [
+                'value' => $project->id,
+                'label' => $project->title,
+            ]);
 
         return response()->json($projects);
     }
@@ -334,6 +390,8 @@ class ProjectController extends Controller
             'id' => $project->id,
             'title' => $project->title,
             'status' => $project->status?->name,
+            'description' => $project->description,
+            'thematic_line_name' => $project->thematicLine?->name,
             'member_names' => $this->memberNames($project, $userNames),
             'created_at' => optional($project->created_at)->toDateTimeString(),
             'updated_at' => optional($project->updated_at)->toDateTimeString(),
@@ -343,7 +401,8 @@ class ProjectController extends Controller
     protected function projectRelations(): array
     {
         return [
-            'proposal.thematicLine',
+            'thematicLine',
+            'proposal',
             'groups.members',
             'status',
             'staff.position',
@@ -361,7 +420,9 @@ class ProjectController extends Controller
             'title' => $project->title,
             'status' => $project->status?->name,
             'proposal_id' => $project->proposal_id,
-            'thematic_line_name' => $project->proposal?->thematicLine?->name,
+            'description' => $project->description,
+            'thematic_line_id' => $project->thematic_line_id,
+            'thematic_line_name' => $project->thematicLine?->name,
             'member_names' => $this->memberNames($project, $userNames),
             'staff_names' => $project->staff->map(fn ($s) => $s->position?->name)->filter()->unique()->implode(', '),
             'created_at' => optional($project->created_at)->toDateTimeString(),

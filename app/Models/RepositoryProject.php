@@ -45,7 +45,7 @@ class RepositoryProject extends Model
             'files',
             'project.groups.members',
             'project.staff',
-            'project.proposal.thematicLine',
+            'project.thematicLine',
         ]);
     }
 }

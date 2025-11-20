@@ -195,6 +195,32 @@ class DeliverableFileController extends Controller
     }
 
     /**
+     * @OA\Delete(
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files/{file}",
+     *     summary="Detach a file from a deliverable",
+     *     tags={"Deliverable Files"},
+     *
+     *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="file", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=200, description="File detached from deliverable"),
+     *     @OA\Response(response=404, description="Deliverable or file not found")
+     * )
+     */
+    public function destroy(AcademicPeriod $academicPeriod, Phase $phase, Deliverable $deliverable, File $file): \Illuminate\Http\JsonResponse
+    {
+        if (! $deliverable->files()->where('files.id', $file->id)->exists()) {
+            abort(404, 'File not associated with this deliverable');
+        }
+
+        $deliverable->files()->detach($file->id);
+
+        return response()->json(['message' => 'File detached successfully']);
+    }
+
+    /**
      * Transform a file for deliverable response.
      */
     private function transformFileForDeliverable(File $file): array

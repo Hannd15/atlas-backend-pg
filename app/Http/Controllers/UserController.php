@@ -221,7 +221,7 @@ class UserController extends Controller
         $staffProjects = \App\Models\ProjectStaff::query()
             ->where('user_id', $id)
             ->with([
-                'project.proposal.thematicLine',
+                'project.thematicLine',
                 'project.groups.members',
                 'projectPosition',
             ])
@@ -242,7 +242,7 @@ class UserController extends Controller
                 return [
                     'id' => $staff->project->id,
                     'name' => $staff->project->title,
-                    'thematic_line_name' => $staff->project->proposal?->thematicLine?->name,
+                    'thematic_line_name' => $staff->project->thematicLine?->name,
                     'group_members_names' => $memberNames,
                     'user_role' => $staff->projectPosition?->name ?? 'Staff',
                 ];
@@ -251,7 +251,7 @@ class UserController extends Controller
         $groupProjects = \App\Models\GroupMember::query()
             ->where('user_id', $id)
             ->with([
-                'group.project.proposal.thematicLine',
+                'group.project.thematicLine',
                 'group.project.groups.members',
             ])
             ->get()
@@ -274,7 +274,7 @@ class UserController extends Controller
                 return [
                     'id' => $project->id,
                     'name' => $project->title,
-                    'thematic_line_name' => $project->proposal?->thematicLine?->name,
+                    'thematic_line_name' => $project->thematicLine?->name,
                     'group_members_names' => $memberNames,
                     'user_role' => 'Miembro del grupo',
                 ];

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\RepositoryProject\StoreRepositoryProjectRequest;
 use App\Http\Requests\RepositoryProject\UpdateRepositoryProjectRequest;
+use App\Models\Project;
 use App\Models\RepositoryProject;
 use App\Services\AtlasUserService;
 use Illuminate\Http\JsonResponse;
@@ -85,7 +86,15 @@ class RepositoryProjectController extends Controller
      *     @OA\Parameter(name="year", in="query", description="Filter by specific year", @OA\Schema(type="integer", example=2025)),
      *     @OA\Parameter(name="year_from", in="query", description="Filter by year range (start)", @OA\Schema(type="integer", example=2024)),
      *     @OA\Parameter(name="year_to", in="query", description="Filter by year range (end)", @OA\Schema(type="integer", example=2025)),
-     *     @OA\Parameter(name="thematic_line_id", in="query", description="Filter by thematic line", @OA\Schema(type="integer", example=3)),
+     *     @OA\Parameter(
+     *         name="thematic_line_ids[]",
+     *         in="query",
+     *         description="Filter by one or more thematic line identifiers",
+     *
+     *         @OA\Schema(type="array", @OA\Items(type="integer")),
+     *         style="form",
+     *         explode=true
+     *     ),
      *
      *     @OA\Response(
      *         response=200,
@@ -114,9 +123,16 @@ class RepositoryProjectController extends Controller
             }
         }
 
-        // Filter by thematic line
-        if ($request->has('thematic_line_id')) {
+        // Filter by thematic lines
+        $thematicLineIds = $this->normalizeQueryIds($request->input('thematic_line_ids'));
+
+        if (! empty($thematicLineIds)) {
+            $query->whereHas('project.proposal', function ($q) use ($thematicLineIds) {
+                $q->whereIn('thematic_line_id', $thematicLineIds);
+            });
+        } elseif ($request->filled('thematic_line_id')) {
             $thematicLineId = (int) $request->input('thematic_line_id');
+
             $query->whereHas('project.proposal', function ($q) use ($thematicLineId) {
                 $q->where('thematic_line_id', $thematicLineId);
             });
@@ -259,7 +275,7 @@ class RepositoryProjectController extends Controller
             'authors' => $this->authorNames($repositoryProject, $userNames),
             'advisors' => $this->advisorNames($repositoryProject, $userNames),
             'keywords_es' => $repositoryProject->keywords_es,
-            'thematic_line' => $repositoryProject->project?->proposal?->thematicLine?->name,
+            'thematic_line' => $repositoryProject->project?->thematicLine?->name,
             'publish_date' => optional($repositoryProject->publish_date)->toDateString(),
             'abstract_es' => $repositoryProject->abstract_es,
             'created_at' => optional($repositoryProject->created_at)->toDateTimeString(),
@@ -315,6 +331,36 @@ class RepositoryProjectController extends Controller
             ->values();
 
         return $this->implodeUserNames($staffIds, $userNames);
+    }
+
+    /**
+     * @param  array<int, mixed>|int|string|null  $value
+     * @return array<int, int>
+     */
+    protected function normalizeQueryIds($value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        return collect(Arr::wrap($value))
+            ->flatMap(function ($item) {
+                if (is_array($item)) {
+                    return $item;
+                }
+
+                if (is_string($item)) {
+                    return preg_split('/[\s,]+/', $item, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                }
+
+                return [$item];
+            })
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

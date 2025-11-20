@@ -36,6 +36,7 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     Route::get('deliverable-files', [DeliverableFileController::class, 'getAll']);
     Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files', [DeliverableFileController::class, 'index']);
     Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files', [DeliverableFileController::class, 'store']);
+    Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/files/{file}', [DeliverableFileController::class, 'destroy']);
 
     // Submissions routes (nested under deliverables) and nested evaluations
     Route::get('submissions/dropdown', [SubmissionController::class, 'dropdown']);
@@ -49,6 +50,7 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     // Submission Files routes (nested under submissions)
     Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files', [SubmissionFileController::class, 'index']);
     Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files', [SubmissionFileController::class, 'store']);
+    Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files/{file}', [SubmissionFileController::class, 'destroy']);
 
     // Submission Evaluations routes (nested under submissions)
     Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'index']);
@@ -82,10 +84,12 @@ Route::scopeBindings()->prefix('pg')->group(function () {
         Route::apiResource('proposals', ProposalController::class);
         Route::get('proposals/{proposal}/files', [\App\Http\Controllers\ProposalFileController::class, 'index']);
         Route::post('proposals/{proposal}/files', [\App\Http\Controllers\ProposalFileController::class, 'store']);
+        Route::delete('proposals/{proposal}/files/{file}', [\App\Http\Controllers\ProposalFileController::class, 'destroy']);
     });
 
     // Projects routes
     Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
+    Route::get('projects/dropdown/completed', [ProjectController::class, 'completedDropdown']);
     Route::apiResource('projects', ProjectController::class);
     Route::get('projects/{project}/deliverables', [ProjectController::class, 'deliverables']);
 
@@ -99,6 +103,7 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     // Repository Projects routes
     Route::get('repository-projects', [RepositoryProjectController::class, 'index']);
     Route::post('repository-projects', [RepositoryProjectController::class, 'store']);
+    Route::get('repository-projects/projects/dropdown', [RepositoryProjectController::class, 'availableProjectsDropdown']);
     Route::get('repository-projects/{repositoryProject}', [RepositoryProjectController::class, 'show']);
     Route::put('repository-projects/{repositoryProject}', [RepositoryProjectController::class, 'update']);
 
@@ -106,6 +111,7 @@ Route::scopeBindings()->prefix('pg')->group(function () {
     Route::get('repository-project-files', [RepositoryProjectFileController::class, 'getAll']);
     Route::get('repository-projects/{repositoryProject}/files', [RepositoryProjectFileController::class, 'index']);
     Route::post('repository-projects/{repositoryProject}/files', [RepositoryProjectFileController::class, 'store']);
+    Route::delete('repository-projects/{repositoryProject}/files/{file}', [RepositoryProjectFileController::class, 'destroy']);
 
     // Project Groups routes
     Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);

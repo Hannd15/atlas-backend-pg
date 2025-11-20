@@ -157,6 +157,30 @@ class RepositoryProjectFileController extends Controller
         return response()->json($this->resourceFromModels($file, $repositoryProject), 201);
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/api/pg/repository-projects/{repositoryProject}/files/{file}",
+     *     summary="Detach a file from a repository project",
+     *     tags={"Repository Project Files"},
+     *
+     *     @OA\Parameter(name="repositoryProject", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="file", in="path", required=true, @OA\Schema(type="integer")),
+     *
+     *     @OA\Response(response=200, description="File detached from repository project"),
+     *     @OA\Response(response=404, description="Repository project or file not found")
+     * )
+     */
+    public function destroy(RepositoryProject $repositoryProject, File $file): JsonResponse
+    {
+        if (! $repositoryProject->files()->where('files.id', $file->id)->exists()) {
+            abort(404, 'File not associated with this repository project');
+        }
+
+        $repositoryProject->files()->detach($file->id);
+
+        return response()->json(['message' => 'File detached successfully']);
+    }
+
     private function resourceFromPivot(RepositoryProjectFile $repositoryProjectFile): array
     {
         $repositoryProject = $repositoryProjectFile->repositoryProject;
