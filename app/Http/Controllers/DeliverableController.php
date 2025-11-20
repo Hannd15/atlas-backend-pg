@@ -322,7 +322,7 @@ class DeliverableController extends Controller
         return [
             'id' => $deliverable->id,
             'name' => $deliverable->name,
-            'due_date' => optional($deliverable->due_date)->toDateTimeString(),
+            'due_date' => optional($deliverable->due_date)->toDateString(),
         ];
     }
 

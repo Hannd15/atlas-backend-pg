@@ -27,14 +27,6 @@ class ProjectStatusSeeder extends Seeder
             ];
         }
 
-        while (count($records) < 50) {
-            $records[] = [
-                'name' => ucfirst($faker->unique()->words(2, true)),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }
-
         ProjectStatus::insert($records);
     }
 }
