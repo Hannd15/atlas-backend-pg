@@ -187,7 +187,7 @@ class RepositoryProjectController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *
-     *         @OA\MediaType(mediaType="multipart/form-data", @OA\Schema(ref="#/components/schemas/RepositoryProjectPayload"))
+     *         @OA\JsonContent(ref="#/components/schemas/RepositoryProjectPayload")
      *     ),
      *
      *     @OA\Response(response=201, description="Repository project created", @OA\JsonContent(ref="#/components/schemas/RepositoryProjectResource")),
@@ -231,7 +231,7 @@ class RepositoryProjectController extends Controller
      *
      *     @OA\Parameter(name="repositoryProject", in="path", required=true, @OA\Schema(type="integer")),
      *
-     *     @OA\RequestBody(@OA\MediaType(mediaType="multipart/form-data", @OA\Schema(ref="#/components/schemas/RepositoryProjectPayload"))),
+     *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/RepositoryProjectPayload")),
      *
      *     @OA\Response(response=200, description="Repository project updated", @OA\JsonContent(ref="#/components/schemas/RepositoryProjectResource")),
      *     @OA\Response(response=404, description="Repository project not found")

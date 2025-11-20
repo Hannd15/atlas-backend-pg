@@ -65,6 +65,7 @@ class DatabaseSeeder extends Seeder
             ThematicLineSeeder::class,
             RubricSeeder::class,
             RubricThematicLineSeeder::class,
+
             ProjectPositionSeeder::class,
             UserProjectEligibilitySeeder::class,
             ProposalTypeSeeder::class,
