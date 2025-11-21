@@ -8,6 +8,12 @@
         },
         "version": "1.0.0"
     },
+    "servers": [
+        {
+            "url": "/api",
+            "description": "API Server"
+        }
+    ],
     "paths": {
         "/api/pg/academic-periods": {
             "get": {
@@ -1662,7 +1668,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProjectGroupResource"
+                                    "$ref": "#/components/schemas/ProjectGroupShowResource"
                                 }
                             }
                         }
@@ -1957,7 +1963,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/ProposalPayload"
                             }
@@ -2032,7 +2038,7 @@
                 ],
                 "requestBody": {
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/ProposalPayload"
                             }
@@ -2309,7 +2315,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/RepositoryProjectPayload"
                             }
@@ -2384,7 +2390,7 @@
                 ],
                 "requestBody": {
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/RepositoryProjectPayload"
                             }
@@ -4479,6 +4485,40 @@
                     }
                 }
             }
+        },
+        "/api/pg/user-project-eligibilities/directors/dropdown": {
+            "get": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Dropdown of director-eligible users",
+                "operationId": "44d52b3acdbcd808a7d0bf4124a80303",
+                "responses": {
+                    "200": {
+                        "description": "Value-label pairs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 5
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Jane Doe"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -5113,11 +5153,52 @@
                 },
                 "type": "object"
             },
+            "ProjectGroupShowResource": {
+                "description": "Project group details matching the index representation while omitting reserved member names.",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Grupo Alfa"
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 7,
+                        "nullable": true
+                    },
+                    "project_name": {
+                        "type": "string",
+                        "example": "Sistema IoT",
+                        "nullable": true
+                    },
+                    "phase_name": {
+                        "type": "string",
+                        "example": "Fase 1",
+                        "nullable": true
+                    },
+                    "period_name": {
+                        "type": "string",
+                        "example": "2024-1",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
             "ProposalPayload": {
                 "required": [
                     "title",
-                    "thematic_line_id",
-                    "proposer_id"
+                    "thematic_line_id"
                 ],
                 "properties": {
                     "title": {
@@ -5131,10 +5212,6 @@
                     "thematic_line_id": {
                         "type": "integer",
                         "example": 4
-                    },
-                    "proposer_id": {
-                        "type": "integer",
-                        "example": 12
                     },
                     "preferred_director_id": {
                         "type": "integer",

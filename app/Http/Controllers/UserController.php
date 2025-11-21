@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\AtlasUserService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * @OA\Tag(
@@ -35,6 +36,32 @@ class UserController extends Controller
         $token = $this->requireToken($request->bearerToken());
 
         return response()->json($this->atlasUserService->listUsers($token));
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/pg/users/students",
+     *     summary="Get all users with student role",
+     *     tags={"Users"},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of users whose roles include Estudiante/Student"
+     *     )
+     * )
+     */
+    public function students(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $token = $this->requireToken($request->bearerToken());
+
+        $users = $this->atlasUserService->listUsers($token);
+
+        $students = collect($users)
+            ->filter(fn ($user) => $this->userHasStudentRole($user))
+            ->values()
+            ->all();
+
+        return response()->json($students);
     }
 
     /**
@@ -313,6 +340,63 @@ class UserController extends Controller
             ->filter()
             ->unique()
             ->implode(', ');
+    }
+
+    protected function userHasStudentRole(mixed $user): bool
+    {
+        if (! is_array($user)) {
+            return false;
+        }
+
+        $roles = $this->extractRoleNames($user['roles'] ?? null);
+
+        if ($roles === []) {
+            return false;
+        }
+
+        $normalized = collect($roles)->map(fn ($role) => Str::lower($role));
+
+        return $normalized->contains(fn ($role) => in_array($role, ['estudiante', 'student'], true));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function extractRoleNames(mixed $rawRoles): array
+    {
+        if (is_string($rawRoles)) {
+            return [$rawRoles];
+        }
+
+        if (! is_array($rawRoles)) {
+            return [];
+        }
+
+        $names = [];
+
+        foreach ($rawRoles as $role) {
+            if (is_string($role)) {
+                $names[] = $role;
+
+                continue;
+            }
+
+            if (! is_array($role)) {
+                continue;
+            }
+
+            if (isset($role['name']) && is_string($role['name'])) {
+                $names[] = $role['name'];
+
+                continue;
+            }
+
+            if (isset($role['label']) && is_string($role['label'])) {
+                $names[] = $role['label'];
+            }
+        }
+
+        return $names;
     }
 
     protected function requireToken(?string $token): string
