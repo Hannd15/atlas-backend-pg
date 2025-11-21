@@ -8,6 +8,8 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 
 class FakeAtlasUserService extends AtlasUserService
 {
+    protected array $userRoles = [];
+
     protected function assertToken(string $token): void
     {
         if (trim($token) === '') {
@@ -27,6 +29,13 @@ class FakeAtlasUserService extends AtlasUserService
             ->map(fn (User $user) => $this->formatRemoteUser($user))
             ->values()
             ->all();
+    }
+
+    public function setUserRoles(array $rolesByUser): void
+    {
+        $this->userRoles = collect($rolesByUser)
+            ->map(fn ($roles) => $this->normalizeRolesPayload($roles))
+            ->toArray();
     }
 
     public function getUser(string $token, int $userId): array
@@ -121,6 +130,20 @@ class FakeAtlasUserService extends AtlasUserService
             'id' => $user->id,
             'name' => $user->name ?? "User #{$user->id}",
             'email' => $user->email,
+            'roles' => $this->userRoles[$user->id] ?? [],
         ];
+    }
+
+    protected function normalizeRolesPayload(mixed $roles): array
+    {
+        if (is_string($roles)) {
+            return [$roles];
+        }
+
+        if (! is_array($roles)) {
+            return [];
+        }
+
+        return array_values($roles);
     }
 }

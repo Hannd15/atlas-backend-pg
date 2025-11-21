@@ -129,6 +129,7 @@ Route::middleware('auth.atlas')->group(function () {
 
         // Users routes (all user data proxied from Atlas auth module)
         Route::get('users/dropdown', [UserController::class, 'dropdown']);
+        Route::get('users/students', [UserController::class, 'students']);
         Route::get('users', [UserController::class, 'index']);
         Route::post('users', [UserController::class, 'store']);
         Route::get('users/{id}', [UserController::class, 'show']);

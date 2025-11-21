@@ -170,4 +170,26 @@ class UserEndpointsTest extends TestCase
         $this->assertNotNull($dropdownUser);
         $this->assertSame('Propuesta Jurado', $dropdownUser['proposal_names']);
     }
+
+    public function test_students_endpoint_returns_only_student_role_users(): void
+    {
+        $student = User::factory()->create(['name' => 'Student Example', 'email' => 'student@example.com']);
+        $teacher = User::factory()->create(['name' => 'Teacher Example', 'email' => 'teacher@example.com']);
+
+        $this->atlasUserServiceFake->setUserRoles([
+            $student->id => ['Estudiante'],
+            $teacher->id => ['Docente'],
+        ]);
+
+        $response = $this->getJson('/api/pg/users/students');
+
+        $response->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonFragment([
+                'id' => $student->id,
+                'name' => 'Student Example',
+                'email' => 'student@example.com',
+            ])
+            ->assertJsonMissing(['id' => $teacher->id]);
+    }
 }
