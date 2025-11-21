@@ -51,6 +51,24 @@ class UserProjectEligibilityEndpointsTest extends TestCase
             ->assertExactJson($this->userEligibilityByPositionDropdownArray());
     }
 
+    public function test_directors_dropdown_returns_director_users(): void
+    {
+        $this->createEligibilityFixtures();
+
+        $position = ProjectPosition::with(['eligibleUsers' => fn ($query) => $query->orderBy('name')])
+            ->where('name', 'Director')
+            ->first();
+
+        $expected = $position?->eligibleUsers->map(fn (User $user) => [
+            'value' => $user->id,
+            'label' => $user->name,
+        ])->values()->all() ?? [];
+
+        $this->getJson('/api/pg/user-project-eligibilities/directors/dropdown')
+            ->assertOk()
+            ->assertExactJson($expected);
+    }
+
     private function createEligibilityFixtures(): void
     {
         $director = ProjectPosition::create(['name' => 'Director']);

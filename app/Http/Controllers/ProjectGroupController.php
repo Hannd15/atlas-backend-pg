@@ -56,6 +56,21 @@ use Illuminate\Validation\ValidationException;
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
+ *
+ * @OA\Schema(
+ *     schema="ProjectGroupShowResource",
+ *     type="object",
+ *     description="Project group details matching the index representation while omitting reserved member names.",
+ *
+ *     @OA\Property(property="id", type="integer", example=3),
+ *     @OA\Property(property="name", type="string", example="Grupo Alfa"),
+ *     @OA\Property(property="project_id", type="integer", nullable=true, example=7),
+ *     @OA\Property(property="project_name", type="string", nullable=true, example="Sistema IoT"),
+ *     @OA\Property(property="phase_name", type="string", nullable=true, example="Fase 1"),
+ *     @OA\Property(property="period_name", type="string", nullable=true, example="2024-1"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
  */
 class ProjectGroupController extends Controller
 {
@@ -146,15 +161,36 @@ class ProjectGroupController extends Controller
      *
      *     @OA\Parameter(name="project_group", in="path", required=true, @OA\Schema(type="integer")),
      *
-     *     @OA\Response(response=200, description="Project group details", @OA\JsonContent(ref="#/components/schemas/ProjectGroupResource")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Project group details",
+     *
+     *         @OA\JsonContent(ref="#/components/schemas/ProjectGroupShowResource")
+     *     ),
+     *
      *     @OA\Response(response=404, description="Project group not found")
      * )
      */
     public function show(Request $request, ProjectGroup $projectGroup): JsonResponse
     {
-        $projectGroup->loadMissing('project');
+        $projectGroup->loadMissing('project.phase.period', 'members');
 
-        return response()->json($this->transformForShow($projectGroup));
+        $token = trim((string) $request->bearerToken());
+        $memberIds = $projectGroup->members
+            ->pluck('user_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $userNames = empty($memberIds)
+            ? []
+            : $this->userNamesForIds($memberIds, $token);
+
+        $data = $this->transformForIndex($projectGroup, $userNames);
+        unset($data['member_user_names']);
+
+        return response()->json($data);
     }
 
     /**

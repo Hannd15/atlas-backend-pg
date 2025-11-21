@@ -223,6 +223,63 @@ class UserProjectEligibilityController extends Controller
         return response()->json($items);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/user-project-eligibilities/directors/dropdown",
+     *     summary="Dropdown of director-eligible users",
+     *     tags={"User Project Eligibilities"},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Value-label pairs",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *
+     *                 @OA\Property(property="value", type="integer", example=5),
+     *                 @OA\Property(property="label", type="string", example="Jane Doe")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function directorsDropdown(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $token = $this->requireToken((string) $request->bearerToken());
+
+        $position = ProjectPosition::with(['eligibleUsers' => fn ($query) => $query->orderBy('name')])
+            ->where('name', 'Director')
+            ->first();
+
+        if (! $position) {
+            return response()->json([]);
+        }
+
+        $userIds = $position->eligibleUsers
+            ->pluck('id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        if (empty($userIds)) {
+            return response()->json([]);
+        }
+
+        $names = $this->atlasUserService->namesByIds($token, $userIds);
+
+        $items = collect($userIds)->map(function (int $userId) use ($names) {
+            return [
+                'value' => $userId,
+                'label' => $names[$userId] ?? "User #{$userId}",
+            ];
+        })->values();
+
+        return response()->json($items);
+    }
+
     protected function requireToken(?string $token): string
     {
         $token = trim((string) $token);

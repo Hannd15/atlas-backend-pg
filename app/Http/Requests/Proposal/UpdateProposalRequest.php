@@ -10,7 +10,6 @@ class UpdateProposalRequest extends StoreProposalRequest
             'title' => ['sometimes', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'thematic_line_id' => ['sometimes', 'required', 'exists:thematic_lines,id'],
-            'proposer_id' => ['sometimes', 'required', 'exists:users,id'],
             'preferred_director_id' => ['sometimes', 'nullable', 'exists:users,id'],
             'proposal_status_id' => ['sometimes', 'nullable', 'exists:proposal_statuses,id'],
             // File management removed from update; use proposal file endpoints.

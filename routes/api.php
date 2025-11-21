@@ -4,6 +4,7 @@ use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\DeliverableFileController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\PhaseController;
 use App\Http\Controllers\ProjectController;
@@ -124,7 +125,7 @@ Route::middleware('auth.atlas')->group(function () {
         // Project Groups routes
         Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
         Route::apiResource('project-groups', ProjectGroupController::class);
-        Route::get('project-groups/{project_group}/members', [\App\Http\Controllers\GroupMemberController::class, 'index']);
+        Route::get('project-groups/{project_group}/users', [GroupMemberController::class, 'index']);
 
         // Users routes (all user data proxied from Atlas auth module)
         Route::get('users/dropdown', [UserController::class, 'dropdown']);
@@ -144,5 +145,6 @@ Route::middleware('auth.atlas')->group(function () {
         Route::get('user-project-eligibilities/by-position', [UserProjectEligibilityController::class, 'byPosition']);
         Route::get('user-project-eligibilities/by-user/dropdown', [UserProjectEligibilityController::class, 'byUserDropdown']);
         Route::get('user-project-eligibilities/by-position/dropdown', [UserProjectEligibilityController::class, 'byPositionDropdown']);
+        Route::get('user-project-eligibilities/directors/dropdown', [UserProjectEligibilityController::class, 'directorsDropdown']);
     });
 });

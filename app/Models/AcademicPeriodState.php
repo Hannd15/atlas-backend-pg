@@ -20,6 +20,7 @@ class AcademicPeriodState extends Model
     }
 
     public const NAME_ACTIVO = 'Activo';
+
     public const NAME_TERMINADO = 'Terminado';
 
     private static array $defaultDescriptions = [

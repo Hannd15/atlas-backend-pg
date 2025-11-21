@@ -9,9 +9,7 @@ use App\Models\ProposalType;
 use App\Models\ThematicLine;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProposalEndpointsTest extends TestCase
@@ -32,7 +30,6 @@ class ProposalEndpointsTest extends TestCase
     {
         parent::setUp();
 
-        Storage::fake('public');
         config([
             'filesystems.default' => 'public',
             'services.atlas_auth.url' => 'https://auth.example',
@@ -93,47 +90,30 @@ class ProposalEndpointsTest extends TestCase
         $line = ThematicLine::create(['name' => 'Línea Investigación']);
         $proposer = User::factory()->create();
         $director = User::factory()->create();
-        $existingFile = File::create([
-            'name' => 'antecedentes.pdf',
-            'extension' => 'pdf',
-            'url' => 'https://files.test/antecedentes.pdf',
-            'disk' => 'public',
-            'path' => 'pg/uploads/antecedentes.pdf',
-        ]);
 
-        $uploaded = UploadedFile::fake()->create('propuesta.pdf', 200, 'application/pdf');
+        $this->fakeAuth(['id' => $proposer->id, 'roles' => ['Director']]);
 
-        $this->fakeAuth(['id' => $director->id, 'roles' => ['Director']]);
-
-        $response = $this->post('/api/pg/proposals', [
+        $response = $this->postJson('/api/pg/proposals', [
             'title' => 'Nueva propuesta docente',
             'description' => 'Descripción detallada',
             'thematic_line_id' => $line->id,
-            'proposer_id' => $proposer->id,
             'preferred_director_id' => $director->id,
             'proposal_status_id' => $statusId,
-            'file_ids' => [$existingFile->id],
-            'files' => [$uploaded],
         ], $this->authHeaders());
 
         $response->assertCreated();
 
-        $proposal = Proposal::with('files', 'type')->firstOrFail();
-        $fileIds = $proposal->files->pluck('id')->values()->all();
-        $fileNames = $proposal->files->pluck('name')->values()->all();
+        $proposal = Proposal::with('type')->firstOrFail();
 
         $this->assertSame('made_by_teacher', $proposal->type->code);
-        $this->assertContains($existingFile->id, $fileIds);
-        $this->assertContains('antecedentes.pdf', $fileNames);
+        $this->assertSame($proposer->id, $proposal->proposer_id);
+        $this->assertSame($director->id, $proposal->preferred_director_id);
 
         $response->assertJsonFragment([
             'title' => 'Nueva propuesta docente',
-            'file_ids' => $fileIds,
-            'file_names' => $fileNames,
+            'proposer_name' => $proposer->name,
+            'preferred_director_name' => $director->name,
         ]);
-
-        $storedFile = File::whereNot('id', $existingFile->id)->firstOrFail();
-        $this->assertTrue(Storage::disk('public')->exists($storedFile->path));
     }
 
     public function test_store_assigns_student_type_based_on_role(): void
@@ -144,11 +124,10 @@ class ProposalEndpointsTest extends TestCase
 
         $this->fakeAuth(['id' => $proposer->id, 'roles' => ['Estudiante']]);
 
-        $response = $this->post('/api/pg/proposals', [
+        $response = $this->postJson('/api/pg/proposals', [
             'title' => 'Propuesta estudiantil',
             'description' => 'Descripción',
             'thematic_line_id' => $line->id,
-            'proposer_id' => $proposer->id,
             'preferred_director_id' => null,
             'proposal_status_id' => $statusId,
         ], $this->authHeaders());
@@ -159,7 +138,7 @@ class ProposalEndpointsTest extends TestCase
         $this->assertSame('made_by_student', $proposal->type->code);
     }
 
-    public function test_update_syncs_files_and_deletes_removed_attachments(): void
+    public function test_update_modifies_core_fields(): void
     {
         $statusId = $this->proposalStatusId('pending');
         $line = ThematicLine::create(['name' => 'Línea Desarrollo']);
@@ -176,52 +155,29 @@ class ProposalEndpointsTest extends TestCase
             'thematic_line_id' => $line->id,
         ]);
 
-        $fileToKeep = File::create([
-            'name' => 'resumen.pdf',
-            'extension' => 'pdf',
-            'url' => 'https://files.test/resumen.pdf',
-            'disk' => 'public',
-            'path' => 'pg/uploads/resumen.pdf',
-        ]);
-
-        $fileToRemove = File::create([
-            'name' => 'borrador.docx',
-            'extension' => 'docx',
-            'url' => 'https://files.test/borrador.docx',
-            'disk' => 'public',
-            'path' => 'pg/uploads/borrador.docx',
-        ]);
-        Storage::disk('public')->put($fileToRemove->path, 'draft');
-
-        $proposal->files()->sync([$fileToKeep->id, $fileToRemove->id]);
-
         $this->fakeAuth(['id' => $director->id, 'roles' => ['Director']]);
 
-        $newUpload = UploadedFile::fake()->create('anexo.pdf', 150, 'application/pdf');
-
-        $response = $this->put('/api/pg/proposals/'.$proposal->id, [
+        $response = $this->putJson('/api/pg/proposals/'.$proposal->id, [
             'title' => 'Propuesta actualizada',
             'description' => 'Contenido actualizado',
-            'file_ids' => [$fileToKeep->id],
-            'files' => [$newUpload],
+            'proposal_status_id' => $this->proposalStatusId('approved'),
+            'preferred_director_id' => null,
+            'thematic_line_id' => $line->id,
         ], $this->authHeaders());
 
-        $response->assertOk();
-
-        $proposal->refresh()->load('files');
-
-        $fileIds = $proposal->files->pluck('id')->all();
-        $this->assertContains($fileToKeep->id, $fileIds);
-        $this->assertDatabaseMissing('files', ['id' => $fileToRemove->id]);
-        $this->assertFalse(Storage::disk('public')->exists($fileToRemove->path));
-
-        $response->assertJsonFragment([
+        $response->assertOk()->assertJsonFragment([
             'title' => 'Propuesta actualizada',
-            'file_ids' => $fileIds,
+            'description' => 'Contenido actualizado',
         ]);
+
+        $proposal->refresh();
+
+        $this->assertSame('Propuesta actualizada', $proposal->title);
+        $this->assertSame('Contenido actualizado', $proposal->description);
+        $this->assertNull($proposal->preferred_director_id);
     }
 
-    public function test_show_returns_file_arrays_in_matching_order(): void
+    public function test_show_returns_expected_payload(): void
     {
         $proposal = $this->createProposalWithFiles();
 
@@ -229,20 +185,18 @@ class ProposalEndpointsTest extends TestCase
 
         $response = $this->getJson('/api/pg/proposals/'.$proposal->id, $this->authHeaders());
 
-        $response->assertOk();
-        $payload = $response->json();
-
-        $this->assertSame($payload['file_ids'][0], $proposal->files->first()->id);
-        $this->assertSame($payload['file_names'][0], $proposal->files->first()->name);
-        $this->assertSame($payload['file_ids'][1], $proposal->files->get(1)->id);
-        $this->assertSame($payload['file_names'][1], $proposal->files->get(1)->name);
+        $response->assertOk()->assertJsonFragment([
+            'id' => $proposal->id,
+            'title' => $proposal->title,
+            'proposer_name' => $proposal->proposer?->name,
+            'preferred_director_name' => $proposal->preferredDirector?->name,
+        ]);
     }
 
-    public function test_destroy_deletes_proposal_and_orphaned_files(): void
+    public function test_destroy_deletes_proposal_record(): void
     {
         $proposal = $this->createProposalWithFiles();
         $file = $proposal->files->first();
-        Storage::disk('public')->put($file->path, 'content');
 
         $this->fakeAuth(['id' => $proposal->proposer_id, 'roles' => ['Director']]);
 
@@ -252,8 +206,7 @@ class ProposalEndpointsTest extends TestCase
 
         $this->assertDatabaseMissing('proposals', ['id' => $proposal->id]);
         $this->assertDatabaseMissing('proposal_files', ['proposal_id' => $proposal->id]);
-        $this->assertDatabaseMissing('files', ['id' => $file->id]);
-        $this->assertFalse(Storage::disk('public')->exists($file->path));
+        $this->assertDatabaseHas('files', ['id' => $file->id]);
     }
 
     public function test_proposals_routes_require_bearer_token(): void
@@ -270,28 +223,32 @@ class ProposalEndpointsTest extends TestCase
 
     public function test_proposals_route_forwards_auth_forbidden_response(): void
     {
-        Http::fake([
-            'https://auth.example/api/auth/token/verify' => Http::response([
-                'message' => 'Missing permissions.',
-            ], 403),
+        app()->forgetInstance('testing.atlasUser');
+        app()->instance('testing.atlasError', [
+            'status' => 403,
+            'body' => ['message' => 'Missing permissions.'],
         ]);
 
         $this->getJson('/api/pg/proposals', $this->authHeaders())
             ->assertStatus(403)
             ->assertExactJson(['message' => 'Missing permissions.']);
+
+        app()->forgetInstance('testing.atlasError');
     }
 
     public function test_proposals_route_returns_service_unavailable_when_user_payload_missing(): void
     {
-        Http::fake([
-            'https://auth.example/api/auth/token/verify' => Http::response([
-                'authorized' => true,
-            ], 200),
+        app()->forgetInstance('testing.atlasUser');
+        app()->instance('testing.atlasError', [
+            'status' => 503,
+            'body' => ['message' => 'Authentication service unavailable.'],
         ]);
 
         $this->getJson('/api/pg/proposals', $this->authHeaders())
             ->assertStatus(503)
             ->assertExactJson(['message' => 'Authentication service unavailable.']);
+
+        app()->forgetInstance('testing.atlasError');
     }
 
     protected function fakeAuth(array $userPayload): void
@@ -302,6 +259,9 @@ class ProposalEndpointsTest extends TestCase
                 'user' => $userPayload,
             ], 200),
         ]);
+
+        app()->instance('testing.atlasUser', $userPayload);
+        app()->forgetInstance('testing.atlasError');
     }
 
     protected function authHeaders(): array

@@ -8,7 +8,6 @@ use App\Models\Proposal;
 use App\Models\ProposalStatus;
 use App\Models\ProposalType;
 use App\Services\AtlasAuthService;
-use App\Services\FileStorageService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,12 +23,11 @@ use Illuminate\Support\Str;
  * @OA\Schema(
  *     schema="ProposalPayload",
  *     type="object",
- *     required={"title","thematic_line_id","proposer_id"},
+ *     required={"title","thematic_line_id"},
  *
  *     @OA\Property(property="title", type="string", example="Sistema de monitoreo"),
  *     @OA\Property(property="description", type="string", nullable=true),
  *     @OA\Property(property="thematic_line_id", type="integer", example=4),
- *     @OA\Property(property="proposer_id", type="integer", example=12),
  *     @OA\Property(property="preferred_director_id", type="integer", nullable=true, example=32),
  *     @OA\Property(property="proposal_status_id", type="integer", nullable=true, example=2)
  * )
@@ -53,10 +51,7 @@ use Illuminate\Support\Str;
  */
 class ProposalController extends Controller
 {
-    public function __construct(
-        protected FileStorageService $fileStorageService,
-        protected AtlasAuthService $atlasAuthService
-    ) {}
+    public function __construct(protected AtlasAuthService $atlasAuthService) {}
 
     /**
      * @OA\Get(
@@ -72,8 +67,10 @@ class ProposalController extends Controller
      *     )
      * )
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $this->resolveAtlasUser($request);
+
         $proposals = Proposal::with($this->defaultRelations())
             ->whereHas('type', fn ($query) => $query->where('code', 'made_by_teacher'))
             ->orderByDesc('updated_at')
@@ -88,11 +85,7 @@ class ProposalController extends Controller
      *     summary="Create a proposal",
      *     tags={"Proposals"},
      *
-     *     @OA\RequestBody(
-     *         required=true,
-     *
-     *         @OA\MediaType(mediaType="multipart/form-data", @OA\Schema(ref="#/components/schemas/ProposalPayload"))
-     *     ),
+     *     @OA\RequestBody(required=true, @OA\JsonContent(ref="#/components/schemas/ProposalPayload")),
      *
      *     @OA\Response(response=201, description="Proposal created", @OA\JsonContent(ref="#/components/schemas/ProposalResource")),
      *     @OA\Response(response=422, description="Validation error")
@@ -104,13 +97,14 @@ class ProposalController extends Controller
 
         $proposalTypeId = $this->determineProposalTypeId($request);
         $statusId = $validated['proposal_status_id'] ?? $this->defaultStatusId();
+        $proposerId = $this->resolveAuthenticatedUserId($request);
 
         $proposal = Proposal::create([
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'proposal_type_id' => $proposalTypeId,
             'proposal_status_id' => $statusId,
-            'proposer_id' => $validated['proposer_id'],
+            'proposer_id' => $proposerId,
             'preferred_director_id' => $validated['preferred_director_id'] ?? null,
             'thematic_line_id' => $validated['thematic_line_id'],
         ]);
@@ -147,7 +141,7 @@ class ProposalController extends Controller
      *
      *     @OA\Parameter(name="proposal", in="path", required=true, @OA\Schema(type="integer")),
      *
-     *     @OA\RequestBody(@OA\MediaType(mediaType="multipart/form-data", @OA\Schema(ref="#/components/schemas/ProposalPayload"))),
+     *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/ProposalPayload")),
      *
      *     @OA\Response(response=200, description="Proposal updated", @OA\JsonContent(ref="#/components/schemas/ProposalResource")),
      *     @OA\Response(response=404, description="Proposal not found")
@@ -157,14 +151,16 @@ class ProposalController extends Controller
     {
         $validated = $request->validated();
 
-        $proposal->update(Arr::only($validated, [
-            'title',
-            'description',
-            'proposal_status_id',
-            'proposer_id',
-            'preferred_director_id',
-            'thematic_line_id',
-        ]));
+        $proposal->update(array_merge(
+            Arr::only($validated, [
+                'title',
+                'description',
+                'proposal_status_id',
+                'preferred_director_id',
+                'thematic_line_id',
+            ]),
+            ['proposer_id' => $this->resolveAuthenticatedUserId($request)]
+        ));
 
         $proposal->load($this->defaultRelations());
 
@@ -235,13 +231,7 @@ class ProposalController extends Controller
 
     protected function determineProposalTypeId(Request $request): int
     {
-        $userData = $request->attributes->get('atlasUser');
-
-        if (! is_array($userData)) {
-            $token = (string) $request->bearerToken();
-            $userData = $this->atlasAuthService->verifyToken($token)['user'] ?? [];
-            $request->attributes->set('atlasUser', $userData);
-        }
+        $userData = $this->resolveAtlasUser($request);
 
         $roles = $this->extractRoleNames($userData);
 
@@ -259,6 +249,64 @@ class ProposalController extends Controller
         }
 
         return $typeId;
+    }
+
+    protected function resolveAuthenticatedUserId(Request $request): int
+    {
+        $user = $this->resolveAtlasUser($request);
+
+        if (! isset($user['id'])) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Authenticated user payload is missing an id.',
+            ], 503));
+        }
+
+        return (int) $user['id'];
+    }
+
+    protected function resolveAtlasUser(Request $request): array
+    {
+        $userData = $request->attributes->get('atlasUser');
+
+        if (is_array($userData) && ! $this->shouldRefreshAtlasUser($userData)) {
+            return $userData;
+        }
+
+        $token = trim((string) $request->bearerToken());
+
+        if ($token === '') {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Missing bearer token.',
+            ], 401));
+        }
+
+        $payload = $this->atlasAuthService->verifyToken($token);
+        $userData = $payload['user'] ?? null;
+
+        if (! is_array($userData)) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Authentication service unavailable.',
+            ], 503));
+        }
+
+        $request->attributes->set('atlasUser', $userData);
+
+        return $userData;
+    }
+
+    protected function shouldRefreshAtlasUser(array $userData): bool
+    {
+        if (! app()->environment(['local', 'testing'])) {
+            return false;
+        }
+
+        $normalized = array_change_key_case($userData, CASE_LOWER);
+
+        if ($normalized === [] || (count($normalized) === 1 && isset($normalized['id']))) {
+            return true;
+        }
+
+        return ! array_key_exists('roles', $normalized);
     }
 
     protected function extractRoleNames(array $userData): array
