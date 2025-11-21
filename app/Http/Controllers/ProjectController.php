@@ -290,6 +290,29 @@ class ProjectController extends Controller
         return response()->json($projects);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/projects/dropdown/completed",
+     *     summary="Get completed projects for dropdowns",
+     *     tags={"Projects"},
+     *     description="Returns projects marked as 'Terminado' that are not yet linked to the repository, formatted as dropdown value/label pairs.",
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Completed projects formatted for dropdowns",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *
+     *                 @OA\Property(property="value", type="integer", example=5),
+     *                 @OA\Property(property="label", type="string", example="Sistema de monitoreo")
+     *             )
+     *         )
+     *     )
+     * )
+     */
     public function completedDropdown(): JsonResponse
     {
         $statusId = ProjectStatus::query()
