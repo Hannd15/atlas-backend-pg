@@ -292,7 +292,7 @@ class ProjectController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/projects/dropdown/completed",
+     *     path="/api/pg/projects/available-dropdown",
      *     summary="Get completed projects for dropdowns",
      *     tags={"Projects"},
      *     description="Returns projects marked as 'Terminado' that are not yet linked to the repository, formatted as dropdown value/label pairs.",

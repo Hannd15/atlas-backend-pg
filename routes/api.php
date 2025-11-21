@@ -98,7 +98,7 @@ Route::middleware('auth.atlas')->group(function () {
 
         // Projects routes
         Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
-        Route::get('projects/dropdown/completed', [ProjectController::class, 'completedDropdown']);
+        Route::get('projects/available-dropdown', [ProjectController::class, 'completedDropdown']);
         Route::apiResource('projects', ProjectController::class);
         Route::get('projects/{project}/deliverables', [ProjectController::class, 'deliverables']);
 
