@@ -30,6 +30,7 @@ class ProjectSeeder extends Seeder
                 'proposal_id' => $faker->randomElement($proposalIds),
                 'phase_id' => $faker->randomElement($phaseIds),
                 'title' => ucfirst($faker->unique()->sentence(4)),
+                'description' => $faker->paragraph(),
                 'status_id' => $faker->randomElement($statusIds),
                 'created_at' => now(),
                 'updated_at' => now(),
