@@ -194,4 +194,55 @@ class GoogleCalendarService
                 'Authorization' => $bearerToken,
             ]);
     }
+
+    /**
+     * Update an existing Google Calendar event via Atlas Auth proxy.
+     *
+     * @param  array{summary?: string, description?: string, start?: array{dateTime: string, timeZone?: string}, end?: array{dateTime: string, timeZone?: string}, attendees?: array}  $eventData
+     * @return array{success: bool, status?: int, error?: string, data?: array}
+     */
+    public function updateEvent(string $bearerToken, string $eventId, array $eventData, string $calendarId = 'primary'): array
+    {
+        $path = sprintf(
+            '/calendars/%s/events/%s',
+            rawurlencode($calendarId),
+            rawurlencode($eventId)
+        );
+
+        try {
+            $response = $this->calendarProxy($bearerToken, 'PATCH', $path, json: $eventData);
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'status' => $response->status(),
+                    'data' => $response->json(),
+                ];
+            }
+
+            $errorMessage = $this->extractErrorMessage($response);
+
+            Log::warning('Google Calendar event update failed', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+            ]);
+
+            return [
+                'success' => false,
+                'status' => $response->status(),
+                'error' => $errorMessage,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Exception updating Google Calendar event', [
+                'event_id' => $eventId,
+                'calendar_id' => $calendarId,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to update Google Calendar event: '.$e->getMessage(),
+            ];
+        }
+    }
 }

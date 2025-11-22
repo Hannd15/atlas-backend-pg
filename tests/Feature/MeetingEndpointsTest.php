@@ -44,7 +44,7 @@ class MeetingEndpointsTest extends TestCase
                 'meeting_date' => $meetingDate->toDateString(),
                 'start_time' => null,
                 'end_time' => null,
-                'timezone' => null,
+                'timezone' => 'America/Bogota',
                 'observations' => null,
                 'url' => $expectedUrl,
                 'google_meet_url' => null,
@@ -100,7 +100,7 @@ class MeetingEndpointsTest extends TestCase
             'meeting_date' => $updatedDate->toDateString(),
             'start_time' => null,
             'end_time' => null,
-            'timezone' => null,
+            'timezone' => 'America/Bogota',
             'observations' => 'Agenda revisada',
             'url' => $expectedUrl,
             'google_meet_url' => null,
@@ -173,7 +173,7 @@ class MeetingEndpointsTest extends TestCase
                     'meeting_date' => $meetingDate->toDateString(),
                     'start_time' => null,
                     'end_time' => null,
-                    'timezone' => null,
+                    'timezone' => 'America/Bogota',
                     'observations' => 'Plan de trabajo',
                     'url' => $expectedUrl,
                     'google_meet_url' => null,
@@ -227,7 +227,6 @@ class MeetingEndpointsTest extends TestCase
                 'meeting_date' => $meetingDate->toDateString(),
                 'start_time' => '10:00',
                 'end_time' => '11:00',
-                'timezone' => 'America/New_York',
             ]);
 
         $meeting = Meeting::with('attendees')
@@ -245,7 +244,7 @@ class MeetingEndpointsTest extends TestCase
                 'meeting_date' => $meetingDate->toDateString(),
                 'start_time' => '10:00',
                 'end_time' => '11:00',
-                'timezone' => 'America/New_York',
+                'timezone' => 'America/Bogota',
                 'observations' => null,
                 'url' => $expectedUrl,
             ]);
@@ -263,6 +262,78 @@ class MeetingEndpointsTest extends TestCase
             $meeting->google_meet_url !== null || $meeting->google_meet_url === null,
             'google_meet_url field should exist'
         );
+    }
+
+    public function test_update_with_time_changes_updates_calendar_and_meet(): void
+    {
+        [$project, $_memberUser, $staffUser] = $this->createProjectStructure('Proyecto calendar sync');
+
+        config(['services.atlas_auth.url' => 'https://auth.example.com']);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'https://auth.example.com/api/auth/users/*' => \Illuminate\Support\Facades\Http::response([
+                'id' => $staffUser->id,
+                'name' => 'Staff User',
+                'email' => 'staff@example.com',
+            ], 200),
+            'https://auth.example.com/api/auth/google/meet/create' => \Illuminate\Support\Facades\Http::response([
+                'id' => 'google-event-001',
+                'hangoutLink' => 'https://meet.google.com/original',
+            ], 200),
+            'https://auth.example.com/api/auth/google/calendar/proxy' => \Illuminate\Support\Facades\Http::response([
+                'id' => 'google-event-001',
+                'hangoutLink' => 'https://meet.google.com/calendar',
+            ], 200),
+        ]);
+
+        $this->actingAs($staffUser);
+
+        $meetingDate = Carbon::parse('2025-06-01');
+
+        $this->withHeader('Authorization', 'Bearer calendar-token')
+            ->postJson("/api/pg/projects/{$project->id}/meetings", [
+                'meeting_date' => $meetingDate->toDateString(),
+                'start_time' => '08:00',
+                'end_time' => '09:00',
+            ])->assertCreated();
+
+        $meeting = Meeting::query()
+            ->where('project_id', $project->id)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame('google-event-001', $meeting->google_calendar_event_id);
+
+        $response = $this->withHeader('Authorization', 'Bearer calendar-token')
+            ->putJson("/api/pg/projects/{$project->id}/meetings/{$meeting->id}", [
+                'meeting_date' => $meetingDate->addDay()->toDateString(),
+                'start_time' => '14:30',
+                'end_time' => '15:30',
+                'observations' => 'Horario actualizado',
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'start_time' => '14:30',
+                'end_time' => '15:30',
+                'timezone' => 'America/Bogota',
+                'observations' => 'Horario actualizado',
+            ]);
+
+        $meeting->refresh();
+        $this->assertSame('https://meet.google.com/calendar', $meeting->google_meet_url);
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) {
+            if ($request->url() !== 'https://auth.example.com/api/auth/google/calendar/proxy') {
+                return false;
+            }
+
+            $payload = $request->data();
+
+            return ($payload['method'] ?? null) === 'PATCH'
+                && ($payload['path'] ?? null) === '/calendars/primary/events/google-event-001'
+                && ($payload['json']['start']['dateTime'] ?? null) !== ($payload['json']['end']['dateTime'] ?? null);
+        });
     }
 
     public function test_destroy_removes_google_calendar_event_when_present(): void

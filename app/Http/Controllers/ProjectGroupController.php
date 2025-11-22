@@ -10,7 +10,6 @@ use App\Services\AtlasUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 /**
  * @OA\Tag(
@@ -145,12 +144,10 @@ class ProjectGroupController extends Controller
      */
     public function store(StoreProjectGroupRequest $request): JsonResponse
     {
-        $token = trim((string) $request->bearerToken());
-
-        return DB::transaction(function () use ($request, $token) {
+        return DB::transaction(function () use ($request) {
             $group = ProjectGroup::create($request->safe()->only(['project_id']));
 
-            $this->syncMembers($group, $request->memberUserIds(), $token);
+            $this->syncMembers($group, $request->memberUserIds());
 
             $group->loadMissing('project', 'members');
 
@@ -214,10 +211,8 @@ class ProjectGroupController extends Controller
      */
     public function update(UpdateProjectGroupRequest $request, ProjectGroup $projectGroup): JsonResponse
     {
-        $token = trim((string) $request->bearerToken());
-
-        return DB::transaction(function () use ($request, $projectGroup, $token) {
-            $this->syncMembers($projectGroup, $request->memberUserIds(), $token);
+        return DB::transaction(function () use ($request, $projectGroup) {
+            $this->syncMembers($projectGroup, $request->memberUserIds());
 
             $projectGroup->loadMissing('project', 'members');
 
@@ -276,29 +271,16 @@ class ProjectGroupController extends Controller
         return response()->json($groups);
     }
 
-    protected function syncMembers(ProjectGroup $group, ?array $userIds, string $token): void
+    protected function syncMembers(ProjectGroup $group, ?array $userIds): void
     {
         if ($userIds === null) {
             return;
         }
 
-        $conflictingUserIds = GroupMember::query()
+        GroupMember::query()
             ->whereIn('user_id', $userIds)
             ->when($group->exists, fn ($query) => $query->where('group_id', '!=', $group->id))
-            ->pluck('user_id')
-            ->unique();
-
-        if ($conflictingUserIds->isNotEmpty()) {
-            $namesMap = $this->userNamesForIds($conflictingUserIds->all(), $token);
-
-            $names = $conflictingUserIds
-                ->map(fn ($id) => $namesMap[$id] ?? "User #{$id}")
-                ->implode(', ');
-
-            throw ValidationException::withMessages([
-                'member_user_ids' => "These users already belong to another group: {$names}",
-            ]);
-        }
+            ->delete();
 
         $group->users()->sync($userIds);
     }

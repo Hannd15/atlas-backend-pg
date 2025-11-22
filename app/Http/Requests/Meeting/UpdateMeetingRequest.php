@@ -26,7 +26,6 @@ class UpdateMeetingRequest extends FormRequest
             'observations' => ['sometimes', 'nullable', 'string'],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
-            'timezone' => ['nullable', 'string', 'timezone'],
         ];
     }
 

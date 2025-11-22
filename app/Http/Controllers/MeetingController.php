@@ -38,6 +38,8 @@ use Illuminate\Validation\ValidationException;
  */
 class MeetingController extends Controller
 {
+    private const DEFAULT_TIMEZONE = 'America/Bogota';
+
     public function __construct(
         protected GoogleCalendarService $googleCalendarService,
         protected AtlasUserService $atlasUserService
@@ -133,7 +135,7 @@ class MeetingController extends Controller
             'meeting_date' => $payload['meeting_date'],
             'start_time' => $payload['start_time'] ?? null,
             'end_time' => $payload['end_time'] ?? null,
-            'timezone' => $payload['timezone'] ?? null,
+            'timezone' => self::DEFAULT_TIMEZONE,
             'observations' => null,
             'created_by' => $creatorId,
         ]);
@@ -199,7 +201,10 @@ class MeetingController extends Controller
         $oldStartTime = $meeting->start_time;
         $oldEndTime = $meeting->end_time;
 
-        $meeting->update($request->validated());
+        $payload = $request->validated();
+        $payload['timezone'] = self::DEFAULT_TIMEZONE;
+
+        $meeting->update($payload);
 
         $attendeeIds = $this->attendeeIdsForProject($project);
         $meeting->attendees()->sync($attendeeIds);
@@ -209,8 +214,14 @@ class MeetingController extends Controller
             || $meeting->start_time != $oldStartTime
             || $meeting->end_time != $oldEndTime;
 
-        if ($dateOrTimeChanged || $request->filled(['start_time', 'end_time'])) {
-            $this->createGoogleMeetForMeeting($request, $meeting, $attendeeIds);
+        $timeFieldsProvided = $request->filled('start_time') && $request->filled('end_time');
+
+        if ($dateOrTimeChanged || $timeFieldsProvided) {
+            if ($meeting->google_calendar_event_id) {
+                $this->updateGoogleCalendarEvent($request, $meeting, $attendeeIds);
+            } else {
+                $this->createGoogleMeetForMeeting($request, $meeting, $attendeeIds);
+            }
         }
 
         $meeting->load('project', 'creator', 'attendees');
@@ -250,7 +261,7 @@ class MeetingController extends Controller
             'meeting_date' => optional($meeting->meeting_date)->toDateString(),
             'start_time' => $meeting->start_time ? Carbon::parse($meeting->start_time)->format('H:i') : null,
             'end_time' => $meeting->end_time ? Carbon::parse($meeting->end_time)->format('H:i') : null,
-            'timezone' => $meeting->timezone,
+            'timezone' => $meeting->timezone ?? self::DEFAULT_TIMEZONE,
             'observations' => $meeting->observations,
             'url' => $meeting->url,
             'google_meet_url' => $meeting->google_meet_url,
@@ -322,33 +333,9 @@ class MeetingController extends Controller
                 return;
             }
 
-            // Get attendee emails
-            $token = trim(str_replace('Bearer ', '', $bearerToken));
-            $users = $this->atlasUserService->fetchUsersByIds($token, $attendeeIds);
+            $attendees = $this->resolveAttendees($bearerToken, $attendeeIds);
 
-            $attendees = collect($users)->map(fn ($user) => [
-                'email' => $user['email'] ?? null,
-            ])->filter(fn ($attendee) => ! empty($attendee['email']))->values()->all();
-
-            // Build datetime strings - use UTC if no timezone specified
-            $timezone = $meeting->timezone ?: config('app.timezone', 'UTC');
-            $dateStr = Carbon::parse($meeting->meeting_date)->format('Y-m-d');
-            $startDateTime = Carbon::parse("{$dateStr} {$meeting->start_time}", $timezone);
-            $endDateTime = Carbon::parse("{$dateStr} {$meeting->end_time}", $timezone);
-
-            $meetingData = [
-                'summary' => "Reunión Proyecto de Grado: {$meeting->project?->title}",
-                'description' => $meeting->observations ?? 'Reunión de proyecto de grado programada desde Atlas.',
-                'start' => [
-                    'dateTime' => $startDateTime->toIso8601String(),
-                    'timeZone' => $timezone,
-                ],
-                'end' => [
-                    'dateTime' => $endDateTime->toIso8601String(),
-                    'timeZone' => $timezone,
-                ],
-                'attendees' => $attendees,
-            ];
+            $meetingData = $this->buildMeetingEventPayload($meeting, $attendees);
 
             $result = $this->googleCalendarService->createMeetWithRetry($bearerToken, $meetingData);
 
@@ -375,6 +362,98 @@ class MeetingController extends Controller
                 'exception' => $e->getMessage(),
             ]);
         }
+    }
+
+    protected function updateGoogleCalendarEvent(Request $request, Meeting $meeting, array $attendeeIds): void
+    {
+        if (! $meeting->google_calendar_event_id || ! $meeting->start_time || ! $meeting->end_time) {
+            return;
+        }
+
+        $bearerToken = $request->header('Authorization');
+
+        if (! $bearerToken) {
+            Log::warning('No authorization token available for Google Calendar update', [
+                'meeting_id' => $meeting->id,
+                'google_calendar_event_id' => $meeting->google_calendar_event_id,
+            ]);
+
+            return;
+        }
+
+        try {
+            $attendees = $this->resolveAttendees($bearerToken, $attendeeIds);
+
+            $eventData = $this->buildMeetingEventPayload($meeting, $attendees);
+
+            $result = $this->googleCalendarService->updateEvent(
+                $bearerToken,
+                $meeting->google_calendar_event_id,
+                $eventData
+            );
+
+            if ($result['success'] && isset($result['data'])) {
+                $meeting->update([
+                    'google_meet_url' => $result['data']['hangoutLink'] ?? $meeting->google_meet_url,
+                ]);
+
+                Log::info('Google Calendar event updated successfully', [
+                    'meeting_id' => $meeting->id,
+                    'google_calendar_event_id' => $meeting->google_calendar_event_id,
+                ]);
+            } elseif (! $result['success']) {
+                Log::warning('Failed to update Google Calendar event', [
+                    'meeting_id' => $meeting->id,
+                    'google_calendar_event_id' => $meeting->google_calendar_event_id,
+                    'error' => $result['error'] ?? 'Unknown error',
+                    'status' => $result['status'] ?? null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception updating Google Calendar event', [
+                'meeting_id' => $meeting->id,
+                'google_calendar_event_id' => $meeting->google_calendar_event_id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<int, array{email: string|null}>  $attendees
+     */
+    protected function buildMeetingEventPayload(Meeting $meeting, array $attendees): array
+    {
+        $timezone = self::DEFAULT_TIMEZONE;
+        $dateStr = Carbon::parse($meeting->meeting_date)->format('Y-m-d');
+        $startDateTime = Carbon::parse("{$dateStr} {$meeting->start_time}", $timezone);
+        $endDateTime = Carbon::parse("{$dateStr} {$meeting->end_time}", $timezone);
+
+        return [
+            'summary' => "Reunión Proyecto de Grado: {$meeting->project?->title}",
+            'description' => $meeting->observations ?? 'Reunión de proyecto de grado programada desde Atlas.',
+            'start' => [
+                'dateTime' => $startDateTime->toIso8601String(),
+                'timeZone' => $timezone,
+            ],
+            'end' => [
+                'dateTime' => $endDateTime->toIso8601String(),
+                'timeZone' => $timezone,
+            ],
+            'attendees' => $attendees,
+        ];
+    }
+
+    /**
+     * @return array<int, array{email: string|null}>
+     */
+    protected function resolveAttendees(string $bearerToken, array $attendeeIds): array
+    {
+        $token = trim(str_replace('Bearer ', '', $bearerToken));
+        $users = $this->atlasUserService->fetchUsersByIds($token, $attendeeIds);
+
+        return collect($users)->map(fn ($user) => [
+            'email' => $user['email'] ?? null,
+        ])->filter(fn ($attendee) => ! empty($attendee['email']))->values()->all();
     }
 
     private function resolveCreatorId(Project $project): int

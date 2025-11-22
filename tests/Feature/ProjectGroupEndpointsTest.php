@@ -61,16 +61,17 @@ class ProjectGroupEndpointsTest extends TestCase
 
         $response = $this->postJson('/api/pg/project-groups', $payload);
 
-        $group = ProjectGroup::with('project', 'members')->firstOrFail();
+        $group = ProjectGroup::with('project', 'members')
+            ->where('project_id', $project->id)
+            ->latest('id')
+            ->firstOrFail();
 
-        $response
-            ->assertCreated()
-            ->assertJsonFragment([
-                'id' => $group->id,
-                'project_id' => $project->id,
-                'project_name' => $project->title,
-                'member_user_ids' => [$alice->id, $bob->id],
-            ]);
+        $response->assertCreated();
+
+        $this->assertSame($group->id, $response->json('id'));
+        $this->assertSame($project->id, $response->json('project_id'));
+        $this->assertSame($project->title, $response->json('project_name'));
+        $this->assertEqualsCanonicalizing([$alice->id, $bob->id], $response->json('member_user_ids'));
 
         $this->assertArrayNotHasKey('name', $response->json());
 
@@ -82,6 +83,36 @@ class ProjectGroupEndpointsTest extends TestCase
             'group_id' => $group->id,
             'user_id' => $bob->id,
         ]);
+    }
+
+    public function test_store_moves_members_from_previous_groups(): void
+    {
+        $project = Project::factory()->create();
+
+        $originalGroup = ProjectGroup::create([
+            'project_id' => $project->id,
+        ]);
+
+        $alice = User::factory()->create(['name' => 'Alice']);
+        $originalGroup->users()->sync([$alice->id]);
+
+        $payload = [
+            'project_id' => $project->id,
+            'member_user_ids' => [$alice->id],
+        ];
+
+        $response = $this->postJson('/api/pg/project-groups', $payload);
+
+        $response->assertCreated();
+
+        $originalGroup->refresh();
+        $newGroup = ProjectGroup::where('project_id', $project->id)
+            ->where('id', '!=', $originalGroup->id)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertTrue($originalGroup->users->isEmpty());
+        $this->assertEquals([$alice->id], $newGroup->users->pluck('id')->all());
     }
 
     public function test_store_ignores_member_sync_when_null(): void
@@ -133,7 +164,7 @@ class ProjectGroupEndpointsTest extends TestCase
         $this->assertTrue($group->users->isEmpty());
     }
 
-    public function test_update_rejects_users_already_in_another_group(): void
+    public function test_update_moves_users_from_their_previous_group(): void
     {
         $project = Project::factory()->create([
             'title' => 'Proyecto principal',
@@ -149,12 +180,15 @@ class ProjectGroupEndpointsTest extends TestCase
         $alice = User::factory()->create(['name' => 'Alice']);
         $groupA->users()->sync([$alice->id]);
 
-        $response = $this->putJson("/api/pg/project-groups/{$groupB->id}", [
+        $this->putJson("/api/pg/project-groups/{$groupB->id}", [
             'member_user_ids' => [$alice->id],
-        ]);
+        ])->assertOk();
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['member_user_ids']);
+        $groupA->refresh();
+        $groupB->refresh();
+
+        $this->assertTrue($groupA->users->isEmpty());
+        $this->assertEquals([$alice->id], $groupB->users->pluck('id')->all());
     }
 
     public function test_destroy_deletes_group(): void

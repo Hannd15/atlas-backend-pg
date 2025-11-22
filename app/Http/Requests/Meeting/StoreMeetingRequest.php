@@ -25,7 +25,6 @@ class StoreMeetingRequest extends FormRequest
             'meeting_date' => ['required', 'date'],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
-            'timezone' => ['nullable', 'string', 'timezone'],
         ];
     }
 
