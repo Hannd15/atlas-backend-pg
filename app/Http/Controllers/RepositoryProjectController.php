@@ -22,7 +22,6 @@ use Illuminate\Support\Arr;
  *     type="object",
  *     required={"title"},
  *
- *     @OA\Property(property="project_id", type="integer", nullable=true, example=11),
  *     @OA\Property(property="title", type="string", example="Sistema de monitoreo"),
  *     @OA\Property(property="description", type="string", nullable=true),
  *     @OA\Property(property="url", type="string", format="uri", nullable=true, example="https://repositorio.edu/proyectos/123"),
@@ -54,7 +53,6 @@ use Illuminate\Support\Arr;
  *     type="object",
  *
  *     @OA\Property(property="id", type="integer", example=9),
- *     @OA\Property(property="project_id", type="integer", nullable=true, example=11),
  *     @OA\Property(property="title", type="string", example="Proyecto de grado"),
  *     @OA\Property(property="repository_title", type="string", nullable=true),
  *     @OA\Property(property="description", type="string", nullable=true),

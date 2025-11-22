@@ -5538,11 +5538,6 @@
                     "title"
                 ],
                 "properties": {
-                    "project_id": {
-                        "type": "integer",
-                        "example": 11,
-                        "nullable": true
-                    },
                     "title": {
                         "type": "string",
                         "example": "Sistema de monitoreo"
@@ -5636,11 +5631,6 @@
                     "id": {
                         "type": "integer",
                         "example": 9
-                    },
-                    "project_id": {
-                        "type": "integer",
-                        "example": 11,
-                        "nullable": true
                     },
                     "title": {
                         "type": "string",
