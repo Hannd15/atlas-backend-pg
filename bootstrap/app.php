@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -53,6 +54,17 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (HttpResponseException $exception, Request $request) {
             return $exception->getResponse();
+        });
+
+        $exceptions->render(function (ValidationException $exception, Request $request) use ($shouldHandle) {
+            if (! $shouldHandle($request)) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'errors' => $exception->errors(),
+            ], $exception->status);
         });
 
         $exceptions->render(function (Throwable $exception, Request $request) use ($shouldHandle) {

@@ -33,7 +33,7 @@ class ProjectAuthIntegrationTest extends TestCase
         $user = User::factory()->create();
         $status = ProjectStatus::firstOrCreate(['name' => 'Activo']);
         $project = Project::factory()->create(['status_id' => $status->id]);
-        $group = ProjectGroup::create(['project_id' => $project->id, 'name' => 'Team A']);
+        $group = ProjectGroup::create(['project_id' => $project->id]);
         GroupMember::create([
             'group_id' => $group->id,
             'user_id' => $user->id,
@@ -63,7 +63,7 @@ class ProjectAuthIntegrationTest extends TestCase
         $user = User::factory()->create();
         $status = ProjectStatus::firstOrCreate(['name' => 'Activo']);
         $project = Project::factory()->create(['status_id' => $status->id]);
-        $group = ProjectGroup::create(['project_id' => $project->id, 'name' => 'Team A']);
+        $group = ProjectGroup::create(['project_id' => $project->id]);
         GroupMember::create([
             'group_id' => $group->id,
             'user_id' => $user->id,
@@ -83,7 +83,7 @@ class ProjectAuthIntegrationTest extends TestCase
         $user = User::factory()->create();
         $status = ProjectStatus::firstOrCreate(['name' => 'Activo']);
         $project = Project::factory()->create(['status_id' => $status->id]);
-        $group = ProjectGroup::create(['project_id' => $project->id, 'name' => 'Team A']);
+        $group = ProjectGroup::create(['project_id' => $project->id]);
         GroupMember::create([
             'group_id' => $group->id,
             'user_id' => $user->id,

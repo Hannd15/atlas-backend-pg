@@ -100,11 +100,9 @@ return [
         'rules' => [
             'store' => [
                 'project_id' => 'required|exists:projects,id',
-                'name' => 'required|string|max:255',
             ],
             'update' => [
                 'project_id' => 'sometimes|exists:projects,id',
-                'name' => 'sometimes|string|max:255',
             ],
         ],
     ],

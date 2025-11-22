@@ -144,7 +144,6 @@ class RepositoryProjectEndpointsTest extends TestCase
 
         $group = ProjectGroup::create([
             'project_id' => $project->id,
-            'name' => 'Equipo Investigador',
         ]);
 
         GroupMember::create([

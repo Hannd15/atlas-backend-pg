@@ -21,9 +21,7 @@ use Illuminate\Validation\ValidationException;
  * @OA\Schema(
  *     schema="ProjectGroupPayload",
  *     type="object",
- *     required={"name"},
  *
- *     @OA\Property(property="name", type="string", example="Grupo Alfa"),
  *     @OA\Property(property="project_id", type="integer", nullable=true, example=7),
  *     @OA\Property(property="member_user_ids", type="array", @OA\Items(type="integer", example=25))
  * )
@@ -34,8 +32,8 @@ use Illuminate\Validation\ValidationException;
  *     description="Minimal project group representation. Members accessible via /project-groups/{id}/members endpoint.",
  *
  *     @OA\Property(property="id", type="integer", example=3),
- *     @OA\Property(property="name", type="string", example="Grupo Alfa"),
  *     @OA\Property(property="project_id", type="integer", nullable=true, example=7),
+ *     @OA\Property(property="member_user_ids", type="array", @OA\Items(type="integer", example=25)),
  *     @OA\Property(property="project_name", type="string", nullable=true, example="Sistema IoT"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
@@ -47,7 +45,6 @@ use Illuminate\Validation\ValidationException;
  *     description="Extended project group list representation including member information.",
  *
  *     @OA\Property(property="id", type="integer", example=3),
- *     @OA\Property(property="name", type="string", example="Grupo Alfa"),
  *     @OA\Property(property="project_id", type="integer", nullable=true, example=7),
  *     @OA\Property(property="project_name", type="string", nullable=true, example="Sistema IoT"),
  *     @OA\Property(property="phase_name", type="string", nullable=true, example="Fase 1"),
@@ -63,9 +60,9 @@ use Illuminate\Validation\ValidationException;
  *     description="Project group details matching the index representation while omitting reserved member names.",
  *
  *     @OA\Property(property="id", type="integer", example=3),
- *     @OA\Property(property="name", type="string", example="Grupo Alfa"),
  *     @OA\Property(property="project_id", type="integer", nullable=true, example=7),
  *     @OA\Property(property="project_name", type="string", nullable=true, example="Sistema IoT"),
+ *     @OA\Property(property="member_user_ids", type="array", @OA\Items(type="integer", example=25)),
  *     @OA\Property(property="phase_name", type="string", nullable=true, example="Fase 1"),
  *     @OA\Property(property="period_name", type="string", nullable=true, example="2024-1"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
@@ -143,11 +140,11 @@ class ProjectGroupController extends Controller
         $token = trim((string) $request->bearerToken());
 
         return DB::transaction(function () use ($request, $token) {
-            $group = ProjectGroup::create($request->safe()->only(['name', 'project_id']));
+            $group = ProjectGroup::create($request->safe()->only(['project_id']));
 
             $this->syncMembers($group, $request->memberUserIds(), $token);
 
-            $group->loadMissing('project');
+            $group->loadMissing('project', 'members');
 
             return response()->json($this->transformForShow($group), 201);
         });
@@ -212,11 +209,11 @@ class ProjectGroupController extends Controller
         $token = trim((string) $request->bearerToken());
 
         return DB::transaction(function () use ($request, $projectGroup, $token) {
-            $projectGroup->update($request->safe()->only(['name', 'project_id']));
+            $projectGroup->update($request->safe()->only(['project_id']));
 
             $this->syncMembers($projectGroup, $request->memberUserIds(), $token);
 
-            $projectGroup->loadMissing('project');
+            $projectGroup->loadMissing('project', 'members');
 
             return response()->json($this->transformForShow($projectGroup));
         });
@@ -257,7 +254,7 @@ class ProjectGroupController extends Controller
      *             @OA\Items(
      *
      *                 @OA\Property(property="value", type="integer", example=3),
-     *                 @OA\Property(property="label", type="string", example="Grupo Alfa")
+     *                 @OA\Property(property="label", type="string", example="Sistema IoT")
      *             )
      *         )
      *     )
@@ -265,10 +262,10 @@ class ProjectGroupController extends Controller
      */
     public function dropdown(): JsonResponse
     {
-        $groups = ProjectGroup::orderBy('name')->get()->map(fn (ProjectGroup $group) => [
+        $groups = ProjectGroup::with('project')->orderBy('id')->get()->map(fn (ProjectGroup $group) => [
             'value' => $group->id,
-            'label' => $group->name,
-        ]);
+            'label' => $group->project?->title ?? "Project Group {$group->id}",
+        ])->values();
 
         return response()->json($groups);
     }
@@ -306,7 +303,6 @@ class ProjectGroupController extends Controller
 
         return [
             'id' => $group->id,
-            'name' => $group->name,
             'project_id' => $group->project_id,
             'project_name' => $group->project?->title,
             'phase_name' => $group->project?->phase?->name,
@@ -319,11 +315,13 @@ class ProjectGroupController extends Controller
 
     protected function transformForShow(ProjectGroup $group): array
     {
+        $memberIds = $group->members->pluck('user_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
+
         return [
             'id' => $group->id,
-            'name' => $group->name,
             'project_id' => $group->project_id,
             'project_name' => $group->project?->title,
+            'member_user_ids' => $memberIds,
             'created_at' => optional($group->created_at)->toDateTimeString(),
             'updated_at' => optional($group->updated_at)->toDateTimeString(),
         ];

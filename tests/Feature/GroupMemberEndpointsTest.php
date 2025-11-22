@@ -31,7 +31,6 @@ class GroupMemberEndpointsTest extends TestCase
         $project = Project::factory()->create(['phase_id' => $phase->id]);
         $group = ProjectGroup::create([
             'project_id' => $project->id,
-            'name' => 'Team Alpha',
         ]);
 
         // Add members
@@ -81,7 +80,6 @@ class GroupMemberEndpointsTest extends TestCase
         $project = Project::factory()->create(['phase_id' => $phase->id]);
         $group = ProjectGroup::create([
             'project_id' => $project->id,
-            'name' => 'Empty Team',
         ]);
 
         $response = $this->withToken('test-token')

@@ -1703,14 +1703,14 @@
                 }
             }
         },
-        "/api/pg/projects/dropdown/completed": {
+        "/api/pg/projects/available-dropdown": {
             "get": {
                 "tags": [
                     "Projects"
                 ],
                 "summary": "Get completed projects for dropdowns",
                 "description": "Returns projects marked as 'Terminado' that are not yet linked to the repository, formatted as dropdown value/label pairs.",
-                "operationId": "3fb5b0e2c7c5e349a95479959b156ed4",
+                "operationId": "eebe83d1062fdad1c93a80ce76ec1b8c",
                 "responses": {
                     "200": {
                         "description": "Completed projects formatted for dropdowns",
@@ -1975,7 +1975,7 @@
                                             },
                                             "label": {
                                                 "type": "string",
-                                                "example": "Grupo Alfa"
+                                                "example": "Sistema IoT"
                                             }
                                         },
                                         "type": "object"
@@ -4336,42 +4336,18 @@
                         "description": "List of users from Atlas authentication service"
                     }
                 }
-            },
-            "post": {
+            }
+        },
+        "/api/pg/users/students": {
+            "get": {
                 "tags": [
                     "Users"
                 ],
-                "summary": "Create a new user via Atlas authentication module",
-                "operationId": "eb83381b952d32fcff55bf075d6a8b88",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email"
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "format": "password"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
+                "summary": "Get all users with student role",
+                "operationId": "a8e5fc3e74bc87b03ee051db16d451bb",
                 "responses": {
-                    "201": {
-                        "description": "User created successfully"
-                    },
-                    "422": {
-                        "description": "Validation error"
+                    "200": {
+                        "description": "List of users whose roles include Estudiante/Student"
                     }
                 }
             }
@@ -4396,78 +4372,6 @@
                 "responses": {
                     "200": {
                         "description": "User details from Atlas authentication service"
-                    },
-                    "404": {
-                        "description": "User not found"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Update a user via Atlas authentication module",
-                "operationId": "2fe1714e472adabc9dc037858e132349",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "User updated successfully"
-                    },
-                    "404": {
-                        "description": "User not found"
-                    },
-                    "422": {
-                        "description": "Validation error"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Delete a user via Atlas authentication module",
-                "operationId": "8b74b0219c3e4749fe8e1833b7626f2d",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User deleted successfully"
                     },
                     "404": {
                         "description": "User not found"
@@ -5372,14 +5276,7 @@
                 "type": "object"
             },
             "ProjectGroupPayload": {
-                "required": [
-                    "name"
-                ],
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "example": "Grupo Alfa"
-                    },
                     "project_id": {
                         "type": "integer",
                         "example": 7,
@@ -5402,14 +5299,17 @@
                         "type": "integer",
                         "example": 3
                     },
-                    "name": {
-                        "type": "string",
-                        "example": "Grupo Alfa"
-                    },
                     "project_id": {
                         "type": "integer",
                         "example": 7,
                         "nullable": true
+                    },
+                    "member_user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 25
+                        }
                     },
                     "project_name": {
                         "type": "string",
@@ -5434,10 +5334,6 @@
                         "type": "integer",
                         "example": 3
                     },
-                    "name": {
-                        "type": "string",
-                        "example": "Grupo Alfa"
-                    },
                     "project_id": {
                         "type": "integer",
                         "example": 7,
@@ -5457,6 +5353,13 @@
                         "type": "string",
                         "example": "2024-1",
                         "nullable": true
+                    },
+                    "member_user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 25
+                        }
                     },
                     "member_user_names": {
                         "type": "string",
@@ -5479,10 +5382,6 @@
                     "id": {
                         "type": "integer",
                         "example": 3
-                    },
-                    "name": {
-                        "type": "string",
-                        "example": "Grupo Alfa"
                     },
                     "project_id": {
                         "type": "integer",
@@ -6319,7 +6218,7 @@
         },
         {
             "name": "Users",
-            "description": "Proxy endpoints to Atlas authentication module for user management"
+            "description": "Proxy endpoints to Atlas authentication module for user data retrieval, no modification allowed"
         },
         {
             "name": "User Project Eligibilities",

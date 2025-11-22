@@ -30,11 +30,9 @@ class ProjectEndpointsTest extends TestCase
 
         $groupA = ProjectGroup::create([
             'project_id' => $project->id,
-            'name' => 'Grupo A',
         ]);
         $groupB = ProjectGroup::create([
             'project_id' => $project->id,
-            'name' => 'Grupo B',
         ]);
 
         $userOne = User::factory()->create(['name' => 'Ada Lovelace']);
@@ -149,7 +147,6 @@ class ProjectEndpointsTest extends TestCase
 
         $group = ProjectGroup::create([
             'project_id' => $project->id,
-            'name' => 'Equipo 1',
         ]);
 
         $user = User::factory()->create(['name' => 'Linus Torvalds']);

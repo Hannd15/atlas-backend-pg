@@ -124,7 +124,7 @@ Route::middleware('auth.atlas')->group(function () {
         // Project Groups routes
         Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
         Route::apiResource('project-groups', ProjectGroupController::class);
-        Route::get('project-groups/{project_group}/users', [GroupMemberController::class, 'index']);
+        Route::get('project-groups/{project_group}/members', [GroupMemberController::class, 'index']);
 
         // Users routes (all user data proxied from Atlas auth module)
         Route::get('users/dropdown', [UserController::class, 'dropdown']);

@@ -14,7 +14,6 @@ class StoreProjectGroupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
             'project_id' => ['nullable', 'exists:projects,id'],
             'member_user_ids' => ['nullable', 'array'],
             'member_user_ids.*' => ['integer', 'exists:users,id'],

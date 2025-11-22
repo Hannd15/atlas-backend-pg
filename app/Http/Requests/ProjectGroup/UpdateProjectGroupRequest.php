@@ -14,7 +14,6 @@ class UpdateProjectGroupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
             'project_id' => ['sometimes', 'nullable', 'exists:projects,id'],
             'member_user_ids' => ['sometimes', 'nullable', 'array'],
             'member_user_ids.*' => ['integer', 'exists:users,id'],

@@ -71,7 +71,11 @@ class AtlasUserService extends AtlasAuthService
                 $users[$userId] = $user;
             }
 
-            return $users;
+            if (! empty($users)) {
+                return $users;
+            }
+
+            return $this->fetchUsersIndividually($token, $idsList);
         } catch (HttpResponseException $exception) {
             if ($exception->getResponse()?->getStatusCode() === 404) {
                 return $this->fetchUsersIndividually($token, $idsList);

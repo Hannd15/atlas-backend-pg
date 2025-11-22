@@ -274,7 +274,6 @@ class MeetingEndpointsTest extends TestCase
 
         $group = ProjectGroup::create([
             'project_id' => $project->id,
-            'name' => 'Equipo Principal',
         ]);
 
         $memberUser = User::factory()->create();

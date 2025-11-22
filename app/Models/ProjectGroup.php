@@ -11,7 +11,6 @@ class ProjectGroup extends Model
 
     protected $fillable = [
         'project_id',
-        'name',
     ];
 
     public function project()
