@@ -259,6 +259,179 @@
                 }
             }
         },
+        "/api/pg/approval-requests": {
+            "get": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "List approval requests",
+                "operationId": "570f107c8ccec1166f2ef7783ae3d979",
+                "responses": {
+                    "200": {
+                        "description": "Approval requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ApprovalRequestResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "Create a new approval request",
+                "operationId": "c4647801ad0f3ef3417166c80deb5ddc",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApprovalRequestPayload"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApprovalRequestResource"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/approval-requests/{approval_request}": {
+            "get": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "Show approval request",
+                "operationId": "a62d8c76c9874a241b0851527cf511d2",
+                "parameters": [
+                    {
+                        "name": "approval_request",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Approval request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApprovalRequestResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/approval-requests/relevant": {
+            "get": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "List approval requests relevant to the authenticated user",
+                "operationId": "426af354f10c20fb61f2c4d9894875ec",
+                "responses": {
+                    "200": {
+                        "description": "Relevant approval requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ApprovalRequestResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/approval-requests/{approval_request}/decision": {
+            "post": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "Approve or reject a request",
+                "operationId": "9a495628e3dfa5b2a1f82c626e402ec7",
+                "parameters": [
+                    {
+                        "name": "approval_request",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "decision"
+                                ],
+                                "properties": {
+                                    "decision": {
+                                        "type": "string",
+                                        "enum": [
+                                            "approved",
+                                            "rejected"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApprovalRequestResource"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not a recipient"
+                    },
+                    "409": {
+                        "description": "Already decided"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
         "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables": {
             "get": {
                 "tags": [
@@ -1515,6 +1688,41 @@
                                             "value": {
                                                 "type": "integer",
                                                 "example": 3
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Sistema de monitoreo"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/projects/dropdown/completed": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Get completed projects for dropdowns",
+                "description": "Returns projects marked as 'Terminado' that are not yet linked to the repository, formatted as dropdown value/label pairs.",
+                "operationId": "3fb5b0e2c7c5e349a95479959b156ed4",
+                "responses": {
+                    "200": {
+                        "description": "Completed projects formatted for dropdowns",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 5
                                             },
                                             "label": {
                                                 "type": "string",
@@ -4594,6 +4802,118 @@
                 },
                 "type": "object"
             },
+            "ApprovalRequestRecipient": {
+                "properties": {
+                    "user_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "decision": {
+                        "type": "string",
+                        "example": "approved",
+                        "nullable": true
+                    },
+                    "decision_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ApprovalRequestPayload": {
+                "required": [
+                    "title",
+                    "action_key",
+                    "recipient_ids"
+                ],
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "example": "Actualizar la rúbrica del entregable"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "action_key": {
+                        "type": "string",
+                        "example": "noop"
+                    },
+                    "action_payload": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "recipient_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 7
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ApprovalRequestResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 55
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "pending"
+                    },
+                    "resolved_decision": {
+                        "type": "string",
+                        "example": "approved",
+                        "nullable": true
+                    },
+                    "resolved_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "action_key": {
+                        "type": "string",
+                        "example": "noop"
+                    },
+                    "action_payload": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "requested_by": {
+                        "type": "integer",
+                        "example": 8
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "recipients": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApprovalRequestRecipient"
+                        }
+                    },
+                    "pending_decision": {
+                        "type": "boolean",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
             "DeliverableSummaryResource": {
                 "properties": {
                     "id": {
@@ -5216,11 +5536,6 @@
                     "preferred_director_id": {
                         "type": "integer",
                         "example": 32,
-                        "nullable": true
-                    },
-                    "proposal_status_id": {
-                        "type": "integer",
-                        "example": 2,
                         "nullable": true
                     }
                 },
@@ -5929,6 +6244,10 @@
         {
             "name": "Academic Periods",
             "description": "API endpoints for managing academic periods"
+        },
+        {
+            "name": "Approval Requests",
+            "description": "Endpoints for multi-approver workflows"
         },
         {
             "name": "Deliverables",

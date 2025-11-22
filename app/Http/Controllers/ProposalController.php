@@ -7,7 +7,6 @@ use App\Http\Requests\Proposal\UpdateProposalRequest;
 use App\Models\Proposal;
 use App\Models\ProposalStatus;
 use App\Models\ProposalType;
-use App\Services\AtlasAuthService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,7 +28,6 @@ use Illuminate\Support\Str;
  *     @OA\Property(property="description", type="string", nullable=true),
  *     @OA\Property(property="thematic_line_id", type="integer", example=4),
  *     @OA\Property(property="preferred_director_id", type="integer", nullable=true, example=32),
- *     @OA\Property(property="proposal_status_id", type="integer", nullable=true, example=2)
  * )
  *
  * @OA\Schema(
@@ -49,10 +47,8 @@ use Illuminate\Support\Str;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  */
-class ProposalController extends Controller
+class ProposalController extends AtlasAuthenticatedController
 {
-    public function __construct(protected AtlasAuthService $atlasAuthService) {}
-
     /**
      * @OA\Get(
      *     path="/api/pg/proposals",
@@ -155,7 +151,6 @@ class ProposalController extends Controller
             Arr::only($validated, [
                 'title',
                 'description',
-                'proposal_status_id',
                 'preferred_director_id',
                 'thematic_line_id',
             ]),
@@ -249,64 +244,6 @@ class ProposalController extends Controller
         }
 
         return $typeId;
-    }
-
-    protected function resolveAuthenticatedUserId(Request $request): int
-    {
-        $user = $this->resolveAtlasUser($request);
-
-        if (! isset($user['id'])) {
-            throw new HttpResponseException(response()->json([
-                'message' => 'Authenticated user payload is missing an id.',
-            ], 503));
-        }
-
-        return (int) $user['id'];
-    }
-
-    protected function resolveAtlasUser(Request $request): array
-    {
-        $userData = $request->attributes->get('atlasUser');
-
-        if (is_array($userData) && ! $this->shouldRefreshAtlasUser($userData)) {
-            return $userData;
-        }
-
-        $token = trim((string) $request->bearerToken());
-
-        if ($token === '') {
-            throw new HttpResponseException(response()->json([
-                'message' => 'Missing bearer token.',
-            ], 401));
-        }
-
-        $payload = $this->atlasAuthService->verifyToken($token);
-        $userData = $payload['user'] ?? null;
-
-        if (! is_array($userData)) {
-            throw new HttpResponseException(response()->json([
-                'message' => 'Authentication service unavailable.',
-            ], 503));
-        }
-
-        $request->attributes->set('atlasUser', $userData);
-
-        return $userData;
-    }
-
-    protected function shouldRefreshAtlasUser(array $userData): bool
-    {
-        if (! app()->environment(['local', 'testing'])) {
-            return false;
-        }
-
-        $normalized = array_change_key_case($userData, CASE_LOWER);
-
-        if ($normalized === [] || (count($normalized) === 1 && isset($normalized['id']))) {
-            return true;
-        }
-
-        return ! array_key_exists('roles', $normalized);
     }
 
     protected function extractRoleNames(array $userData): array

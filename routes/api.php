@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AcademicPeriodController;
+use App\Http\Controllers\ApprovalRequestController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\DeliverableFileController;
 use App\Http\Controllers\FileController;
@@ -95,6 +96,13 @@ Route::middleware('auth.atlas')->group(function () {
         Route::get('proposals/{proposal}/files', [ProposalFileController::class, 'index']);
         Route::post('proposals/{proposal}/files', [ProposalFileController::class, 'store']);
         Route::delete('proposals/{proposal}/files/{file}', [ProposalFileController::class, 'destroy']);
+
+        // Approval Requests
+        Route::get('approval-requests', [ApprovalRequestController::class, 'index']);
+        Route::post('approval-requests', [ApprovalRequestController::class, 'store']);
+        Route::get('approval-requests/relevant', [ApprovalRequestController::class, 'relevant']);
+        Route::get('approval-requests/{approval_request}', [ApprovalRequestController::class, 'show']);
+        Route::post('approval-requests/{approval_request}/decision', [ApprovalRequestController::class, 'decide']);
 
         // Projects routes
         Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
