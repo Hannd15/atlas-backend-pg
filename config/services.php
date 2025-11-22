@@ -38,6 +38,7 @@ return [
     'atlas_auth' => [
         'url' => env('ATLAS_AUTH_URL'),
         'timeout' => env('ATLAS_AUTH_TIMEOUT', 10),
+        'student_filter_permission' => env('ATLAS_AUTH_STUDENT_PERMISSION', 'asignable a un grupo de proyectos de grado'),
     ],
 
 ];

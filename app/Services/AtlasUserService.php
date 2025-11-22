@@ -36,6 +36,24 @@ class AtlasUserService extends AtlasAuthService
     }
 
     /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function usersByPermission(string $token, string $permission): array
+    {
+        $permission = trim($permission);
+
+        if ($permission === '') {
+            return [];
+        }
+
+        $encoded = rawurlencode($permission);
+
+        return $this->sendRequest(fn () => $this->client($token)->get(
+            $this->serviceUrl()."/api/auth/users/by-permission/{$encoded}"
+        ));
+    }
+
+    /**
      * @param  array<int, int|string|null>  $userIds
      * @return array<int, array<string, mixed>>
      */

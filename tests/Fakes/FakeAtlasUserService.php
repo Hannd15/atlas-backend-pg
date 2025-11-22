@@ -5,6 +5,7 @@ namespace Tests\Fakes;
 use App\Models\User;
 use App\Services\AtlasUserService;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Str;
 
 class FakeAtlasUserService extends AtlasUserService
 {
@@ -89,6 +90,32 @@ class FakeAtlasUserService extends AtlasUserService
             ->all();
     }
 
+    public function usersByPermission(string $token, string $permission): array
+    {
+        $this->assertToken($token);
+
+        $normalizedPermission = Str::lower(trim((string) $permission));
+
+        if ($normalizedPermission === '') {
+            return [];
+        }
+
+        $matches = [];
+
+        foreach (User::query()->orderBy('name')->get() as $user) {
+            $roles = $this->userRoles[$user->id] ?? [];
+            $normalizedRoles = array_filter(array_map(fn ($role) => Str::lower((string) $role), $roles));
+
+            if (! in_array($normalizedPermission, $normalizedRoles, true)) {
+                continue;
+            }
+
+            $matches[] = $this->formatRemoteUser($user);
+        }
+
+        return $matches;
+    }
+
     public function fetchUsersByIds(string $token, array $userIds): array
     {
         $this->assertToken($token);
@@ -131,6 +158,7 @@ class FakeAtlasUserService extends AtlasUserService
             'name' => $user->name ?? "User #{$user->id}",
             'email' => $user->email,
             'roles' => $this->userRoles[$user->id] ?? [],
+            'roles_list' => implode(', ', $this->userRoles[$user->id] ?? []),
         ];
     }
 

@@ -181,15 +181,16 @@ class UserEndpointsTest extends TestCase
             $teacher->id => ['Docente'],
         ]);
 
-        $response = $this->getJson('/api/pg/users/students');
+        $response = $this->getJson('/api/pg/users/students/dropdown');
 
         $response->assertOk()
             ->assertJsonCount(1)
             ->assertJsonFragment([
-                'id' => $student->id,
-                'name' => 'Student Example',
+                'value' => $student->id,
+                'label' => 'Student Example',
                 'email' => 'student@example.com',
+                'roles_list' => 'Estudiante',
             ])
-            ->assertJsonMissing(['id' => $teacher->id]);
+            ->assertJsonMissing(['value' => $teacher->id]);
     }
 }

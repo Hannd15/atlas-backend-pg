@@ -4338,16 +4338,37 @@
                 }
             }
         },
-        "/api/pg/users/students": {
+        "/api/pg/users/students/dropdown": {
             "get": {
                 "tags": [
                     "Users"
                 ],
-                "summary": "Get all users with student role",
-                "operationId": "a8e5fc3e74bc87b03ee051db16d451bb",
+                "summary": "Get a dropdown of users that have the student permission",
+                "description": "Delegates to Atlas to fetch every user assigned the configured student permission and formats them for dropdowns.",
+                "operationId": "72773499a6160b9be198acb6cb041619",
                 "responses": {
                     "200": {
-                        "description": "List of users whose roles include Estudiante/Student"
+                        "description": "Dropdown entries for Atlas student users",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 27
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "María López"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Services\AtlasUserService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 /**
  * @OA\Tag(
@@ -40,28 +39,41 @@ class UserController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/users/students",
-     *     summary="Get all users with student role",
+     *     path="/api/pg/users/students/dropdown",
+     *     summary="Get a dropdown of users that have the student permission",
      *     tags={"Users"},
+     *     description="Delegates to Atlas to fetch every user assigned the configured student permission and formats them for dropdowns.",
      *
      *     @OA\Response(
      *         response=200,
-     *         description="List of users whose roles include Estudiante/Student"
+     *         description="Dropdown entries for Atlas student users",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="value", type="integer", example=27),
+     *                 @OA\Property(property="label", type="string", example="María López"),
+     *             )
+     *         )
      *     )
      * )
      */
-    public function students(Request $request): \Illuminate\Http\JsonResponse
+    public function studentsDropdown(Request $request): \Illuminate\Http\JsonResponse
     {
         $token = $this->requireToken($request->bearerToken());
 
-        $users = $this->atlasUserService->listUsers($token);
+        $students = $this->atlasUserService->usersByPermission(
+            $token,
+            $this->studentPermission()
+        );
 
-        $students = collect($users)
-            ->filter(fn ($user) => $this->userHasStudentRole($user))
+        $dropdown = collect($students)
+            ->map(fn (array $user) => $this->formatStudentDropdownOption($user))
+            ->filter()
             ->values()
             ->all();
 
-        return response()->json($students);
+        return response()->json($dropdown);
     }
 
     /**
@@ -232,61 +244,33 @@ class UserController extends Controller
             ->implode(', ');
     }
 
-    protected function userHasStudentRole(mixed $user): bool
+
+    protected function formatStudentDropdownOption(array $user): ?array
     {
-        if (! is_array($user)) {
-            return false;
+        $id = isset($user['id']) ? (int) $user['id'] : null;
+        $label = trim((string) ($user['name'] ?? ''));
+
+        if ($id === null || $label === '') {
+            return null;
         }
 
-        $roles = $this->extractRoleNames($user['roles'] ?? null);
-
-        if ($roles === []) {
-            return false;
-        }
-
-        $normalized = collect($roles)->map(fn ($role) => Str::lower($role));
-
-        return $normalized->contains(fn ($role) => in_array($role, ['estudiante', 'student'], true));
+        return [
+            'value' => $id,
+            'label' => $label,
+        ];
     }
 
-    /**
-     * @return array<int, string>
-     */
-    protected function extractRoleNames(mixed $rawRoles): array
+    protected function studentPermission(): string
     {
-        if (is_string($rawRoles)) {
-            return [$rawRoles];
+        $permission = trim((string) config('services.atlas_auth.student_filter_permission', 'asignable a un grupo de proyectos de grado'));
+
+        if ($permission === '') {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Student permission configuration is missing.',
+            ], 500));
         }
 
-        if (! is_array($rawRoles)) {
-            return [];
-        }
-
-        $names = [];
-
-        foreach ($rawRoles as $role) {
-            if (is_string($role)) {
-                $names[] = $role;
-
-                continue;
-            }
-
-            if (! is_array($role)) {
-                continue;
-            }
-
-            if (isset($role['name']) && is_string($role['name'])) {
-                $names[] = $role['name'];
-
-                continue;
-            }
-
-            if (isset($role['label']) && is_string($role['label'])) {
-                $names[] = $role['label'];
-            }
-        }
-
-        return $names;
+        return $permission;
     }
 
     protected function requireToken(?string $token): string
