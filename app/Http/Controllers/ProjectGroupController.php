@@ -27,6 +27,14 @@ use Illuminate\Validation\ValidationException;
  * )
  *
  * @OA\Schema(
+ *     schema="ProjectGroupMembersPayload",
+ *     type="object",
+ *     required={"member_user_ids"},
+ *
+ *     @OA\Property(property="member_user_ids", type="array", @OA\Items(type="integer", example=25))
+ * )
+ *
+ * @OA\Schema(
  *     schema="ProjectGroupResource",
  *     type="object",
  *     description="Minimal project group representation. Members accessible via /project-groups/{id}/members endpoint.",
@@ -198,7 +206,7 @@ class ProjectGroupController extends Controller
      *
      *     @OA\Parameter(name="project_group", in="path", required=true, @OA\Schema(type="integer")),
      *
-     *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/ProjectGroupPayload")),
+     *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/ProjectGroupMembersPayload")),
      *
      *     @OA\Response(response=200, description="Project group updated", @OA\JsonContent(ref="#/components/schemas/ProjectGroupResource")),
      *     @OA\Response(response=404, description="Project group not found")
@@ -209,8 +217,6 @@ class ProjectGroupController extends Controller
         $token = trim((string) $request->bearerToken());
 
         return DB::transaction(function () use ($request, $projectGroup, $token) {
-            $projectGroup->update($request->safe()->only(['project_id']));
-
             $this->syncMembers($projectGroup, $request->memberUserIds(), $token);
 
             $projectGroup->loadMissing('project', 'members');
@@ -307,6 +313,7 @@ class ProjectGroupController extends Controller
             'project_name' => $group->project?->title,
             'phase_name' => $group->project?->phase?->name,
             'period_name' => $group->project?->phase?->period?->name,
+            'member_user_ids' => $memberIds,
             'member_user_names' => $this->implodeUserNames($memberIds, $userNames),
             'created_at' => optional($group->created_at)->toDateTimeString(),
             'updated_at' => optional($group->updated_at)->toDateTimeString(),

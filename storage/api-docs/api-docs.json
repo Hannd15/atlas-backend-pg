@@ -1906,7 +1906,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ProjectGroupPayload"
+                                "$ref": "#/components/schemas/ProjectGroupMembersPayload"
                             }
                         }
                     }
@@ -5303,6 +5303,21 @@
                         "example": 7,
                         "nullable": true
                     },
+                    "member_user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 25
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ProjectGroupMembersPayload": {
+                "required": [
+                    "member_user_ids"
+                ],
+                "properties": {
                     "member_user_ids": {
                         "type": "array",
                         "items": {

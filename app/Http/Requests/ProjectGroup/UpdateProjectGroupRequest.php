@@ -14,8 +14,7 @@ class UpdateProjectGroupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'project_id' => ['sometimes', 'nullable', 'exists:projects,id'],
-            'member_user_ids' => ['sometimes', 'nullable', 'array'],
+            'member_user_ids' => ['present', 'array'],
             'member_user_ids.*' => ['integer', 'exists:users,id'],
         ];
     }
@@ -24,7 +23,7 @@ class UpdateProjectGroupRequest extends FormRequest
     {
         $validated = $this->validated();
 
-        if (! array_key_exists('member_user_ids', $validated) || $validated['member_user_ids'] === null) {
+        if (! array_key_exists('member_user_ids', $validated)) {
             return null;
         }
 
