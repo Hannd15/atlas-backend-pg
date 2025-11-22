@@ -203,6 +203,8 @@ class ProposalController extends AtlasAuthenticatedController
             'id' => $proposal->id,
             'title' => $proposal->title,
             'description' => $proposal->description,
+            'thematic_line_id' => $proposal->thematic_line_id,
+            'preferred_director_id' => $proposal->preferred_director_id,
             'proposal_type_name' => $proposal->type?->name,
             'proposal_status_name' => $proposal->status?->name,
             'proposer_name' => $proposal->proposer?->name,

@@ -189,6 +189,8 @@ class ProposalEndpointsTest extends TestCase
         $response->assertOk()->assertJsonFragment([
             'id' => $proposal->id,
             'title' => $proposal->title,
+            'thematic_line_id' => $proposal->thematic_line_id,
+            'preferred_director_id' => $proposal->preferred_director_id,
             'proposer_name' => $proposal->proposer?->name,
             'preferred_director_name' => $proposal->preferredDirector?->name,
         ]);
