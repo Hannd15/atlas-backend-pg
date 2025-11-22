@@ -4,6 +4,7 @@ use App\Http\Middleware\AuthenticateViaAtlas;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -48,6 +49,10 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json([
                 'message' => $exception->getMessage() !== '' ? $exception->getMessage() : 'Resource not found.',
             ], 404);
+        });
+
+        $exceptions->render(function (HttpResponseException $exception, Request $request) {
+            return $exception->getResponse();
         });
 
         $exceptions->render(function (Throwable $exception, Request $request) use ($shouldHandle) {

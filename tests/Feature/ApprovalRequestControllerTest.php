@@ -166,7 +166,6 @@ class ApprovalRequestControllerTest extends TestCase
             $payload['roles'] = ['Director'];
         }
 
-        app()->instance('testing.atlasUser', $payload);
-        app()->forgetInstance('testing.atlasError');
+        $this->mockAtlasUser($payload);
     }
 }

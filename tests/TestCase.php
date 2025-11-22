@@ -5,10 +5,12 @@ namespace Tests;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicPeriodState;
 use App\Models\Phase;
+use App\Services\AtlasAuthService;
 use App\Services\AtlasUserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Date;
+use Tests\Fakes\FakeAtlasAuthService;
 use Tests\Fakes\FakeAtlasUserService;
 
 abstract class TestCase extends BaseTestCase
@@ -25,6 +27,8 @@ abstract class TestCase extends BaseTestCase
 
     protected FakeAtlasUserService $atlasUserServiceFake;
 
+    protected FakeAtlasAuthService $atlasAuthServiceFake;
+
     protected bool $ensureActivePhase = true;
 
     protected function setUp(): void
@@ -32,11 +36,24 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->atlasUserServiceFake = new FakeAtlasUserService;
+        $this->atlasAuthServiceFake = new FakeAtlasAuthService;
+
         $this->app->instance(AtlasUserService::class, $this->atlasUserServiceFake);
+        $this->app->instance(AtlasAuthService::class, $this->atlasAuthServiceFake);
 
         if ($this->ensureActivePhase) {
             $this->ensureActivePhaseExists();
         }
+    }
+
+    protected function mockAtlasUser(array $overrides = []): void
+    {
+        $this->atlasAuthServiceFake->setUserPayload($overrides);
+    }
+
+    protected function failNextAtlasAuth(int $status, array $body = []): void
+    {
+        $this->atlasAuthServiceFake->failNext($status, $body);
     }
 
     protected function ensureActivePhaseExists(): void

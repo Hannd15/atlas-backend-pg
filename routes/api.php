@@ -24,13 +24,6 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserProjectEligibilityController;
 use Illuminate\Support\Facades\Route;
 
-/* <?php
-Route::middleware('auth.atlas:roles=admin|coordinator,permissions=projects.view')
-    ->get('pg/projects', [ProjectController::class, 'index']);
-
-Route::middleware('auth.atlas:permissions=projects.create|projects.manage')
- */
-
 Route::middleware('auth.atlas')->group(function () {
     Route::scopeBindings()->prefix('pg')->group(function () {
         Route::get('academic-periods/dropdown', [AcademicPeriodController::class, 'dropdown']);

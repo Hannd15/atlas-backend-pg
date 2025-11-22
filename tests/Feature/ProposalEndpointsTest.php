@@ -9,7 +9,6 @@ use App\Models\ProposalType;
 use App\Models\ThematicLine;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ProposalEndpointsTest extends TestCase
@@ -42,6 +41,8 @@ class ProposalEndpointsTest extends TestCase
         if (empty($this->proposalTypeIds) || empty($this->proposalStatusIds)) {
             $this->fail('Missing proposal reference data.');
         }
+
+        Proposal::query()->delete();
     }
 
     public function test_index_returns_only_teacher_proposals(): void
@@ -103,7 +104,7 @@ class ProposalEndpointsTest extends TestCase
 
         $response->assertCreated();
 
-        $proposal = Proposal::with('type')->firstOrFail();
+        $proposal = Proposal::with('type')->latest('id')->firstOrFail();
 
         $this->assertSame('made_by_teacher', $proposal->type->code);
         $this->assertSame($proposer->id, $proposal->proposer_id);
@@ -134,7 +135,7 @@ class ProposalEndpointsTest extends TestCase
 
         $response->assertCreated();
 
-        $proposal = Proposal::with('type')->firstOrFail();
+        $proposal = Proposal::with('type')->latest('id')->firstOrFail();
         $this->assertSame('made_by_student', $proposal->type->code);
     }
 
@@ -211,57 +212,33 @@ class ProposalEndpointsTest extends TestCase
 
     public function test_proposals_routes_require_bearer_token(): void
     {
-        Http::fake();
-
         $this->withHeaders(['Authorization' => ''])
             ->getJson('/api/pg/proposals')
             ->assertStatus(401)
             ->assertExactJson(['message' => 'Unauthenticated.']);
-
-        Http::assertNothingSent();
     }
 
     public function test_proposals_route_forwards_auth_forbidden_response(): void
     {
-        app()->forgetInstance('testing.atlasUser');
-        app()->instance('testing.atlasError', [
-            'status' => 403,
-            'body' => ['message' => 'Missing permissions.'],
-        ]);
+        $this->failNextAtlasAuth(403, ['message' => 'Missing permissions.']);
 
         $this->getJson('/api/pg/proposals', $this->authHeaders())
             ->assertStatus(403)
             ->assertExactJson(['message' => 'Missing permissions.']);
-
-        app()->forgetInstance('testing.atlasError');
     }
 
     public function test_proposals_route_returns_service_unavailable_when_user_payload_missing(): void
     {
-        app()->forgetInstance('testing.atlasUser');
-        app()->instance('testing.atlasError', [
-            'status' => 503,
-            'body' => ['message' => 'Authentication service unavailable.'],
-        ]);
+        $this->failNextAtlasAuth(503, ['message' => 'Authentication service unavailable.']);
 
         $this->getJson('/api/pg/proposals', $this->authHeaders())
             ->assertStatus(503)
             ->assertExactJson(['message' => 'Authentication service unavailable.']);
-
-        app()->forgetInstance('testing.atlasError');
     }
 
     protected function fakeAuth(array $userPayload): void
     {
-        Http::fake([
-            'https://auth.example/api/auth/token/verify' => Http::response([
-                'authorized' => true,
-                'user' => $userPayload,
-            ], 200),
-        ]);
-
-        app()->instance('testing.atlasUser', $userPayload);
-        app()->forgetInstance('testing.atlasError');
+        $this->mockAtlasUser($userPayload);
     }
 
     protected function authHeaders(): array
