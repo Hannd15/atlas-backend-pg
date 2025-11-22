@@ -53,7 +53,7 @@ class AuthenticateViaAtlas
         try {
             $parsed = $this->parseParameters($parameters);
 
-            $data = $this->atlasAuthService->verifyToken('4|b6xuGrQAn2mazDMrrQuTNtkhYGHrspcl2iE34Yfmc1090de5', $parsed['roles'], $parsed['permissions']);
+            $data = $this->atlasAuthService->verifyToken($token, $parsed['roles'], $parsed['permissions']);
 
             if (! array_key_exists('user', $data)) {
                 Log::warning('Atlas authentication success response missing user payload.', [

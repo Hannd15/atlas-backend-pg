@@ -33,10 +33,8 @@ Route::middleware('auth.atlas:permissions=projects.create|projects.manage')
 
 Route::middleware('auth.atlas')->group(function () {
     Route::scopeBindings()->prefix('pg')->group(function () {
-        Route::get('academic-periods/dropdown', [AcademicPeriodController::class, 'dropdown'])
-            ->middleware('auth.atlas:roles=admin|coordinator');
-        Route::apiResource('academic-periods', AcademicPeriodController::class)
-            ->middleware('auth.atlas:permissions=Ver Periodos Academicos|Gestionar Periodos Academicos');
+        Route::get('academic-periods/dropdown', [AcademicPeriodController::class, 'dropdown']);
+        Route::apiResource('academic-periods', AcademicPeriodController::class);
 
         Route::get('academic-periods/{academic_period}/phases/dropdown', [PhaseController::class, 'dropdown']);
         Route::apiResource('academic-periods.phases', PhaseController::class)->only(['index', 'show', 'update']);
