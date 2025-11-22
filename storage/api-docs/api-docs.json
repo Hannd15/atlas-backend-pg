@@ -2525,7 +2525,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/RepositoryProjectPayload"
+                                "$ref": "#/components/schemas/RepositoryProjectStorePayload"
                             }
                         }
                     }
@@ -2600,7 +2600,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/RepositoryProjectPayload"
+                                "$ref": "#/components/schemas/RepositoryProjectUpdatePayload"
                             }
                         }
                     }
@@ -5576,6 +5576,34 @@
                     }
                 },
                 "type": "object"
+            },
+            "RepositoryProjectStorePayload": {
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/RepositoryProjectPayload"
+                    },
+                    {
+                        "required": [
+                            "project_id"
+                        ],
+                        "properties": {
+                            "project_id": {
+                                "type": "integer",
+                                "example": 1
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "RepositoryProjectUpdatePayload": {
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/RepositoryProjectPayload"
+                    }
+                ]
             },
             "RepositoryProjectIndexResource": {
                 "properties": {
