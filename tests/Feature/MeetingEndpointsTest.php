@@ -265,6 +265,53 @@ class MeetingEndpointsTest extends TestCase
         );
     }
 
+    public function test_destroy_removes_google_calendar_event_when_present(): void
+    {
+        [$project, $_memberUser, $staffUser] = $this->createProjectStructure('Proyecto con eliminación');
+
+        config(['services.atlas_auth.url' => 'https://auth.example.com']);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'https://auth.example.com/api/auth/google/calendar/proxy' => \Illuminate\Support\Facades\Http::response([], 204),
+        ]);
+
+        $this->actingAs($staffUser);
+
+        $meetingDate = Carbon::parse('2025-04-01');
+
+        $this->withHeader('Authorization', 'Bearer delete-token')
+            ->postJson("/api/pg/projects/{$project->id}/meetings", [
+                'meeting_date' => $meetingDate->toDateString(),
+            ])->assertCreated();
+
+        $meeting = Meeting::query()
+            ->where('project_id', $project->id)
+            ->latest('id')
+            ->firstOrFail();
+
+        $meeting->forceFill([
+            'google_calendar_event_id' => 'google-event-456',
+        ])->save();
+
+        $response = $this->withHeader('Authorization', 'Bearer delete-token')
+            ->deleteJson("/api/pg/projects/{$project->id}/meetings/{$meeting->id}");
+
+        $response->assertOk()->assertExactJson([
+            'message' => 'Meeting deleted successfully',
+        ]);
+
+        $this->assertDatabaseMissing('meetings', [
+            'id' => $meeting->id,
+        ]);
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) {
+            return $request->url() === 'https://auth.example.com/api/auth/google/calendar/proxy'
+                && $request->method() === 'POST'
+                && $request['method'] === 'DELETE'
+                && $request['path'] === '/calendars/primary/events/google-event-456';
+        });
+    }
+
     /**
      * @return array{0: \App\Models\Project, 1: \App\Models\User, 2: \App\Models\User}
      */

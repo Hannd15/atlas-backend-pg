@@ -43,6 +43,30 @@ class MeetingController extends Controller
         protected AtlasUserService $atlasUserService
     ) {}
 
+    public function index(Request $request): JsonResponse
+    {
+        $projectId = $request->integer('project_id');
+
+        if (! $projectId) {
+            throw ValidationException::withMessages([
+                'project_id' => 'The project_id query parameter is required.',
+            ]);
+        }
+
+        $meetings = Meeting::query()
+            ->where('project_id', $projectId)
+            ->with('project')
+            ->orderByDesc('meeting_date')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json($meetings->map(fn (Meeting $meeting) => [
+            'project_name' => $meeting->project?->title,
+            'meeting_date' => optional($meeting->meeting_date)->toDateString(),
+            'observations' => $meeting->observations,
+        ])->values()->all());
+    }
+
     /**
      * @OA\Get(
      *     path="/api/pg/projects/{project}/meetings",
@@ -109,7 +133,7 @@ class MeetingController extends Controller
             'meeting_date' => $payload['meeting_date'],
             'start_time' => $payload['start_time'] ?? null,
             'end_time' => $payload['end_time'] ?? null,
-            'timezone' => 'America/Bogota',
+            'timezone' => $payload['timezone'] ?? null,
             'observations' => null,
             'created_by' => $creatorId,
         ]);
@@ -206,9 +230,11 @@ class MeetingController extends Controller
      *     @OA\Response(response=200, description="Meeting deleted successfully")
      * )
      */
-    public function destroy(Project $project, Meeting $meeting): JsonResponse
+    public function destroy(Request $request, Project $project, Meeting $meeting): JsonResponse
     {
         abort_if($meeting->project_id !== $project->id, 404);
+
+        $this->deleteGoogleEventForMeeting($request, $meeting);
 
         $meeting->delete();
 
@@ -229,6 +255,50 @@ class MeetingController extends Controller
             'url' => $meeting->url,
             'google_meet_url' => $meeting->google_meet_url,
         ];
+    }
+
+    protected function deleteGoogleEventForMeeting(Request $request, Meeting $meeting): void
+    {
+        if (! $meeting->google_calendar_event_id) {
+            return;
+        }
+
+        $bearerToken = $request->header('Authorization');
+
+        if (! $bearerToken) {
+            Log::warning('No authorization token available for Google Calendar deletion', [
+                'meeting_id' => $meeting->id,
+                'google_calendar_event_id' => $meeting->google_calendar_event_id,
+            ]);
+
+            return;
+        }
+
+        try {
+            $result = $this->googleCalendarService->deleteEvent($bearerToken, $meeting->google_calendar_event_id);
+
+            if ($result['success']) {
+                Log::info('Google Calendar event deleted successfully', [
+                    'meeting_id' => $meeting->id,
+                    'google_calendar_event_id' => $meeting->google_calendar_event_id,
+                ]);
+
+                return;
+            }
+
+            Log::warning('Failed to delete Google Calendar event', [
+                'meeting_id' => $meeting->id,
+                'google_calendar_event_id' => $meeting->google_calendar_event_id,
+                'error' => $result['error'] ?? 'Unknown error',
+                'status' => $result['status'] ?? null,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Exception deleting Google Calendar event', [
+                'meeting_id' => $meeting->id,
+                'google_calendar_event_id' => $meeting->google_calendar_event_id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

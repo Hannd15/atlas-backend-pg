@@ -101,6 +101,8 @@ Route::middleware('auth.atlas')->group(function () {
         Route::apiResource('projects', ProjectController::class);
         Route::get('projects/{project}/deliverables', [ProjectController::class, 'deliverables']);
 
+        Route::get('meetings', [MeetingController::class, 'index']);
+
         // Meetings routes (project-scoped only)
         Route::get('projects/{project}/meetings', [MeetingController::class, 'projectMeetings']);
         Route::post('projects/{project}/meetings', [MeetingController::class, 'store']);
@@ -128,7 +130,7 @@ Route::middleware('auth.atlas')->group(function () {
 
         // Users routes (all user data proxied from Atlas auth module)
         Route::get('users/dropdown', [UserController::class, 'dropdown']);
-    Route::get('users/students/dropdown', [UserController::class, 'studentsDropdown']);
+        Route::get('users/students/dropdown', [UserController::class, 'studentsDropdown']);
         Route::get('users', [UserController::class, 'index']);
         Route::post('users', [UserController::class, 'store']);
         Route::get('users/{id}', [UserController::class, 'show']);

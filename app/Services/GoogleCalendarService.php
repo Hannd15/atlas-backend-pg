@@ -63,6 +63,67 @@ class GoogleCalendarService
     }
 
     /**
+     * Delete a Google Calendar event via the Atlas Auth proxy.
+     *
+     * @return array{success: bool, status?: int, error?: string}
+     */
+    public function deleteEvent(string $bearerToken, string $eventId, string $calendarId = 'primary'): array
+    {
+        $path = sprintf(
+            '/calendars/%s/events/%s',
+            rawurlencode($calendarId),
+            rawurlencode($eventId)
+        );
+
+        try {
+            $response = $this->calendarProxy($bearerToken, 'DELETE', $path);
+
+            if ($response->noContent() || $response->successful()) {
+                return [
+                    'success' => true,
+                    'status' => $response->status(),
+                ];
+            }
+
+            if ($response->status() === 404) {
+                Log::info('Google Calendar event already deleted', [
+                    'event_id' => $eventId,
+                    'calendar_id' => $calendarId,
+                ]);
+
+                return [
+                    'success' => true,
+                    'status' => 404,
+                ];
+            }
+
+            $errorMessage = $this->extractErrorMessage($response);
+
+            Log::warning('Google Calendar event deletion failed', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+            ]);
+
+            return [
+                'success' => false,
+                'status' => $response->status(),
+                'error' => $errorMessage,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Exception deleting Google Calendar event', [
+                'event_id' => $eventId,
+                'calendar_id' => $calendarId,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to delete Google Calendar event: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Generic proxy to Google Calendar API via Atlas Auth service.
      *
      * @param  string  $bearerToken  The user's Sanctum token
