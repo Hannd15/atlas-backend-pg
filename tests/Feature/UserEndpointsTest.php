@@ -173,12 +173,14 @@ class UserEndpointsTest extends TestCase
 
     public function test_students_endpoint_returns_only_student_role_users(): void
     {
+        $studentPermission = config('services.atlas_auth.student_filter_permission');
+
         $student = User::factory()->create(['name' => 'Student Example', 'email' => 'student@example.com']);
         $teacher = User::factory()->create(['name' => 'Teacher Example', 'email' => 'teacher@example.com']);
 
         $this->atlasUserServiceFake->setUserRoles([
-            $student->id => ['Estudiante'],
-            $teacher->id => ['Docente'],
+            $student->id => [$studentPermission],
+            $teacher->id => ['otra-permiso'],
         ]);
 
         $response = $this->getJson('/api/pg/users/students/dropdown');
@@ -189,8 +191,33 @@ class UserEndpointsTest extends TestCase
                 'value' => $student->id,
                 'label' => 'Student Example',
                 'email' => 'student@example.com',
-                'roles_list' => 'Estudiante',
+                'roles_list' => $studentPermission,
             ])
             ->assertJsonMissing(['value' => $teacher->id]);
+    }
+
+    public function test_teachers_endpoint_returns_only_teacher_permission_users(): void
+    {
+        $teacherPermission = config('services.atlas_auth.teacher_filter_permission');
+
+        $student = User::factory()->create(['name' => 'Student Example', 'email' => 'student@example.com']);
+        $teacher = User::factory()->create(['name' => 'Teacher Example', 'email' => 'teacher@example.com']);
+
+        $this->atlasUserServiceFake->setUserRoles([
+            $student->id => ['otro-permiso'],
+            $teacher->id => [$teacherPermission],
+        ]);
+
+        $response = $this->getJson('/api/pg/users/teachers/dropdown');
+
+        $response->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonFragment([
+                'value' => $teacher->id,
+                'label' => 'Teacher Example',
+                'email' => 'teacher@example.com',
+                'roles_list' => $teacherPermission,
+            ])
+            ->assertJsonMissing(['value' => $student->id]);
     }
 }

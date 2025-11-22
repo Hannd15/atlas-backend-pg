@@ -79,7 +79,7 @@ class UserProjectEligibilityEndpointsTest extends TestCase
 
         $position->eligibleUsers()->sync([$alice->id]);
 
-        $response = $this->postJson(
+        $response = $this->putJson(
             "/api/pg/user-project-eligibilities/project-positions/{$position->id}/sync",
             [
                 'user_ids' => [$bob->id, $charlie->id],

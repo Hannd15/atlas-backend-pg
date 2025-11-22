@@ -134,6 +134,7 @@ Route::middleware('auth.atlas')->group(function () {
         // Users routes (all user data proxied from Atlas auth module)
         Route::get('users/dropdown', [UserController::class, 'dropdown']);
         Route::get('users/students/dropdown', [UserController::class, 'studentsDropdown']);
+        Route::get('users/teachers/dropdown', [UserController::class, 'teachersDropdown']);
         Route::get('users', [UserController::class, 'index']);
         Route::post('users', [UserController::class, 'store']);
         Route::get('users/{id}', [UserController::class, 'show']);
@@ -151,6 +152,6 @@ Route::middleware('auth.atlas')->group(function () {
         Route::get('user-project-eligibilities/by-user/dropdown', [UserProjectEligibilityController::class, 'byUserDropdown']);
         Route::get('user-project-eligibilities/by-position/dropdown', [UserProjectEligibilityController::class, 'byPositionDropdown']);
         Route::get('user-project-eligibilities/directors/dropdown', [UserProjectEligibilityController::class, 'directorsDropdown']);
-        Route::post('user-project-eligibilities/project-positions/{projectPosition}/sync', [UserProjectEligibilityController::class, 'syncPositionUsers']);
+    Route::put('user-project-eligibilities/project-positions/{projectPosition}/sync', [UserProjectEligibilityController::class, 'syncPositionUsers']);
     });
 });
