@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UserProjectEligibility\SyncProjectPositionEligibilityRequest;
 use App\Models\ProjectPosition;
 use App\Models\User;
 use App\Services\AtlasUserService;
@@ -278,6 +279,72 @@ class UserProjectEligibilityController extends Controller
         })->values();
 
         return response()->json($items);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/pg/user-project-eligibilities/project-positions/{projectPosition}/sync",
+     *     summary="Sync eligible users for a project position",
+     *     tags={"User Project Eligibilities"},
+     *
+     *     @OA\Parameter(
+     *         name="projectPosition",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\JsonContent(
+     *             required={"user_ids"},
+     *
+     *             @OA\Property(
+     *                 property="user_ids",
+     *                 type="array",
+     *
+     *                 @OA\Items(type="integer", example=42)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Project position summary with updated eligible users",
+     *
+     *         @OA\JsonContent(
+     *             @OA\Property(property="project_position_id", type="integer", example=3),
+     *             @OA\Property(property="project_position_name", type="string", example="Director"),
+     *             @OA\Property(property="user_names", type="string", example="Alice Example, Bob Example")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=401, description="Missing bearer token")
+     * )
+     */
+    public function syncPositionUsers(
+        SyncProjectPositionEligibilityRequest $request,
+        ProjectPosition $projectPosition
+    ): \Illuminate\Http\JsonResponse {
+        $userIds = collect($request->validated('user_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $projectPosition->eligibleUsers()->sync($userIds);
+
+        $summary = $this->buildPositionSummaries((string) $request->bearerToken())
+            ->firstWhere('project_position_id', $projectPosition->id)
+            ?? [
+                'project_position_id' => $projectPosition->id,
+                'project_position_name' => $projectPosition->name,
+                'user_names' => '',
+            ];
+
+        return response()->json($summary);
     }
 
     protected function requireToken(?string $token): string

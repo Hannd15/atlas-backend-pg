@@ -69,6 +69,36 @@ class UserProjectEligibilityEndpointsTest extends TestCase
             ->assertExactJson($expected);
     }
 
+    public function test_sync_position_users_replaces_existing_eligibilities(): void
+    {
+        $position = ProjectPosition::create(['name' => 'Director']);
+
+        $alice = User::factory()->create(['name' => 'Alice Example']);
+        $bob = User::factory()->create(['name' => 'Bob Example']);
+        $charlie = User::factory()->create(['name' => 'Charlie Example']);
+
+        $position->eligibleUsers()->sync([$alice->id]);
+
+        $response = $this->postJson(
+            "/api/pg/user-project-eligibilities/project-positions/{$position->id}/sync",
+            [
+                'user_ids' => [$bob->id, $charlie->id],
+            ]
+        );
+
+        $response->assertOk()
+            ->assertExactJson([
+                'project_position_id' => $position->id,
+                'project_position_name' => 'Director',
+                'user_names' => 'Bob Example, Charlie Example',
+            ]);
+
+        $this->assertEqualsCanonicalizing(
+            [$bob->id, $charlie->id],
+            $position->fresh()->eligibleUsers->pluck('id')->all()
+        );
+    }
+
     private function createEligibilityFixtures(): void
     {
         $director = ProjectPosition::create(['name' => 'Director']);

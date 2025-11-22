@@ -4652,6 +4652,77 @@
                     }
                 }
             }
+        },
+        "/api/pg/user-project-eligibilities/project-positions/{projectPosition}/sync": {
+            "post": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Sync eligible users for a project position",
+                "operationId": "556cd52d297ff01ec4cacca30b304e63",
+                "parameters": [
+                    {
+                        "name": "projectPosition",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_ids"
+                                ],
+                                "properties": {
+                                    "user_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 42
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Project position summary with updated eligible users",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "project_position_id": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "project_position_name": {
+                                            "type": "string",
+                                            "example": "Director"
+                                        },
+                                        "user_names": {
+                                            "type": "string",
+                                            "example": "Alice Example, Bob Example"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Missing bearer token"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -5067,10 +5138,6 @@
                         "type": "string",
                         "example": "Revisión semanal",
                         "nullable": true
-                    },
-                    "url": {
-                        "type": "string",
-                        "example": "https://meetings.test/project-12/20250214"
                     },
                     "google_meet_url": {
                         "type": "string",

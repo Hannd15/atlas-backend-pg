@@ -148,5 +148,6 @@ Route::middleware('auth.atlas')->group(function () {
         Route::get('user-project-eligibilities/by-user/dropdown', [UserProjectEligibilityController::class, 'byUserDropdown']);
         Route::get('user-project-eligibilities/by-position/dropdown', [UserProjectEligibilityController::class, 'byPositionDropdown']);
         Route::get('user-project-eligibilities/directors/dropdown', [UserProjectEligibilityController::class, 'directorsDropdown']);
+        Route::post('user-project-eligibilities/project-positions/{projectPosition}/sync', [UserProjectEligibilityController::class, 'syncPositionUsers']);
     });
 });
