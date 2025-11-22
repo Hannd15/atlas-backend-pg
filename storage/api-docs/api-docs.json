@@ -5354,13 +5354,6 @@
                         "example": "2024-1",
                         "nullable": true
                     },
-                    "member_user_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "example": 25
-                        }
-                    },
                     "member_user_names": {
                         "type": "string",
                         "example": "Ana López, Juan Pérez"
@@ -5392,6 +5385,13 @@
                         "type": "string",
                         "example": "Sistema IoT",
                         "nullable": true
+                    },
+                    "member_user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "example": 25
+                        }
                     },
                     "phase_name": {
                         "type": "string",
