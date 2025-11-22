@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\ApprovalRequestController;
+use App\Http\Controllers\AuthenticatedUserController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\DeliverableFileController;
 use App\Http\Controllers\FileController;
@@ -26,6 +27,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.atlas')->group(function () {
     Route::scopeBindings()->prefix('pg')->group(function () {
+        Route::get('auth/user-profile', [AuthenticatedUserController::class, 'show']);
+
         Route::get('academic-periods/dropdown', [AcademicPeriodController::class, 'dropdown']);
         Route::apiResource('academic-periods', AcademicPeriodController::class);
 
