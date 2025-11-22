@@ -14,7 +14,7 @@ class StoreRepositoryProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'project_id' => ['nullable', 'exists:projects,id'],
+            'project_id' => ['required', 'exists:projects,id'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'url' => ['nullable', 'url', 'max:2048'],

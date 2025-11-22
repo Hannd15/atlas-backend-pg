@@ -52,7 +52,10 @@ class RepositoryProjectEndpointsTest extends TestCase
 
     public function test_store_creates_repository_project(): void
     {
+        [$existingRepositoryProject] = $this->createRepositoryProjectGraph();
+
         $payload = [
+            'project_id' => $existingRepositoryProject->project_id,
             'title' => 'Repositorio de Energía',
             'description' => 'Repositorio para los proyectos de energía renovable.',
             'url' => 'https://example.com/repositorio-energia',

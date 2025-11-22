@@ -33,6 +33,26 @@ use Illuminate\Support\Arr;
  * )
  *
  * @OA\Schema(
+ *     schema="RepositoryProjectStorePayload",
+ *     type="object",
+ *     allOf={
+ *         @OA\Schema(ref="#/components/schemas/RepositoryProjectPayload"),
+ *         @OA\Schema(
+ *             required={"project_id"},
+ *
+ *             @OA\Property(property="project_id", type="integer", example=1)
+ *         )
+ *     }
+ * )
+ *
+ * @OA\Schema(
+ *     schema="RepositoryProjectUpdatePayload",
+ *     type="object",
+ *     allOf={
+ *         @OA\Schema(ref="#/components/schemas/RepositoryProjectPayload")
+ *     }
+ * )
+ * @OA\Schema(
  *     schema="RepositoryProjectIndexResource",
  *     type="object",
  *
@@ -185,7 +205,7 @@ class RepositoryProjectController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *
-     *         @OA\JsonContent(ref="#/components/schemas/RepositoryProjectPayload")
+     *         @OA\JsonContent(ref="#/components/schemas/RepositoryProjectStorePayload")
      *     ),
      *
      *     @OA\Response(response=201, description="Repository project created", @OA\JsonContent(ref="#/components/schemas/RepositoryProjectResource")),
@@ -229,7 +249,7 @@ class RepositoryProjectController extends Controller
      *
      *     @OA\Parameter(name="repositoryProject", in="path", required=true, @OA\Schema(type="integer")),
      *
-     *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/RepositoryProjectPayload")),
+     *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/RepositoryProjectUpdatePayload")),
      *
      *     @OA\Response(response=200, description="Repository project updated", @OA\JsonContent(ref="#/components/schemas/RepositoryProjectResource")),
      *     @OA\Response(response=404, description="Repository project not found")
