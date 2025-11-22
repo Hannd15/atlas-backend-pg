@@ -28,32 +28,6 @@ class AtlasUserService extends AtlasAuthService
     }
 
     /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    public function createUser(string $token, array $payload): array
-    {
-        return $this->sendRequest(fn () => $this->client($token)->post($this->serviceUrl().'/api/auth/users', $payload));
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    public function updateUser(string $token, int $userId, array $payload): array
-    {
-        return $this->sendRequest(fn () => $this->client($token)->put($this->serviceUrl()."/api/auth/users/{$userId}", $payload));
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function deleteUser(string $token, int $userId): array
-    {
-        return $this->sendRequest(fn () => $this->client($token)->delete($this->serviceUrl()."/api/auth/users/{$userId}"));
-    }
-
-    /**
      * @return array<int, array<string, mixed>>
      */
     public function dropdown(string $token): array
@@ -77,27 +51,34 @@ class AtlasUserService extends AtlasAuthService
             return [];
         }
 
-        $users = [];
+        $idsList = $ids->values()->all();
 
-        foreach ($ids as $id) {
-            try {
-                $user = $this->getUser($token, $id);
+        try {
+            $response = $this->sendRequest(fn () => $this->client($token)->post(
+                $this->serviceUrl().'/api/auth/users/batch',
+                ['ids' => $idsList]
+            ));
 
-                if (! empty($user)) {
-                    $users[$id] = $user;
-                }
-            } catch (HttpResponseException $exception) {
-                $status = $exception->getResponse()?->getStatusCode();
+            $users = [];
 
-                if ($status === 404) {
+            foreach ($response as $user) {
+                $userId = isset($user['id']) ? (int) $user['id'] : null;
+
+                if ($userId === null) {
                     continue;
                 }
 
-                throw $exception;
+                $users[$userId] = $user;
             }
-        }
 
-        return $users;
+            return $users;
+        } catch (HttpResponseException $exception) {
+            if ($exception->getResponse()?->getStatusCode() === 404) {
+                return $this->fetchUsersIndividually($token, $idsList);
+            }
+
+            throw $exception;
+        }
     }
 
     /**
@@ -119,6 +100,35 @@ class AtlasUserService extends AtlasAuthService
         }
 
         return $names;
+    }
+
+    /**
+     * @param  array<int, int>  $ids
+     * @return array<int, array<string, mixed>>
+     */
+    protected function fetchUsersIndividually(string $token, array $ids): array
+    {
+        $users = [];
+
+        foreach ($ids as $id) {
+            try {
+                $user = $this->getUser($token, $id);
+
+                if (! empty($user)) {
+                    $users[$id] = $user;
+                }
+            } catch (HttpResponseException $exception) {
+                $status = $exception->getResponse()?->getStatusCode();
+
+                if ($status === 404) {
+                    continue;
+                }
+
+                throw $exception;
+            }
+        }
+
+        return $users;
     }
 
     protected function client(string $token): PendingRequest

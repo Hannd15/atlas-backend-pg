@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 /**
  * @OA\Tag(
  *     name="Users",
- *     description="Proxy endpoints to Atlas authentication module for user management"
+ *     description="Proxy endpoints to Atlas authentication module for user data retrieval, no modification allowed"
  * )
  */
 class UserController extends Controller
@@ -93,116 +93,6 @@ class UserController extends Controller
         $token = $this->requireToken($request->bearerToken());
 
         return response()->json($this->atlasUserService->getUser($token, $id));
-    }
-
-    /**
-     * @OA\Post(
-     *     path="/api/pg/users",
-     *     summary="Create a new user via Atlas authentication module",
-     *     tags={"Users"},
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *
-     *         @OA\JsonContent(
-     *
-     *             @OA\Property(property="name", type="string"),
-     *             @OA\Property(property="email", type="string", format="email"),
-     *             @OA\Property(property="password", type="string", format="password")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=201,
-     *         description="User created successfully"
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error"
-     *     )
-     * )
-     */
-    public function store(Request $request): \Illuminate\Http\JsonResponse
-    {
-        $token = $this->requireToken($request->bearerToken());
-
-        return response()->json($this->atlasUserService->createUser($token, $request->all()), 201);
-    }
-
-    /**
-     * @OA\Put(
-     *     path="/api/pg/users/{id}",
-     *     summary="Update a user via Atlas authentication module",
-     *     tags={"Users"},
-     *
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *
-     *         @OA\JsonContent(
-     *
-     *             @OA\Property(property="name", type="string"),
-     *             @OA\Property(property="email", type="string", format="email")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="User updated successfully"
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="User not found"
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error"
-     *     )
-     * )
-     */
-    public function update(Request $request, int $id): \Illuminate\Http\JsonResponse
-    {
-        $token = $this->requireToken($request->bearerToken());
-
-        return response()->json($this->atlasUserService->updateUser($token, $id, $request->all()));
-    }
-
-    /**
-     * @OA\Delete(
-     *     path="/api/pg/users/{id}",
-     *     summary="Delete a user via Atlas authentication module",
-     *     tags={"Users"},
-     *
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="User deleted successfully"
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="User not found"
-     *     )
-     * )
-     */
-    public function destroy(Request $request, int $id): \Illuminate\Http\JsonResponse
-    {
-        $token = $this->requireToken($request->bearerToken());
-
-        return response()->json($this->atlasUserService->deleteUser($token, $id));
     }
 
     /**
