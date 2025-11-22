@@ -33,7 +33,6 @@ use Illuminate\Validation\ValidationException;
  *     @OA\Property(property="end_time", type="string", format="time", nullable=true, example="11:00"),
  *     @OA\Property(property="timezone", type="string", nullable=true, example="America/New_York"),
  *     @OA\Property(property="observations", type="string", nullable=true, example="Revisión semanal"),
- *     @OA\Property(property="url", type="string", example="https://meetings.test/project-12/20250214"),
  *     @OA\Property(property="google_meet_url", type="string", nullable=true, example="https://meet.google.com/abc-defg-hij")
  * )
  */

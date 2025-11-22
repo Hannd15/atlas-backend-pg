@@ -19,7 +19,8 @@ use Illuminate\Http\Request;
  *
  *     @OA\Property(property="user_id", type="integer", example=25),
  *     @OA\Property(property="user_name", type="string", example="Ana López"),
- *     @OA\Property(property="user_email", type="string", example="ana.lopez@example.com")
+ *     @OA\Property(property="user_email", type="string", example="ana.lopez@example.com"),
+ *     @OA\Property(property="user_avatar", type="string", format="uri", nullable=true, example="https://example.com/avatar.jpg")
  * )
  */
 class GroupMemberController extends Controller
@@ -68,6 +69,9 @@ class GroupMemberController extends Controller
             'user_id' => $userId,
             'user_name' => $users[$userId]['name'] ?? "User #{$userId}",
             'user_email' => $users[$userId]['email'] ?? null,
+            'user_avatar' => $users[$userId]['avatar']
+                ?? $users[$userId]['avatar_url']
+                ?? null,
         ]);
 
         return response()->json($members);

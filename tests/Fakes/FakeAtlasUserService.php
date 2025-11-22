@@ -157,6 +157,7 @@ class FakeAtlasUserService extends AtlasUserService
             'id' => $user->id,
             'name' => $user->name ?? "User #{$user->id}",
             'email' => $user->email,
+            'avatar' => $user->avatar,
             'roles' => $this->userRoles[$user->id] ?? [],
             'roles_list' => implode(', ', $this->userRoles[$user->id] ?? []),
         ];

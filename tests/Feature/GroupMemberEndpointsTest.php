@@ -8,7 +8,6 @@ use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ProjectGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class GroupMemberEndpointsTest extends TestCase
@@ -24,8 +23,16 @@ class GroupMemberEndpointsTest extends TestCase
         $phase = Phase::factory()->create(['period_id' => $period->id]);
 
         // Create users with specific emails for testing
-        $user1 = \App\Models\User::factory()->create(['email' => 'alice@example.com', 'name' => 'Alice Smith']);
-        $user2 = \App\Models\User::factory()->create(['email' => 'bob@example.com', 'name' => 'Bob Johnson']);
+        $user1 = \App\Models\User::factory()->create([
+            'email' => 'alice@example.com',
+            'name' => 'Alice Smith',
+            'avatar' => 'https://cdn.example.com/avatars/alice.png',
+        ]);
+        $user2 = \App\Models\User::factory()->create([
+            'email' => 'bob@example.com',
+            'name' => 'Bob Johnson',
+            'avatar' => 'https://cdn.example.com/avatars/bob.png',
+        ]);
 
         // Create project and group
         $project = Project::factory()->create(['phase_id' => $phase->id]);
@@ -38,22 +45,6 @@ class GroupMemberEndpointsTest extends TestCase
         GroupMember::create(['group_id' => $group->id, 'user_id' => $user2->id]);
 
         // Mock Atlas service to return user data with emails
-        Http::fake([
-            'https://auth.example/api/auth/users/*' => function ($request) use ($user1, $user2) {
-                $userId = (int) basename($request->url());
-
-                if ($userId === $user1->id) {
-                    return Http::response(['id' => $user1->id, 'name' => $user1->name, 'email' => $user1->email]);
-                }
-
-                if ($userId === $user2->id) {
-                    return Http::response(['id' => $user2->id, 'name' => $user2->name, 'email' => $user2->email]);
-                }
-
-                return Http::response([], 404);
-            },
-        ]);
-
         config(['services.atlas_auth.url' => 'https://auth.example']);
 
         $response = $this->withToken('test-token')
@@ -62,11 +53,21 @@ class GroupMemberEndpointsTest extends TestCase
         $response->assertOk()
             ->assertJsonCount(2)
             ->assertJsonStructure([
-                '*' => ['user_id', 'user_name', 'user_email'],
+                '*' => ['user_id', 'user_name', 'user_email', 'user_avatar'],
             ])
             ->assertJson([
-                ['user_id' => $user1->id, 'user_name' => $user1->name, 'user_email' => $user1->email],
-                ['user_id' => $user2->id, 'user_name' => $user2->name, 'user_email' => $user2->email],
+                [
+                    'user_id' => $user1->id,
+                    'user_name' => $user1->name,
+                    'user_email' => $user1->email,
+                    'user_avatar' => 'https://cdn.example.com/avatars/alice.png',
+                ],
+                [
+                    'user_id' => $user2->id,
+                    'user_name' => $user2->name,
+                    'user_email' => $user2->email,
+                    'user_avatar' => 'https://cdn.example.com/avatars/bob.png',
+                ],
             ]);
     }
 

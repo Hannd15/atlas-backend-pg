@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Middleware;
 
+use App\Models\ProjectGroup;
+use App\Models\User;
+use App\Services\AtlasAuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
@@ -13,6 +16,8 @@ class AuthenticateViaAtlasTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -21,15 +26,19 @@ class AuthenticateViaAtlasTest extends TestCase
             'services.atlas_auth.url' => 'https://auth.example',
             'services.atlas_auth.timeout' => 10,
         ]);
+
+        $this->app->instance(AtlasAuthService::class, new AtlasAuthService);
     }
 
     public function test_successful_authentication_attaches_user_to_request(): void
     {
+        $user = User::factory()->create(['email' => 'user@example.com']);
+
         Http::fake([
             'https://auth.example/api/auth/token/verify' => Http::response([
                 'authorized' => true,
                 'user' => [
-                    'id' => 42,
+                    'id' => $user->id,
                     'email' => 'user@example.com',
                 ],
             ], 200),
@@ -47,22 +56,76 @@ class AuthenticateViaAtlasTest extends TestCase
 
         $response->assertOk()->assertJson([
             'user' => [
-                'id' => 42,
+                'id' => $user->id,
                 'email' => 'user@example.com',
             ],
+        ]);
+    }
+
+    public function test_user_without_group_gets_project_group_assigned(): void
+    {
+        $user = User::factory()->create();
+
+        Http::fake([
+            'https://auth.example/api/auth/token/verify' => Http::response([
+                'authorized' => true,
+                'user' => [
+                    'id' => $user->id,
+                ],
+            ], 200),
+        ]);
+
+        Route::middleware('auth.atlas')->get('/middleware-assigns-group', fn () => response()->json(['status' => 'ok']));
+
+        $this->getJson('/middleware-assigns-group', [
+            'Authorization' => 'Bearer token',
+        ])->assertOk();
+
+        $this->assertDatabaseCount('project_groups', 1);
+        $this->assertDatabaseHas('group_members', [
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_user_with_existing_group_is_not_reassigned(): void
+    {
+        $user = User::factory()->create();
+        $group = ProjectGroup::create(['project_id' => null]);
+        $group->members()->create(['user_id' => $user->id]);
+
+        Http::fake([
+            'https://auth.example/api/auth/token/verify' => Http::response([
+                'authorized' => true,
+                'user' => [
+                    'id' => $user->id,
+                ],
+            ], 200),
+        ]);
+
+        Route::middleware('auth.atlas')->get('/middleware-existing-group', fn () => response()->json(['status' => 'ok']));
+
+        $this->getJson('/middleware-existing-group', [
+            'Authorization' => 'Bearer token',
+        ])->assertOk();
+
+        $this->assertDatabaseCount('project_groups', 1);
+        $this->assertDatabaseHas('group_members', [
+            'user_id' => $user->id,
+            'group_id' => $group->id,
         ]);
     }
 
     public function test_forwards_roles_and_permissions_when_configured(): void
     {
         $capturedPayload = null;
+        $user = User::factory()->create();
 
-        Http::fake(function (\Illuminate\Http\Client\Request $request) use (&$capturedPayload) {
+        Http::fake(function (\Illuminate\Http\Client\Request $request) use (&$capturedPayload, $user) {
             $capturedPayload = $request->data();
 
             return Http::response([
                 'authorized' => true,
-                'user' => ['id' => 1],
+                'user' => ['id' => $user->id],
             ], 200);
         });
 
