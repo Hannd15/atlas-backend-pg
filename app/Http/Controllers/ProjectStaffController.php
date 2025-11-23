@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalRequest;
 use App\Models\Project;
 use App\Models\ProjectPosition;
 use App\Models\ProjectStaff;
 use App\Models\User;
+use App\Services\ApprovalRequestService;
+use App\Services\AtlasAuthService;
 use App\Services\AtlasUserService;
+use App\Services\RequestActions\AssignProjectStaffAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -21,15 +25,33 @@ use Illuminate\Http\Response;
  *     schema="ProjectStaffAssignment",
  *     type="object",
  *
- *     @OA\Property(property="position", type="string", example="Director"),
+ *     @OA\Response(response=200, description="Assignment already existed", @OA\JsonContent(ref="#/components/schemas/ProjectStaffAssignment")),
+ *     @OA\Response(
+ *         response=202,
+ *         description="Assignment pending approval",
+ *
+ *         @OA\JsonContent(
+ *             type="object",
+ *
+ *             @OA\Property(property="approval_request_id", type="integer", example=88),
+ *             @OA\Property(property="status", type="string", example="pending"),
+ *             @OA\Property(property="position", type="string", example="Director"),
+ *             @OA\Property(property="user_name", type="string", example="Ana Directora"),
+ *             @OA\Property(property="pending_decision", type="boolean", example=true)
+ *         )
+ *     )
  *     @OA\Property(property="user_name", type="string", example="Ana Directora")
  * )
  */
-class ProjectStaffController extends Controller
+class ProjectStaffController extends AtlasAuthenticatedController
 {
     public function __construct(
-        protected AtlasUserService $atlasUserService
-    ) {}
+        AtlasAuthService $atlasAuthService,
+        protected AtlasUserService $atlasUserService,
+        protected ApprovalRequestService $approvalRequestService
+    ) {
+        parent::__construct($atlasAuthService);
+    }
 
     /**
      * @OA\Get(
@@ -93,23 +115,47 @@ class ProjectStaffController extends Controller
      */
     public function store(Request $request, Project $project, ProjectPosition $projectPosition, User $user): JsonResponse
     {
-        $assignment = ProjectStaff::query()->updateOrCreate(
-            [
+        $assignment = ProjectStaff::query()
+            ->where('project_id', $project->id)
+            ->where('project_position_id', $projectPosition->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($assignment) {
+            return response()->json($this->formatAssignment(
+                $projectPosition->name,
+                $this->resolveUserName($request, $user)
+            ));
+        }
+
+        $pendingRequest = $this->findPendingAssignmentRequest($project, $projectPosition, $user);
+
+        if ($pendingRequest) {
+            return response()->json(
+                $this->formatPendingAssignment($pendingRequest, $projectPosition, $user, $request),
+                202
+            );
+        }
+
+        $requestedBy = $this->resolveAuthenticatedUserId($request);
+
+        $approvalRequest = $this->approvalRequestService->create([
+            'title' => $this->assignmentTitle($project, $projectPosition),
+            'description' => $project->description,
+            'requested_by' => $requestedBy,
+            'action_key' => AssignProjectStaffAction::ACTION_KEY,
+            'action_payload' => [
                 'project_id' => $project->id,
                 'project_position_id' => $projectPosition->id,
                 'user_id' => $user->id,
             ],
-            [
-                'status' => 'active',
-            ]
+            'status' => ApprovalRequest::STATUS_PENDING,
+        ], [$user->id]);
+
+        return response()->json(
+            $this->formatPendingAssignment($approvalRequest, $projectPosition, $user, $request),
+            202
         );
-
-        $userName = $this->resolveUserName($request, $user);
-        $payload = $this->formatAssignment($projectPosition->name, $userName);
-
-        $status = $assignment->wasRecentlyCreated ? 201 : 200;
-
-        return response()->json($payload, $status);
     }
 
     /**
@@ -160,5 +206,40 @@ class ProjectStaffController extends Controller
         $names = $this->atlasUserService->namesByIds($token, [$user->id]);
 
         return $names[$user->id] ?? $user->name ?? "User #{$user->id}";
+    }
+
+    protected function findPendingAssignmentRequest(Project $project, ProjectPosition $projectPosition, User $user): ?ApprovalRequest
+    {
+        return ApprovalRequest::query()
+            ->with('recipients')
+            ->pending()
+            ->where('action_key', AssignProjectStaffAction::ACTION_KEY)
+            ->get()
+            ->first(function (ApprovalRequest $request) use ($project, $projectPosition, $user) {
+                $payload = $request->action_payload ?? [];
+
+                return (int) ($payload['project_id'] ?? 0) === $project->id
+                    && (int) ($payload['project_position_id'] ?? 0) === $projectPosition->id
+                    && (int) ($payload['user_id'] ?? 0) === $user->id
+                    && $request->recipients->contains('user_id', $user->id);
+            });
+    }
+
+    protected function formatPendingAssignment(ApprovalRequest $approvalRequest, ProjectPosition $projectPosition, User $user, Request $request): array
+    {
+        return [
+            'approval_request_id' => $approvalRequest->id,
+            'status' => $approvalRequest->status,
+            'position' => $projectPosition->name,
+            'user_name' => $this->resolveUserName($request, $user),
+            'pending_decision' => true,
+        ];
+    }
+
+    protected function assignmentTitle(Project $project, ProjectPosition $projectPosition): string
+    {
+        $projectTitle = $project->title ?: 'Proyecto sin nombre';
+
+        return sprintf('Asignación a %s - %s', $projectPosition->name, $projectTitle);
     }
 }
