@@ -324,4 +324,18 @@ trait PgApiResponseHelpers
             ];
         })->values()->all();
     }
+
+    protected function userEligibilityByPositionUsersDropdownArray(ProjectPosition $position): array
+    {
+        $position->loadMissing(['eligibleUsers' => fn ($query) => $query->orderBy('name')]);
+
+        return $position->eligibleUsers
+            ->sortBy('name')
+            ->values()
+            ->map(fn (User $user) => [
+                'value' => $user->id,
+                'label' => $user->name,
+            ])
+            ->all();
+    }
 }

@@ -154,6 +154,7 @@ class UserProjectEligibilityController extends Controller
      *         name="project_position",
      *         in="path",
      *         required=true,
+     *
      *         @OA\Schema(type="integer", example=3)
      *     ),
      *
@@ -163,6 +164,7 @@ class UserProjectEligibilityController extends Controller
      *
      *         @OA\JsonContent(
      *             type="object",
+     *
      *             @OA\Property(property="project_position_id", type="integer", example=3),
      *             @OA\Property(property="project_position_name", type="string", example="Director"),
      *             @OA\Property(property="user_ids", type="array", @OA\Items(type="integer", example=42))
@@ -192,7 +194,7 @@ class UserProjectEligibilityController extends Controller
     /**
      * @OA\Get(
      *     path="/api/pg/user-project-eligibilities/by-user/dropdown",
-     *     summary="Dropdown of users with eligibility labels",
+     *     summary="Dropdown project positions",
      *     tags={"User Project Eligibilities"},
      *
      *     @OA\Response(
@@ -245,7 +247,7 @@ class UserProjectEligibilityController extends Controller
      *             @OA\Items(
      *
      *                 @OA\Property(property="value", type="integer", example=3),
-     *                 @OA\Property(property="label", type="string", example="Director - Jane Doe")
+     *                 @OA\Property(property="label", type="string", example="Director")
      *             )
      *         )
      *     )
@@ -265,6 +267,64 @@ class UserProjectEligibilityController extends Controller
                 ];
             })
             ->values();
+
+        return response()->json($items);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/pg/user-project-eligibilities/by-position/{project_position}/users/dropdown",
+     *     summary="Dropdown of eligible users for a project position",
+     *     tags={"User Project Eligibilities"},
+     *
+     *     @OA\Parameter(
+     *         name="project_position",
+     *         in="path",
+     *         required=true,
+     *
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Value-label pairs",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *
+     *                 @OA\Property(property="value", type="integer", example=42),
+     *                 @OA\Property(property="label", type="string", example="Jane Doe")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function byPositionUsersDropdown(Request $request, ProjectPosition $projectPosition): \Illuminate\Http\JsonResponse
+    {
+        $token = $this->requireToken((string) $request->bearerToken());
+
+        $userIds = $projectPosition->eligibleUsers()
+            ->orderBy('name')
+            ->pluck('users.id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        if (empty($userIds)) {
+            return response()->json([]);
+        }
+
+        $names = $this->atlasUserService->namesByIds($token, $userIds);
+
+        $items = collect($userIds)->map(function (int $userId) use ($names) {
+            return [
+                'value' => $userId,
+                'label' => $names[$userId] ?? "User #{$userId}",
+            ];
+        })->values();
 
         return response()->json($items);
     }
@@ -336,10 +396,11 @@ class UserProjectEligibilityController extends Controller
      *         name="projectPosition",
      *         in="path",
      *         required=true,
+     *
      *         @OA\Schema(type="integer", example=3)
      *     ),
      *
-    *     @OA\RequestBody(
+     *     @OA\RequestBody(
      *         required=true,
      *
      *         @OA\JsonContent(
@@ -354,18 +415,19 @@ class UserProjectEligibilityController extends Controller
      *         )
      *     ),
      *
-    *     @OA\Response(
+     *     @OA\Response(
      *         response=200,
      *         description="Project position summary with updated eligible users",
      *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="project_position_id", type="integer", example=3),
      *             @OA\Property(property="project_position_name", type="string", example="Director"),
      *             @OA\Property(property="user_names", type="string", example="Alice Example, Bob Example")
      *         )
      *     ),
      *
-    *     @OA\Response(response=401, description="Missing bearer token")
+     *     @OA\Response(response=401, description="Missing bearer token")
      * )
      */
     public function syncPositionUsers(
