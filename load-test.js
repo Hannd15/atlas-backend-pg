@@ -12,7 +12,7 @@ export const options = {
 
 export default function () {
   const res = http.get('http://localhost:8001/api/pg/projects', {
-        headers: { Authorization: 'Bearer 4|b6xuGrQAn2mazDMrrQuTNtkhYGHrspcl2iE34Yfmc1090de5' }
+        headers: { Authorization: 'Bearer 12|noaWiq5E9MGLz1qNHElsA718w6F702llHcXoXrfD6a7cb48f' }
     });
 
   

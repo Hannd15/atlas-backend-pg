@@ -223,6 +223,7 @@ trait PgApiResponseHelpers
             'deliverable_id' => $submission->deliverable_id,
             'project_id' => $submission->project_id,
             'submission_date' => optional($submission->submission_date)->toDateTimeString(),
+            'comment' => $submission->comment,
             'deliverable_name' => $submission->deliverable?->name,
             'project_title' => $submission->project?->title,
             'phase_name' => $submission->deliverable?->phase?->name,

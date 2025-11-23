@@ -59,13 +59,14 @@ class SubmissionEvaluationController extends Controller
 {
     /**
      * @OA\Get(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations",
      *     summary="List evaluations for a submission",
      *     tags={"Submission Evaluations"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -80,8 +81,10 @@ class SubmissionEvaluationController extends Controller
      *     )
      * )
      */
-    public function index($academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
+    public function index($academicPeriod, $phase, $deliverable, $project, Submission $submission): JsonResponse
     {
+        $this->guardSubmissionContext($submission, (int) $deliverable, (int) $project);
+
         $submission->load('evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
 
         return response()->json(
@@ -94,13 +97,14 @@ class SubmissionEvaluationController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations",
      *     summary="Create evaluation",
      *     tags={"Submission Evaluations"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\RequestBody(required=true, @OA\JsonContent(ref="#/components/schemas/SubmissionEvaluationCreatePayload")),
@@ -115,8 +119,10 @@ class SubmissionEvaluationController extends Controller
      *     @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function store(Request $request, $academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
+    public function store(Request $request, $academicPeriod, $phase, $deliverable, $project, Submission $submission): JsonResponse
     {
+        $this->guardSubmissionContext($submission, (int) $deliverable, (int) $project);
+
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'rubric_id' => 'required|exists:rubrics,id',
@@ -135,13 +141,14 @@ class SubmissionEvaluationController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations/{evaluation}",
      *     summary="Show evaluation",
      *     tags={"Submission Evaluations"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="evaluation", in="path", required=true, @OA\Schema(type="integer")),
      *
@@ -153,8 +160,10 @@ class SubmissionEvaluationController extends Controller
      *     )
      * )
      */
-    public function show($academicPeriod, $phase, $deliverable, Submission $submission, Evaluation $evaluation): JsonResponse
+    public function show($academicPeriod, $phase, $deliverable, $project, Submission $submission, Evaluation $evaluation): JsonResponse
     {
+        $this->guardSubmissionContext($submission, (int) $deliverable, (int) $project);
+
         $evaluation->load('user', 'evaluator', 'rubric');
 
         return response()->json($this->transformEvaluation($evaluation));
@@ -162,13 +171,14 @@ class SubmissionEvaluationController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations/{evaluation}",
      *     summary="Update evaluation",
      *     tags={"Submission Evaluations"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="evaluation", in="path", required=true, @OA\Schema(type="integer")),
      *
@@ -182,8 +192,10 @@ class SubmissionEvaluationController extends Controller
      *     )
      * )
      */
-    public function update(Request $request, $academicPeriod, $phase, $deliverable, Submission $submission, Evaluation $evaluation): JsonResponse
+    public function update(Request $request, $academicPeriod, $phase, $deliverable, $project, Submission $submission, Evaluation $evaluation): JsonResponse
     {
+        $this->guardSubmissionContext($submission, (int) $deliverable, (int) $project);
+
         $validated = $request->validate([
             'user_id' => 'sometimes|required|exists:users,id',
             'rubric_id' => 'sometimes|required|exists:rubrics,id',
@@ -200,13 +212,14 @@ class SubmissionEvaluationController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations/{evaluation}",
      *     summary="Delete evaluation",
      *     tags={"Submission Evaluations"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="evaluation", in="path", required=true, @OA\Schema(type="integer")),
      *
@@ -222,11 +235,20 @@ class SubmissionEvaluationController extends Controller
      *     )
      * )
      */
-    public function destroy($academicPeriod, $phase, $deliverable, Submission $submission, Evaluation $evaluation): JsonResponse
+    public function destroy($academicPeriod, $phase, $deliverable, $project, Submission $submission, Evaluation $evaluation): JsonResponse
     {
+        $this->guardSubmissionContext($submission, (int) $deliverable, (int) $project);
+
         $evaluation->delete();
 
         return response()->json(['message' => 'Evaluation deleted successfully']);
+    }
+
+    protected function guardSubmissionContext(Submission $submission, int $deliverableId, int $projectId): void
+    {
+        if ($submission->deliverable_id !== $deliverableId || $submission->project_id !== $projectId) {
+            abort(404, 'Submission not found in this context');
+        }
     }
 
     protected function transformEvaluation(Evaluation $evaluation): array

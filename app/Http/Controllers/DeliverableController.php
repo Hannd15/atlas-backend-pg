@@ -299,7 +299,17 @@ class DeliverableController extends Controller
      *         response=200,
      *         description="Rubrics assigned to the deliverable",
      *
-     *         @OA\JsonContent(type="array", @OA\Items(type="object", @OA\Property(property="id", type="integer"), @OA\Property(property="name", type="string")))
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *                 type="object",
+     *
+     *                 @OA\Property(property="id", type="integer"),
+     *                 @OA\Property(property="name", type="string"),
+     *                 @OA\Property(property="description", type="string", nullable=true)
+     *             )
+     *         )
      *     ),
      *
      *     @OA\Response(response=404, description="Deliverable not found")
@@ -312,6 +322,7 @@ class DeliverableController extends Controller
         $rubrics = $deliverable->rubrics->map(fn ($rubric) => [
             'id' => $rubric->id,
             'name' => $rubric->name,
+            'description' => $rubric->description,
         ]);
 
         return response()->json($rubrics);

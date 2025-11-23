@@ -46,6 +46,7 @@ class SubmissionEndpointsTest extends TestCase
             'deliverable_id' => $deliverable->id,
             'project_id' => $project->id,
             'submission_date' => '2025-04-10 09:00:00',
+            'comment' => 'Entrega inicial',
         ]);
 
         $file = File::create([
@@ -59,9 +60,14 @@ class SubmissionEndpointsTest extends TestCase
 
         // Evaluations creation removed from submission payload; handled via dedicated endpoints.
 
-        $response = $this->getJson('/api/pg/submissions');
+        $phase->load('period');
+        $period = $phase->period;
 
-        $expected = Submission::with('deliverable.phase.period', 'project', 'files', 'evaluations')
+        $response = $this->getJson($this->submissionPath($period->id, $phase->id, $deliverable->id, $project->id));
+
+        $expected = Submission::where('deliverable_id', $deliverable->id)
+            ->where('project_id', $project->id)
+            ->with('deliverable.phase.period', 'project', 'files', 'evaluations')
             ->orderByDesc('updated_at')
             ->get()
             ->map(fn (Submission $item) => $this->submissionResource($item))
@@ -71,7 +77,7 @@ class SubmissionEndpointsTest extends TestCase
         $response->assertOk()->assertExactJson($expected);
     }
 
-    public function test_store_creates_submission_with_files(): void
+    public function test_store_creates_submission_with_comment(): void
     {
         [$phase] = $this->createPhaseWithPeriod();
         $project = $this->createProject($phase, 'Proyecto Final');
@@ -81,22 +87,14 @@ class SubmissionEndpointsTest extends TestCase
             'due_date' => '2025-05-01 12:00:00',
         ]);
 
-        $file = File::create([
-            'name' => 'final.pdf',
-            'extension' => 'pdf',
-            'url' => 'https://files.test/final.pdf',
-            'disk' => 'public',
-            'path' => 'pg/uploads/final.pdf',
-        ]);
+        $phase->load('period');
+        $period = $phase->period;
 
         $payload = [
-            'deliverable_id' => $deliverable->id,
-            'project_id' => $project->id,
-            'submission_date' => '2025-04-28 16:00:00',
-            'file_ids' => [$file->id],
+            'comment' => 'Entrega final subida',
         ];
 
-        $response = $this->postJson('/api/pg/submissions', $payload);
+        $response = $this->postJson($this->submissionPath($period->id, $phase->id, $deliverable->id, $project->id), $payload);
 
         $createdId = $response->json('id');
         $this->assertNotNull($createdId, 'Submission id missing in response');
@@ -105,16 +103,17 @@ class SubmissionEndpointsTest extends TestCase
 
         $response->assertCreated()->assertExactJson($this->submissionResource($submission));
 
+        $this->assertSame('Entrega final subida', $submission->comment);
+        $this->assertSame(Carbon::now()->toDateTimeString(), $submission->submission_date?->toDateTimeString());
+
         $this->assertDatabaseHas('submissions', [
+            'id' => $submission->id,
             'deliverable_id' => $deliverable->id,
             'project_id' => $project->id,
-            'submission_date' => '2025-04-28 16:00:00',
+            'comment' => 'Entrega final subida',
         ]);
 
-        $this->assertDatabaseHas('submission_files', [
-            'submission_id' => $submission->id,
-            'file_id' => $file->id,
-        ]);
+        $this->assertTrue($submission->files->isEmpty());
 
         // No evaluation assertions; evaluations created via separate endpoints now.
     }
@@ -135,19 +134,20 @@ class SubmissionEndpointsTest extends TestCase
             'submission_date' => '2025-04-18 10:00:00',
         ]);
 
-        $response = $this->getJson("/api/pg/submissions/{$submission->id}");
+        $phase->load('period');
+        $period = $phase->period;
+
+        $response = $this->getJson($this->submissionPath($period->id, $phase->id, $deliverable->id, $project->id, $submission->id));
 
         $submission->load('deliverable.phase.period', 'project.status', 'files', 'evaluations.user', 'evaluations.evaluator', 'evaluations.rubric');
 
         $response->assertOk()->assertExactJson($this->submissionResource($submission));
     }
 
-    public function test_update_syncs_files_and_submission_fields(): void
+    public function test_update_overwrites_comment(): void
     {
         [$phase] = $this->createPhaseWithPeriod();
-        $otherPhase = $this->createPhaseWithPeriod('PG II')[0];
         $project = $this->createProject($phase, 'Proyecto Beta');
-        $newProject = $this->createProject($otherPhase, 'Proyecto Gamma');
         $deliverable = $phase->deliverables()->create([
             'name' => 'Entrega 2',
             'description' => 'Entrega intermedia',
@@ -158,39 +158,23 @@ class SubmissionEndpointsTest extends TestCase
             'deliverable_id' => $deliverable->id,
             'project_id' => $project->id,
             'submission_date' => '2025-04-20 09:00:00',
+            'comment' => 'Comentario inicial',
         ]);
 
-        $fileA = File::create([
-            'name' => 'borrador.docx',
-            'extension' => 'docx',
-            'url' => 'https://files.test/borrador.docx',
-            'disk' => 'public',
-            'path' => 'pg/uploads/borrador.docx',
-        ]);
-        $fileB = File::create([
-            'name' => 'presentacion.pptx',
-            'extension' => 'pptx',
-            'url' => 'https://files.test/presentacion.pptx',
-            'disk' => 'public',
-            'path' => 'pg/uploads/presentacion.pptx',
-        ]);
+        $phase->load('period');
+        $period = $phase->period;
 
         $payload = [
-            'deliverable_id' => $deliverable->id,
-            'project_id' => $newProject->id,
-            'submission_date' => '2025-04-22 14:30:00',
-            'file_ids' => [$fileA->id, $fileB->id],
+            'comment' => 'Comentario actualizado',
         ];
 
-        $response = $this->putJson("/api/pg/submissions/{$submission->id}", $payload);
+        $response = $this->putJson($this->submissionPath($period->id, $phase->id, $deliverable->id, $project->id, $submission->id), $payload);
 
         $submission->refresh()->load('deliverable.phase.period', 'project', 'files', 'evaluations');
 
         $response->assertOk()->assertExactJson($this->submissionResource($submission));
 
-        $this->assertSame('2025-04-22 14:30:00', $submission->submission_date?->toDateTimeString());
-        $this->assertSame($newProject->id, $submission->project_id);
-        $this->assertEqualsCanonicalizing([$fileA->id, $fileB->id], $submission->files->pluck('id')->all());
+        $this->assertSame('Comentario actualizado', $submission->comment);
     }
 
     public function test_destroy_removes_submission(): void
@@ -209,7 +193,10 @@ class SubmissionEndpointsTest extends TestCase
             'submission_date' => '2025-04-29 16:00:00',
         ]);
 
-        $this->deleteJson("/api/pg/submissions/{$submission->id}")
+        $phase->load('period');
+        $period = $phase->period;
+
+        $this->deleteJson($this->submissionPath($period->id, $phase->id, $deliverable->id, $project->id, $submission->id))
             ->assertOk()
             ->assertExactJson(['message' => 'Submission deleted successfully']);
 
@@ -258,5 +245,12 @@ class SubmissionEndpointsTest extends TestCase
         }
 
         return $statusId;
+    }
+
+    private function submissionPath(int $periodId, int $phaseId, int $deliverableId, int $projectId, ?int $submissionId = null): string
+    {
+        $base = "/api/pg/academic-periods/{$periodId}/phases/{$phaseId}/deliverables/{$deliverableId}/projects/{$projectId}/submissions";
+
+        return $submissionId === null ? $base : $base.'/'.$submissionId;
     }
 }

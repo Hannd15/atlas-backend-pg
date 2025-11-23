@@ -13,6 +13,7 @@ class Submission extends Model
         'deliverable_id',
         'project_id',
         'submission_date',
+        'comment',
     ];
 
     protected function casts(): array

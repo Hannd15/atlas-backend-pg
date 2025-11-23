@@ -49,23 +49,23 @@ Route::middleware('auth.atlas')->group(function () {
         // Submissions routes (nested under deliverables) and nested evaluations
         Route::get('submissions/dropdown', [SubmissionController::class, 'dropdown']);
         Route::get('submission-files', [SubmissionFileController::class, 'getAll']);
-        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions', [SubmissionController::class, 'index']);
-        Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions', [SubmissionController::class, 'store']);
-        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}', [SubmissionController::class, 'show']);
-        Route::put('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}', [SubmissionController::class, 'update']);
-        Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}', [SubmissionController::class, 'destroy']);
+        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions', [SubmissionController::class, 'index']);
+        Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions', [SubmissionController::class, 'store']);
+        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}', [SubmissionController::class, 'show']);
+        Route::put('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}', [SubmissionController::class, 'update']);
+        Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}', [SubmissionController::class, 'destroy']);
 
         // Submission Files routes (nested under submissions)
-        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files', [SubmissionFileController::class, 'index']);
-        Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files', [SubmissionFileController::class, 'store']);
-        Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files/{file}', [SubmissionFileController::class, 'destroy']);
+        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/files', [SubmissionFileController::class, 'index']);
+        Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/files', [SubmissionFileController::class, 'store']);
+        Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/files/{file}', [SubmissionFileController::class, 'destroy']);
 
         // Submission Evaluations routes (nested under submissions)
-        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'index']);
-        Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'store']);
-        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}', [SubmissionEvaluationController::class, 'show']);
-        Route::put('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}', [SubmissionEvaluationController::class, 'update']);
-        Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}', [SubmissionEvaluationController::class, 'destroy']);
+        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'index']);
+        Route::post('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations', [SubmissionEvaluationController::class, 'store']);
+        Route::get('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations/{evaluation}', [SubmissionEvaluationController::class, 'show']);
+        Route::put('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations/{evaluation}', [SubmissionEvaluationController::class, 'update']);
+        Route::delete('academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations/{evaluation}', [SubmissionEvaluationController::class, 'destroy']);
 
         // Files routes (handles show/update/delete for all files)
         Route::get('files/dropdown', [FileController::class, 'dropdown']);

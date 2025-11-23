@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Evaluation;
+use App\Models\Deliverable;
+use App\Models\Project;
 use App\Models\Submission;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * @OA\Tag(name="Submissions", description="API endpoints for project deliverable submissions")
@@ -21,6 +20,7 @@ use Illuminate\Support\Facades\Validator;
  *     @OA\Property(property="deliverable_id", type="integer", example=12),
  *     @OA\Property(property="project_id", type="integer", example=30),
  *     @OA\Property(property="submission_date", type="string", format="date-time", example="2025-04-19T10:00:00"),
+ *     @OA\Property(property="comment", type="string", nullable=true, example="Entrega realizada con atraso"),
  *     @OA\Property(property="deliverable_name", type="string", nullable=true, example="Entrega Parcial"),
  *     @OA\Property(property="project_title", type="string", nullable=true, example="Proyecto Integrador"),
  *     @OA\Property(property="phase_name", type="string", nullable=true, example="PG I"),
@@ -34,35 +34,30 @@ use Illuminate\Support\Facades\Validator;
  * @OA\Schema(
  *     schema="SubmissionCreatePayload",
  *     type="object",
- *     required={"deliverable_id","project_id","submission_date"},
+ *     required={"comment"},
  *
- *     @OA\Property(property="deliverable_id", type="integer", example=12),
- *     @OA\Property(property="project_id", type="integer", example=30),
- *     @OA\Property(property="submission_date", type="string", format="date-time", example="2025-04-19T10:00:00"),
- *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer"))
+ *     @OA\Property(property="comment", type="string", example="Notas sobre la entrega")
  * )
  *
  * @OA\Schema(
  *     schema="SubmissionUpdatePayload",
  *     type="object",
  *
- *     @OA\Property(property="deliverable_id", type="integer"),
- *     @OA\Property(property="project_id", type="integer"),
- *     @OA\Property(property="submission_date", type="string", format="date-time"),
- *     @OA\Property(property="file_ids", type="array", @OA\Items(type="integer"))
+ *     @OA\Property(property="comment", type="string")
  * )
  */
 class SubmissionController extends Controller
 {
     /**
      * @OA\Get(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions",
-     *     summary="List submissions for a deliverable",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions",
+     *     summary="List submissions for a deliverable and project",
      *     tags={"Submissions"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
      *         response=200,
@@ -76,9 +71,12 @@ class SubmissionController extends Controller
      *     )
      * )
      */
-    public function index($academicPeriod, $phase, $deliverable): JsonResponse
+    public function index($academicPeriod, $phase, $deliverable, $project): JsonResponse
     {
+        $this->ensureDeliverableAndProjectExist((int) $deliverable, (int) $project);
+
         $submissions = Submission::where('deliverable_id', $deliverable)
+            ->where('project_id', $project)
             ->with([
                 'deliverable.phase.period',
                 'project',
@@ -91,13 +89,14 @@ class SubmissionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions",
-     *     summary="Create a submission for a deliverable",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions",
+     *     summary="Create a submission for a deliverable and project",
      *     tags={"Submissions"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\RequestBody(
      *         required=true,
@@ -115,33 +114,21 @@ class SubmissionController extends Controller
      *     @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function store(Request $request, $academicPeriod, $phase, $deliverable): JsonResponse
+    public function store(Request $request, $academicPeriod, $phase, $deliverable, $project): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'project_id' => 'required|exists:projects,id',
-            'submission_date' => 'required|date',
-            'file_ids' => 'sometimes|array',
-            'file_ids.*' => 'integer|exists:files,id',
+        $this->ensureDeliverableAndProjectExist((int) $deliverable, (int) $project);
+
+        $validated = $request->validate([
+            'comment' => 'required|string|max:2000',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        $submission = Submission::create([
+            'deliverable_id' => $deliverable,
+            'project_id' => $project,
+            'comment' => $validated['comment'] ?? null,
+            'submission_date' => now(),
+        ]);
 
-        $data = $validator->validated();
-        $data['deliverable_id'] = $deliverable;
-        $fileIds = $this->normalizeIds($data['file_ids'] ?? null);
-        unset($data['file_ids']);
-
-        $submission = DB::transaction(function () use ($data, $fileIds) {
-            $submission = Submission::create($data);
-
-            if ($fileIds !== null) {
-                $submission->files()->sync($fileIds);
-            }
-
-            return $submission;
-        });
         $submission->load('deliverable.phase.period', 'project', 'files', 'evaluations');
 
         return response()->json($this->transformSubmission($submission), 201);
@@ -149,13 +136,14 @@ class SubmissionController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}",
      *     summary="Show submission",
      *     tags={"Submissions"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -166,22 +154,24 @@ class SubmissionController extends Controller
      *     )
      * )
      */
-    public function show($academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
+    public function show($academicPeriod, $phase, $deliverable, $project, int $submission): JsonResponse
     {
-        $submission->load('deliverable.phase.period', 'project', 'files', 'evaluations');
+        $model = $this->findSubmissionOrFail($submission, (int) $deliverable, (int) $project);
+        $model->load('deliverable.phase.period', 'project', 'files', 'evaluations');
 
-        return response()->json($this->transformSubmission($submission));
+        return response()->json($this->transformSubmission($model));
     }
 
     /**
      * @OA\Put(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}",
-     *     summary="Update submission",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}",
+     *     summary="Update submission comment",
      *     tags={"Submissions"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/SubmissionUpdatePayload")),
@@ -194,43 +184,31 @@ class SubmissionController extends Controller
      *     )
      * )
      */
-    public function update(Request $request, $academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
+    public function update(Request $request, $academicPeriod, $phase, $deliverable, $project, int $submission): JsonResponse
     {
+        $model = $this->findSubmissionOrFail($submission, (int) $deliverable, (int) $project);
+
         $validated = $request->validate([
-            'deliverable_id' => 'sometimes|required|exists:deliverables,id',
-            'project_id' => 'sometimes|required|exists:projects,id',
-            'submission_date' => 'sometimes|required|date',
-            'file_ids' => 'sometimes|array',
-            'file_ids.*' => 'integer|exists:files,id',
+            'comment' => 'required|string|max:2000',
         ]);
 
-        $attributes = array_intersect_key($validated, array_flip(['deliverable_id', 'project_id', 'submission_date']));
-        $fileIds = array_key_exists('file_ids', $validated) ? $this->normalizeIds($validated['file_ids']) : null;
+        $model->update(['comment' => $validated['comment']]);
 
-        DB::transaction(function () use ($submission, $attributes, $fileIds) {
-            if (! empty($attributes)) {
-                $submission->update($attributes);
-            }
+        $model->load('deliverable.phase.period', 'project', 'files', 'evaluations');
 
-            if ($fileIds !== null) {
-                $submission->files()->sync($fileIds);
-            }
-        });
-
-        $submission->load('deliverable.phase.period', 'project', 'files', 'evaluations');
-
-        return response()->json($this->transformSubmission($submission));
+        return response()->json($this->transformSubmission($model));
     }
 
     /**
      * @OA\Delete(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}",
      *     summary="Delete submission",
      *     tags={"Submissions"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -245,9 +223,10 @@ class SubmissionController extends Controller
      *     )
      * )
      */
-    public function destroy($academicPeriod, $phase, $deliverable, Submission $submission): JsonResponse
+    public function destroy($academicPeriod, $phase, $deliverable, $project, int $submission): JsonResponse
     {
-        $submission->delete();
+        $model = $this->findSubmissionOrFail($submission, (int) $deliverable, (int) $project);
+        $model->delete();
 
         return response()->json(['message' => 'Submission deleted successfully']);
     }
@@ -261,6 +240,7 @@ class SubmissionController extends Controller
             'deliverable_id' => $submission->deliverable_id,
             'project_id' => $submission->project_id,
             'submission_date' => optional($submission->submission_date)->toDateTimeString(),
+            'comment' => $submission->comment,
             'deliverable_name' => $submission->deliverable?->name,
             'project_title' => $submission->project?->title,
             'phase_name' => $submission->deliverable?->phase?->name,
@@ -312,21 +292,17 @@ class SubmissionController extends Controller
         return response()->json($submissions);
     }
 
-    /**
-     * @param  array<int, int|string>|null  $ids
-     * @return array<int, int>|null
-     */
-    protected function normalizeIds(?array $ids): ?array
+    protected function ensureDeliverableAndProjectExist(int $deliverableId, int $projectId): void
     {
-        if ($ids === null) {
-            return null;
-        }
+        Deliverable::findOrFail($deliverableId);
+        Project::findOrFail($projectId);
+    }
 
-        return collect($ids)
-            ->filter(fn ($id) => $id !== null)
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
+    protected function findSubmissionOrFail(int $submissionId, int $deliverableId, int $projectId): Submission
+    {
+        return Submission::where('id', $submissionId)
+            ->where('deliverable_id', $deliverableId)
+            ->where('project_id', $projectId)
+            ->firstOrFail();
     }
 }

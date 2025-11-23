@@ -44,7 +44,7 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             ],
         ]);
 
-        $response = $this->getJson("/api/pg/submissions/{$submission->id}/evaluations");
+        $response = $this->getJson($this->evaluationsPath($submission));
 
         $expected = $submission->evaluations
             ->load('user', 'evaluator', 'rubric')
@@ -69,7 +69,7 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'grade' => 4.7,
         ];
 
-        $response = $this->postJson("/api/pg/submissions/{$submission->id}/evaluations", $payload);
+        $response = $this->postJson($this->evaluationsPath($submission), $payload);
 
         $evaluation = $submission->evaluations()->firstOrFail()->load('user', 'evaluator', 'rubric');
 
@@ -98,7 +98,7 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluation_date' => '2025-04-11 10:00:00',
         ]);
 
-        $response = $this->getJson("/api/pg/submissions/{$submission->id}/evaluations/{$evaluation->id}");
+        $response = $this->getJson($this->evaluationsPath($submission, $evaluation->id));
 
         $evaluation->load('user', 'evaluator', 'rubric');
 
@@ -129,7 +129,7 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluation_date' => '2025-04-15 17:45:00',
         ];
 
-        $response = $this->putJson("/api/pg/submissions/{$submission->id}/evaluations/{$evaluation->id}", $payload);
+        $response = $this->putJson($this->evaluationsPath($submission, $evaluation->id), $payload);
 
         $evaluation->refresh()->load('user', 'evaluator', 'rubric');
 
@@ -156,7 +156,7 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluation_date' => '2025-04-16 09:00:00',
         ]);
 
-        $this->deleteJson("/api/pg/submissions/{$submission->id}/evaluations/{$evaluation->id}")
+        $this->deleteJson($this->evaluationsPath($submission, $evaluation->id))
             ->assertOk()
             ->assertExactJson(['message' => 'Evaluation deleted successfully']);
 
@@ -167,7 +167,7 @@ class SubmissionEvaluationEndpointsTest extends TestCase
     {
         $submission = $this->createSubmission();
 
-        $this->getJson("/api/pg/submissions/{$submission->id}/evaluations/999999")
+        $this->getJson($this->evaluationsPath($submission, 999999))
             ->assertNotFound();
     }
 
@@ -241,5 +241,19 @@ class SubmissionEvaluationEndpointsTest extends TestCase
         }
 
         return $statusId;
+    }
+
+    private function evaluationsPath(Submission $submission, ?int $evaluationId = null): string
+    {
+        $submission->loadMissing('deliverable.phase.period', 'project');
+
+        $periodId = $submission->deliverable->phase?->period?->id;
+        $phaseId = $submission->deliverable->phase?->id;
+        $deliverableId = $submission->deliverable_id;
+        $projectId = $submission->project_id;
+
+        $base = "/api/pg/academic-periods/{$periodId}/phases/{$phaseId}/deliverables/{$deliverableId}/projects/{$projectId}/submissions/{$submission->id}/evaluations";
+
+        return $evaluationId === null ? $base : $base.'/'.$evaluationId;
     }
 }

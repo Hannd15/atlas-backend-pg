@@ -157,16 +157,58 @@ class AtlasEndpointContractTest extends TestCase
 
     public function test_submissions_index_returns_expected_structure(): void
     {
-        $response = $this->getJson('/api/pg/submissions');
+        $period = AcademicPeriod::create([
+            'name' => '2025-1',
+            'start_date' => '2025-01-01',
+            'end_date' => '2025-06-30',
+        ]);
+
+        $phase = $period->phases()->create([
+            'name' => 'PG I',
+            'start_date' => '2025-01-01',
+            'end_date' => '2025-06-30',
+        ]);
+
+        $project = Project::factory()->create([
+            'phase_id' => $phase->id,
+        ]);
+
+        $deliverable = $phase->deliverables()->create([
+            'name' => 'Entrega Contrato',
+            'description' => 'Validación de contrato',
+            'due_date' => '2025-02-01 12:00:00',
+        ]);
+
+        $deliverable->submissions()->create([
+            'project_id' => $project->id,
+            'submission_date' => '2025-01-20 09:00:00',
+            'comment' => 'Contrato inicial',
+        ]);
+
+        $response = $this->getJson(
+            "/api/pg/academic-periods/{$period->id}/phases/{$phase->id}/deliverables/{$deliverable->id}/projects/{$project->id}/submissions"
+        );
 
         $response->assertOk()->assertJson(fn (AssertableJson $json) => $json
             ->each(fn (AssertableJson $item) => $item
-                ->hasAll(['id', 'deliverable_id', 'project_id', 'submission_date', 'created_at', 'updated_at'])
-                ->has('deliverable')
-                ->has('project')
-                ->has('files')
-                ->has('evaluations')
-                ->has('file_ids')
+                ->hasAll([
+                    'id',
+                    'deliverable_id',
+                    'project_id',
+                    'submission_date',
+                    'comment',
+                    'deliverable_name',
+                    'project_title',
+                    'phase_name',
+                    'period_name',
+                    'file_count',
+                    'evaluation_count',
+                    'created_at',
+                    'updated_at',
+                ])
+                ->whereType('comment', ['string', 'null'])
+                ->whereType('file_count', 'integer')
+                ->whereType('evaluation_count', 'integer')
                 ->etc()
             )
         );

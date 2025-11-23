@@ -60,18 +60,18 @@ class SubmissionFileEndpointsTest extends TestCase
         $submission->files()->attach($file);
 
         // Refresh to load relationships
-        $submission = $submission->fresh(['deliverable.phase.period']);
-        $deliverable = $submission->deliverable;
-        $phase = $deliverable->phase;
-        $period = $phase->period;
+        $submission = $submission->fresh(['deliverable.phase.period', 'project']);
 
-        $response = $this->getJson("/api/pg/academic-periods/{$period->id}/phases/{$phase->id}/deliverables/{$deliverable->id}/submissions/{$submission->id}/files");
+        $response = $this->getJson($this->submissionFilesPath($submission));
 
         $response->assertOk()
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.id', $file->id)
-            ->assertJsonPath('0.submission_id', $submission->id)
-            ->assertJsonPath('0.name', $file->name);
+            ->assertExactJson([
+                [
+                    'id' => $file->id,
+                    'name' => $file->name,
+                    'extension' => $file->extension,
+                ],
+            ]);
     }
 
     public function test_store_uploads_file_and_associates(): void
@@ -79,21 +79,17 @@ class SubmissionFileEndpointsTest extends TestCase
         [$submission] = $this->createSubmissionAndFile(includeFile: false);
 
         // Refresh to load relationships
-        $submission = $submission->fresh(['deliverable.phase.period']);
-        $deliverable = $submission->deliverable;
-        $phase = $deliverable->phase;
-        $period = $phase->period;
+        $submission = $submission->fresh(['deliverable.phase.period', 'project']);
 
         $uploaded = UploadedFile::fake()->create('avance.pdf', 120, 'application/pdf');
 
-        $response = $this->postJson("/api/pg/academic-periods/{$period->id}/phases/{$phase->id}/deliverables/{$deliverable->id}/submissions/{$submission->id}/files", [
+        $response = $this->postJson($this->submissionFilesPath($submission), [
             'file' => $uploaded,
-            'name' => 'Avance parcial',
         ]);
 
         $response->assertCreated()
             ->assertJsonPath('submission_id', $submission->id)
-            ->assertJsonPath('name', 'Avance parcial')
+            ->assertJsonPath('name', 'avance.pdf')
             ->assertJsonPath('extension', 'pdf');
 
         $fileId = $response->json('id');
@@ -182,5 +178,19 @@ class SubmissionFileEndpointsTest extends TestCase
         }
 
         return $statusId;
+    }
+
+    private function submissionFilesPath(Submission $submission, ?int $fileId = null): string
+    {
+        $submission->loadMissing('deliverable.phase.period', 'project');
+
+        $periodId = $submission->deliverable->phase?->period?->id;
+        $phaseId = $submission->deliverable->phase?->id;
+        $deliverableId = $submission->deliverable_id;
+        $projectId = $submission->project_id;
+
+        $base = "/api/pg/academic-periods/{$periodId}/phases/{$phaseId}/deliverables/{$deliverableId}/projects/{$projectId}/submissions/{$submission->id}/files";
+
+        return $fileId === null ? $base : $base.'/'.$fileId;
     }
 }

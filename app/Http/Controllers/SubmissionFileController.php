@@ -19,15 +19,16 @@ use Illuminate\Support\Facades\Storage;
  *
  * @OA\Schema(
  *     schema="SubmissionFileResource",
- *     type="object",
+ *     title="Submission File Resource",
+ *     description="Detailed submission file information",
  *
- *     @OA\Property(property="id", type="integer", example=120),
- *     @OA\Property(property="submission_id", type="integer", example=45),
+ *     @OA\Property(property="id", type="integer", example=123),
  *     @OA\Property(property="name", type="string", example="avance.pdf"),
  *     @OA\Property(property="extension", type="string", example="pdf"),
  *     @OA\Property(property="url", type="string", example="https://storage.test/pg/uploads/2025/avance.pdf"),
  *     @OA\Property(property="disk", type="string", example="public"),
  *     @OA\Property(property="path", type="string", example="pg/uploads/2025/04/15/avance.pdf"),
+ *     @OA\Property(property="submission_id", type="integer", example=42),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
@@ -86,13 +87,14 @@ class SubmissionFileController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/files",
      *     summary="Get files associated with a submission",
      *     tags={"Submission Files"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
@@ -102,30 +104,41 @@ class SubmissionFileController extends Controller
      *         @OA\JsonContent(
      *             type="array",
      *
-     *             @OA\Items(ref="#/components/schemas/SubmissionFileResource")
+     *             @OA\Items(
+     *                 type="object",
+     *
+     *                 @OA\Property(property="id", type="integer"),
+     *                 @OA\Property(property="name", type="string"),
+     *                 @OA\Property(property="extension", type="string", nullable=true)
+     *             )
      *         )
      *     )
      * )
      */
-    public function index($academicPeriod, $phase, $deliverable, int $submissionId): JsonResponse
+    public function index($academicPeriod, $phase, $deliverable, $project, int $submissionId): JsonResponse
     {
-        $submission = Submission::findOrFail($submissionId);
+        $submission = $this->findSubmissionOrFail($submissionId, (int) $deliverable, (int) $project);
         $files = $submission->files()->orderByDesc('updated_at')->get();
 
         return response()->json(
-            $files->map(fn (File $file) => $this->transformFileForSubmission($file, $submissionId))
+            $files->map(fn (File $file) => [
+                'id' => $file->id,
+                'name' => $file->name,
+                'extension' => $file->extension,
+            ])
         );
     }
 
     /**
      * @OA\Post(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/files",
      *     summary="Upload and associate a file with a submission",
      *     tags={"Submission Files"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\RequestBody(
@@ -137,8 +150,7 @@ class SubmissionFileController extends Controller
      *             @OA\Schema(
      *                 required={"file"},
      *
-     *                 @OA\Property(property="file", type="string", format="binary"),
-     *                 @OA\Property(property="name", type="string")
+     *                 @OA\Property(property="file", type="string", format="binary")
      *             )
      *         )
      *     ),
@@ -153,13 +165,12 @@ class SubmissionFileController extends Controller
      *     @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function store(Request $request, $academicPeriod, $phase, $deliverable, int $submissionId): JsonResponse
+    public function store(Request $request, $academicPeriod, $phase, $deliverable, $project, int $submissionId): JsonResponse
     {
-        $submission = Submission::findOrFail($submissionId);
+        $submission = $this->findSubmissionOrFail($submissionId, (int) $deliverable, (int) $project);
 
         $validated = $request->validate([
             'file' => 'required|file',
-            'name' => 'sometimes|nullable|string|max:255',
         ]);
 
         $uploadedFile = $validated['file'];
@@ -177,7 +188,7 @@ class SubmissionFileController extends Controller
         $adapter = Storage::disk($disk);
         $url = method_exists($adapter, 'url') ? $adapter->url($path) : $adapter->path($path);
 
-        $name = $validated['name'] ?? $uploadedFile->getClientOriginalName();
+        $name = $uploadedFile->getClientOriginalName();
 
         $file = File::create([
             'name' => $name,
@@ -194,13 +205,14 @@ class SubmissionFileController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files/{file}",
+     *     path="/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/files/{file}",
      *     summary="Detach a file from a submission",
      *     tags={"Submission Files"},
      *
      *     @OA\Parameter(name="academic_period", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="phase", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="deliverable", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="submission", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="file", in="path", required=true, @OA\Schema(type="integer")),
      *
@@ -208,9 +220,9 @@ class SubmissionFileController extends Controller
      *     @OA\Response(response=404, description="Submission or file not found")
      * )
      */
-    public function destroy($academicPeriod, $phase, $deliverable, int $submissionId, File $file): JsonResponse
+    public function destroy($academicPeriod, $phase, $deliverable, $project, int $submissionId, File $file): JsonResponse
     {
-        $submission = Submission::findOrFail($submissionId);
+        $submission = $this->findSubmissionOrFail($submissionId, (int) $deliverable, (int) $project);
 
         if (! $submission->files()->where('files.id', $file->id)->exists()) {
             abort(404, 'File not associated with this submission');
@@ -234,5 +246,13 @@ class SubmissionFileController extends Controller
             'created_at' => optional($file->created_at)->toDateTimeString(),
             'updated_at' => optional($file->updated_at)->toDateTimeString(),
         ];
+    }
+
+    protected function findSubmissionOrFail(int $submissionId, int $deliverableId, int $projectId): Submission
+    {
+        return Submission::where('id', $submissionId)
+            ->where('deliverable_id', $deliverableId)
+            ->where('project_id', $projectId)
+            ->firstOrFail();
     }
 }
