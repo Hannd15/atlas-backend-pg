@@ -35,6 +35,17 @@ use Illuminate\Validation\ValidationException;
  *     @OA\Property(property="observations", type="string", nullable=true, example="Revisión semanal"),
  *     @OA\Property(property="google_meet_url", type="string", nullable=true, example="https://meet.google.com/abc-defg-hij")
  * )
+ *
+ * @OA\Schema(
+ *     schema="MeetingSummaryResource",
+ *     type="object",
+ *
+ *     @OA\Property(property="id", type="integer", example=5),
+ *     @OA\Property(property="meeting_date", type="string", format="date", example="2025-02-14"),
+ *     @OA\Property(property="start_time", type="string", format="time", nullable=true, example="10:00"),
+ *     @OA\Property(property="end_time", type="string", format="time", nullable=true, example="11:00"),
+ *     @OA\Property(property="google_meet_url", type="string", nullable=true, example="https://meet.google.com/abc-defg-hij")
+ * )
  */
 class MeetingController extends Controller
 {
@@ -45,6 +56,32 @@ class MeetingController extends Controller
         protected AtlasUserService $atlasUserService
     ) {}
 
+    /**
+     * @OA\Get(
+     *     path="/api/pg/meetings",
+     *     summary="List meetings for a project (summary)",
+     *     tags={"Meetings"},
+     *
+     *     @OA\Parameter(
+     *         name="project_id",
+     *         in="query",
+     *         required=true,
+     *         @OA\Schema(type="integer"),
+     *         description="Project identifier"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Meeting summaries for the specified project",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/MeetingSummaryResource")
+     *         )
+     *     ),
+     *     @OA\Response(response=422, description="Missing project_id parameter")
+     * )
+     */
     public function index(Request $request): JsonResponse
     {
         $projectId = $request->integer('project_id');
@@ -63,28 +100,29 @@ class MeetingController extends Controller
             ->get();
 
         return response()->json($meetings->map(fn (Meeting $meeting) => [
-            'project_name' => $meeting->project?->title,
+            'id' => $meeting->id,
             'meeting_date' => optional($meeting->meeting_date)->toDateString(),
-            'observations' => $meeting->observations,
+            'start_time' => $meeting->start_time ? Carbon::parse($meeting->start_time)->format('H:i') : null,
+            'end_time' => $meeting->end_time ? Carbon::parse($meeting->end_time)->format('H:i') : null,
+            'google_meet_url' => $meeting->google_meet_url,
         ])->values()->all());
     }
 
     /**
      * @OA\Get(
      *     path="/api/pg/projects/{project}/meetings",
-     *     summary="List meetings for a project",
+     *     summary="List meetings for a project (summary)",
      *     tags={"Meetings"},
      *
      *     @OA\Parameter(name="project", in="path", required=true, @OA\Schema(type="integer")),
      *
      *     @OA\Response(
      *         response=200,
-     *         description="Meetings for the project",
+     *         description="Meeting summaries for the project",
      *
      *         @OA\JsonContent(
      *             type="array",
-     *
-     *             @OA\Items(ref="#/components/schemas/MeetingDetailResource")
+     *             @OA\Items(ref="#/components/schemas/MeetingSummaryResource")
      *         )
      *     )
      * )
@@ -92,12 +130,17 @@ class MeetingController extends Controller
     public function projectMeetings(Project $project): JsonResponse
     {
         $meetings = $project->meetings()
-            ->with('project', 'creator', 'attendees')
             ->orderByDesc('meeting_date')
             ->orderByDesc('id')
             ->get();
 
-        return response()->json($meetings->map(fn (Meeting $meeting) => $this->transform($meeting))->values()->all());
+        return response()->json($meetings->map(fn (Meeting $meeting) => [
+            'id' => $meeting->id,
+            'meeting_date' => optional($meeting->meeting_date)->toDateString(),
+            'start_time' => $meeting->start_time ? Carbon::parse($meeting->start_time)->format('H:i') : null,
+            'end_time' => $meeting->end_time ? Carbon::parse($meeting->end_time)->format('H:i') : null,
+            'google_meet_url' => $meeting->google_meet_url,
+        ])->values()->all());
     }
 
     /**

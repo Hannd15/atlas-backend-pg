@@ -1490,12 +1490,50 @@
                 }
             }
         },
+        "/api/pg/meetings": {
+            "get": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "List meetings for a project (summary)",
+                "operationId": "0f5ff3d640b32abb2310c456ca837faf",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "query",
+                        "description": "Project identifier",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Meeting summaries for the specified project",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MeetingSummaryResource"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Missing project_id parameter"
+                    }
+                }
+            }
+        },
         "/api/pg/projects/{project}/meetings": {
             "get": {
                 "tags": [
                     "Meetings"
                 ],
-                "summary": "List meetings for a project",
+                "summary": "List meetings for a project (summary)",
                 "operationId": "5b40b18b688d96bc2c1ffb0cb2f3e82d",
                 "parameters": [
                     {
@@ -1509,13 +1547,13 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Meetings for the project",
+                        "description": "Meeting summaries for the project",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/MeetingDetailResource"
+                                        "$ref": "#/components/schemas/MeetingSummaryResource"
                                     }
                                 }
                             }
@@ -5833,6 +5871,42 @@
                     "observations": {
                         "type": "string",
                         "example": "Revisión semanal",
+                        "nullable": true
+                    },
+                    "google_meet_url": {
+                        "type": "string",
+                        "example": "https://meet.google.com/abc-defg-hij",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "MeetingSummaryResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "meeting_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-02-14"
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "format": "time",
+                        "example": "10:00",
+                        "nullable": true
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "format": "time",
+                        "example": "11:00",
+                        "nullable": true
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://atlas.test/meetings/5",
                         "nullable": true
                     },
                     "google_meet_url": {
