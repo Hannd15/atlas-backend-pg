@@ -13,7 +13,7 @@ class AuthenticatedUserController extends AtlasAuthenticatedController
      * @OA\Get(
      *     path="/api/pg/auth/user-profile",
      *     summary="Retrieve the authenticated user's profile",
-     *     description="Returns the raw Atlas user payload along with the user's project ids and project group id maintained locally.",
+     *     description="Returns the raw Atlas user payload along with the user's staff project ids, assigned project id, and project group id maintained locally.",
      *     tags={"Authentication"},
      *
      *     @OA\Response(
@@ -33,12 +33,13 @@ class AuthenticatedUserController extends AtlasAuthenticatedController
      *                 @OA\Property(property="permissions_list", type="array", @OA\Items(type="integer")),
      *                 @OA\Property(property="permissions_names", type="array", @OA\Items(type="string")),
      *                 @OA\Property(
-     *                     property="projects",
+     *                     property="staff_projects",
      *                     type="array",
      *
      *                     @OA\Items(type="integer", example=42)
      *                 ),
      *
+     *                 @OA\Property(property="assigned_project_id", type="integer", nullable=true, example=42),
      *                 @OA\Property(property="group_id", type="integer", nullable=true, example=7)
      *             )
      *     ),
@@ -61,7 +62,8 @@ class AuthenticatedUserController extends AtlasAuthenticatedController
         $userId = $this->extractUserId($user);
 
         return response()->json(array_merge($user, [
-            'projects' => $this->projectIdsForUser($userId),
+            'staff_projects' => $this->staffProjectIdsForUser($userId),
+            'assigned_project_id' => $this->assignedProjectIdForUser($userId),
             'group_id' => $this->groupIdForUser($userId),
         ]));
     }
@@ -101,17 +103,28 @@ class AuthenticatedUserController extends AtlasAuthenticatedController
             ->value('project_groups.id');
     }
 
-    protected function projectIdsForUser(?int $userId): array
+    protected function staffProjectIdsForUser(?int $userId): array
     {
         if ($userId === null) {
             return [];
         }
 
         return Project::query()
-            ->whereHas('groups.members', fn ($query) => $query->where('user_id', $userId))
+            ->whereHas('staff', fn ($query) => $query->where('user_id', $userId))
             ->pluck('id')
             ->unique()
             ->values()
             ->all();
+    }
+
+    protected function assignedProjectIdForUser(?int $userId): ?int
+    {
+        if ($userId === null) {
+            return null;
+        }
+
+        return Project::query()
+            ->whereHas('groups.members', fn ($query) => $query->where('user_id', $userId))
+            ->value('id');
     }
 }
