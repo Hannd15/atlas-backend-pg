@@ -119,9 +119,9 @@ class PhaseController extends Controller
      *         @OA\Schema(type="integer")
      *     ),
      *
-     *     @OA\RequestBody(
-     *         required=true,
-     *         description="Phase update payload. When updating dates, they must be within the academic period and cannot overlap with other phases.",
+    *     @OA\RequestBody(
+    *         required=true,
+    *         description="Phase update payload. When updating dates, they must remain within the academic period bounds.",
      *
      *         @OA\JsonContent(
      *

@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\ApprovalRequestController;
-use App\Http\Controllers\ApprovalRequestFileController;
 use App\Http\Controllers\AuthenticatedUserController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\DeliverableFileController;
@@ -95,15 +94,9 @@ Route::middleware('auth.atlas')->group(function () {
         // Approval Requests
         Route::get('approval-requests', [ApprovalRequestController::class, 'index']);
         Route::post('approval-requests', [ApprovalRequestController::class, 'store']);
-        Route::get('approval-requests/sent', [ApprovalRequestController::class, 'sent']);
-        Route::get('approval-requests/received', [ApprovalRequestController::class, 'received']);
-        Route::get('approval-requests/sent/{approval_request}', [ApprovalRequestController::class, 'sentShow']);
-        Route::get('approval-requests/received/{approval_request}', [ApprovalRequestController::class, 'receivedShow']);
-        Route::post('approval-requests/received/{approval_request}/approve', [ApprovalRequestController::class, 'approve']);
-        Route::post('approval-requests/received/{approval_request}/reject', [ApprovalRequestController::class, 'reject']);
-        Route::get('approval-requests/{approval_request}/files', [ApprovalRequestFileController::class, 'index']);
-        Route::post('approval-requests/{approval_request}/files', [ApprovalRequestFileController::class, 'store']);
+        Route::get('approval-requests/relevant', [ApprovalRequestController::class, 'relevant']);
         Route::get('approval-requests/{approval_request}', [ApprovalRequestController::class, 'show']);
+        Route::post('approval-requests/{approval_request}/decision', [ApprovalRequestController::class, 'decide']);
 
         // Projects routes
         Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
@@ -142,6 +135,7 @@ Route::middleware('auth.atlas')->group(function () {
         Route::get('users/dropdown', [UserController::class, 'dropdown']);
         Route::get('users/students/dropdown', [UserController::class, 'studentsDropdown']);
         Route::get('users/teachers/dropdown', [UserController::class, 'teachersDropdown']);
+        Route::get('users/teachers/roles/dropdown', [UserController::class, 'teacherRoleDropdown']);
         Route::get('users', [UserController::class, 'index']);
         Route::post('users', [UserController::class, 'store']);
         Route::get('users/{id}', [UserController::class, 'show']);
@@ -158,7 +152,6 @@ Route::middleware('auth.atlas')->group(function () {
         Route::get('user-project-eligibilities/by-position', [UserProjectEligibilityController::class, 'byPosition']);
         Route::get('user-project-eligibilities/by-user/dropdown', [UserProjectEligibilityController::class, 'byUserDropdown']);
         Route::get('user-project-eligibilities/by-position/dropdown', [UserProjectEligibilityController::class, 'byPositionDropdown']);
-    Route::get('user-project-eligibilities/by-position/{project_position}', [UserProjectEligibilityController::class, 'byPositionShow']);
         Route::get('user-project-eligibilities/directors/dropdown', [UserProjectEligibilityController::class, 'directorsDropdown']);
         Route::put('user-project-eligibilities/project-positions/{projectPosition}/sync', [UserProjectEligibilityController::class, 'syncPositionUsers']);
     });

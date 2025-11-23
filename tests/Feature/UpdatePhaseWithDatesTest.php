@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AcademicPeriod;
 use App\Models\Phase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class UpdatePhaseWithDatesTest extends TestCase
@@ -40,8 +41,8 @@ class UpdatePhaseWithDatesTest extends TestCase
 
         $response->assertStatus(200);
         $this->phase->refresh();
-        $this->assertEquals('2025-02-01', $this->phase->start_date->format('Y-m-d'));
-        $this->assertEquals('2025-04-30', $this->phase->end_date->format('Y-m-d'));
+        $this->assertEquals('2025-02-01', Carbon::parse($this->phase->start_date)->toDateString());
+        $this->assertEquals('2025-04-30', Carbon::parse($this->phase->end_date)->toDateString());
     }
 
     public function test_start_date_cannot_be_before_period_start_date(): void
@@ -80,7 +81,7 @@ class UpdatePhaseWithDatesTest extends TestCase
         $this->assertStringContainsString('after the start date', $response->json('errors.end_date.0'));
     }
 
-    public function test_dates_cannot_overlap_with_other_phases(): void
+    public function test_dates_can_overlap_with_other_phases(): void
     {
         Phase::factory()->create([
             'period_id' => $this->period->id,
@@ -93,12 +94,13 @@ class UpdatePhaseWithDatesTest extends TestCase
             'end_date' => '2025-04-15',
         ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors('start_date');
-        $this->assertStringContainsString('overlap with another phase', $response->json('errors.start_date.0'));
+        $response->assertStatus(200);
+        $this->phase->refresh();
+        $this->assertEquals('2025-03-15', Carbon::parse($this->phase->start_date)->toDateString());
+        $this->assertEquals('2025-04-15', Carbon::parse($this->phase->end_date)->toDateString());
     }
 
-    public function test_dates_cannot_completely_contain_another_phase(): void
+    public function test_dates_can_completely_cover_another_phase(): void
     {
         Phase::factory()->create([
             'period_id' => $this->period->id,
@@ -111,9 +113,10 @@ class UpdatePhaseWithDatesTest extends TestCase
             'end_date' => '2025-06-30',
         ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors('start_date');
-        $this->assertStringContainsString('overlap with another phase', $response->json('errors.start_date.0'));
+        $response->assertStatus(200);
+        $this->phase->refresh();
+        $this->assertEquals('2025-03-01', Carbon::parse($this->phase->start_date)->toDateString());
+        $this->assertEquals('2025-06-30', Carbon::parse($this->phase->end_date)->toDateString());
     }
 
     public function test_can_update_only_name(): void
@@ -125,8 +128,8 @@ class UpdatePhaseWithDatesTest extends TestCase
         $response->assertStatus(200);
         $this->phase->refresh();
         $this->assertEquals('Updated Phase Name', $this->phase->name);
-        $this->assertEquals('2025-01-15', $this->phase->start_date->format('Y-m-d'));
-        $this->assertEquals('2025-03-31', $this->phase->end_date->format('Y-m-d'));
+        $this->assertEquals('2025-01-15', Carbon::parse($this->phase->start_date)->toDateString());
+        $this->assertEquals('2025-03-31', Carbon::parse($this->phase->end_date)->toDateString());
     }
 
     public function test_can_update_only_start_date(): void
@@ -137,8 +140,8 @@ class UpdatePhaseWithDatesTest extends TestCase
 
         $response->assertStatus(200);
         $this->phase->refresh();
-        $this->assertEquals('2025-02-01', $this->phase->start_date->format('Y-m-d'));
-        $this->assertEquals('2025-03-31', $this->phase->end_date->format('Y-m-d'));
+        $this->assertEquals('2025-02-01', Carbon::parse($this->phase->start_date)->toDateString());
+        $this->assertEquals('2025-03-31', Carbon::parse($this->phase->end_date)->toDateString());
     }
 
     public function test_dates_on_period_boundaries_are_valid(): void
@@ -150,8 +153,8 @@ class UpdatePhaseWithDatesTest extends TestCase
 
         $response->assertStatus(200);
         $this->phase->refresh();
-        $this->assertEquals('2025-01-01', $this->phase->start_date->format('Y-m-d'));
-        $this->assertEquals('2025-06-30', $this->phase->end_date->format('Y-m-d'));
+        $this->assertEquals('2025-01-01', Carbon::parse($this->phase->start_date)->toDateString());
+        $this->assertEquals('2025-06-30', Carbon::parse($this->phase->end_date)->toDateString());
     }
 
     public function test_adjacent_phases_do_not_overlap(): void

@@ -23,9 +23,6 @@ class UpdatePhaseRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var Phase $phase */
-        $phase = $this->route('phase');
-
         return [
             'name' => 'sometimes|required|string|max:255',
             'start_date' => ['sometimes', 'required', 'date', 'date_format:Y-m-d'],
@@ -90,26 +87,6 @@ class UpdatePhaseRequest extends FormRequest
                         $phase->period->end_date->format('Y-m-d').').',
                     ];
                 }
-            }
-
-            // Validate no overlaps with other phases in the same period
-            $overlappingPhases = Phase::query()
-                ->where('period_id', $phase->period_id)
-                ->where('id', '!=', $phase->id)
-                ->where(function ($query) use ($startDate, $endDate) {
-                    $query->whereBetween('start_date', [$startDate, $endDate])
-                        ->orWhereBetween('end_date', [$startDate, $endDate])
-                        ->orWhere(function ($q) use ($startDate, $endDate) {
-                            $q->where('start_date', '<=', $startDate)
-                                ->where('end_date', '>=', $endDate);
-                        });
-                })
-                ->exists();
-
-            if ($overlappingPhases) {
-                $errors['start_date'] = [
-                    'The phase dates overlap with another phase in the same academic period.',
-                ];
             }
 
             if (! empty($errors)) {

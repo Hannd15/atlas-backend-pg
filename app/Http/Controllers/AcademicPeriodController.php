@@ -325,27 +325,21 @@ class AcademicPeriodController extends Controller
             return;
         }
 
-        $start = $academicPeriod->start_date;
-        $end = $academicPeriod->end_date;
-
-        // Calculate midpoint
-        $midpoint = $start->copy()->addDays((int) floor($start->diffInDays($end) / 2));
-
         $phases = [
             [
                 'name' => 'Proyecto de grado I',
-                'start_date' => $start,
-                'end_date' => $midpoint,
             ],
             [
                 'name' => 'Proyecto de grado II',
-                'start_date' => $midpoint->copy()->addDay(),
-                'end_date' => $end,
             ],
         ];
 
         foreach ($phases as $phase) {
-            $academicPeriod->phases()->create($phase);
+            $academicPeriod->phases()->create([
+                'name' => $phase['name'],
+                'start_date' => $academicPeriod->start_date,
+                'end_date' => $academicPeriod->end_date,
+            ]);
         }
     }
 }
