@@ -25,22 +25,19 @@ use Illuminate\Http\Response;
  *     schema="ProjectStaffAssignment",
  *     type="object",
  *
- *     @OA\Response(response=200, description="Assignment already existed", @OA\JsonContent(ref="#/components/schemas/ProjectStaffAssignment")),
- *     @OA\Response(
- *         response=202,
- *         description="Assignment pending approval",
- *
- *         @OA\JsonContent(
- *             type="object",
- *
- *             @OA\Property(property="approval_request_id", type="integer", example=88),
- *             @OA\Property(property="status", type="string", example="pending"),
- *             @OA\Property(property="position", type="string", example="Director"),
- *             @OA\Property(property="user_name", type="string", example="Ana Directora"),
- *             @OA\Property(property="pending_decision", type="boolean", example=true)
- *         )
- *     )
+ *     @OA\Property(property="position", type="string", example="Director"),
  *     @OA\Property(property="user_name", type="string", example="Ana Directora")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="ProjectStaffPendingAssignment",
+ *     type="object",
+ *
+ *     @OA\Property(property="approval_request_id", type="integer", example=88),
+ *     @OA\Property(property="status", type="string", example="pending"),
+ *     @OA\Property(property="position", type="string", example="Director"),
+ *     @OA\Property(property="user_name", type="string", example="Ana Directora"),
+ *     @OA\Property(property="pending_decision", type="boolean", example=true)
  * )
  */
 class ProjectStaffController extends AtlasAuthenticatedController

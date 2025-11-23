@@ -6232,6 +6232,31 @@
                 },
                 "type": "object"
             },
+            "ProjectStaffPendingAssignment": {
+                "properties": {
+                    "approval_request_id": {
+                        "type": "integer",
+                        "example": 88
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "pending"
+                    },
+                    "position": {
+                        "type": "string",
+                        "example": "Director"
+                    },
+                    "user_name": {
+                        "type": "string",
+                        "example": "Ana Directora"
+                    },
+                    "pending_decision": {
+                        "type": "boolean",
+                        "example": true
+                    }
+                },
+                "type": "object"
+            },
             "ProposalPayload": {
                 "required": [
                     "title",
