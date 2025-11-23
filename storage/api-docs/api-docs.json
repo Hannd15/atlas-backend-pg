@@ -2134,7 +2134,27 @@
                 "operationId": "6cc71525c2327391f8b354b952fb5e0e",
                 "responses": {
                     "200": {
-                        "description": "List of project positions formatted for dropdowns"
+                        "description": "List of project positions formatted for dropdowns",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 3
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Jurado"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

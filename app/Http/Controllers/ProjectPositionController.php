@@ -237,8 +237,16 @@ class ProjectPositionController extends Controller
      *     tags={"Project Positions"},
      *
      *     @OA\Response(
-     *         response=200,
-     *         description="List of project positions formatted for dropdowns"
+        *         response=200,
+        *         description="List of project positions formatted for dropdowns",
+        *         @OA\JsonContent(
+        *             type="array",
+        *             @OA\Items(
+        *                 type="object",
+        *                 @OA\Property(property="value", type="integer", example=3),
+        *                 @OA\Property(property="label", type="string", example="Jurado")
+        *             )
+        *         )
      *     )
      * )
      */
