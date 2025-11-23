@@ -370,6 +370,10 @@
                                                 "type": "string",
                                                 "example": "Actualizar rúbrica"
                                             },
+                                            "status": {
+                                                "type": "string",
+                                                "example": "pending"
+                                            },
                                             "recipients": {
                                                 "type": "string",
                                                 "example": "Ana Gómez, Juan Pérez"
@@ -416,6 +420,10 @@
                                             "type": "string",
                                             "example": "Actualizar rúbrica"
                                         },
+                                        "status": {
+                                            "type": "string",
+                                            "example": "pending"
+                                        },
                                         "recipients": {
                                             "type": "string",
                                             "example": "Ana Gómez, Juan Pérez"
@@ -460,6 +468,10 @@
                                                 "type": "string",
                                                 "example": "Aprobar proyecto"
                                             },
+                                            "status": {
+                                                "type": "string",
+                                                "example": "pending"
+                                            },
                                             "recipients": {
                                                 "type": "string",
                                                 "example": "Ana Gómez, Juan Pérez"
@@ -503,6 +515,9 @@
                                             "example": 12
                                         },
                                         "title": {
+                                            "type": "string"
+                                        },
+                                        "status": {
                                             "type": "string"
                                         },
                                         "recipients": {
@@ -5056,7 +5071,7 @@
                 "tags": [
                     "User Project Eligibilities"
                 ],
-                "summary": "Dropdown of users with eligibility labels",
+                "summary": "Dropdown project positions",
                 "operationId": "be00a33e175672767a6f8de0b7ed7af6",
                 "responses": {
                     "200": {
@@ -5107,7 +5122,52 @@
                                             },
                                             "label": {
                                                 "type": "string",
-                                                "example": "Director - Jane Doe"
+                                                "example": "Director"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/user-project-eligibilities/by-position/{project_position}/users/dropdown": {
+            "get": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Dropdown of eligible users for a project position",
+                "operationId": "3a5560b0286c9d292e1f4751dde420ef",
+                "parameters": [
+                    {
+                        "name": "project_position",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Value-label pairs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 42
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Jane Doe"
                                             }
                                         },
                                         "type": "object"
