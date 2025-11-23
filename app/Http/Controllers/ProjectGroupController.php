@@ -320,12 +320,23 @@ class ProjectGroupController extends AtlasAuthenticatedController
             return;
         }
 
-        $group->loadMissing('project');
+        $group->loadMissing('project', 'users');
         $groupLabel = $group->project?->title ?? "Grupo {$group->id}";
+
+        $memberNames = $group->users
+            ->pluck('name')
+            ->filter(fn (?string $name) => $name !== null && $name !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $membersDescription = $memberNames === []
+            ? 'Sin miembros actuales.'
+            : 'Miembros actuales: '.implode(', ', $memberNames).'.';
 
         $payload = [
             'title' => "Invitación para unirse a {$groupLabel}",
-            'description' => 'Confirma si deseas unirte a este grupo de proyecto.',
+            'description' => "Confirma si deseas unirte a este grupo de proyecto. {$membersDescription}",
             'requested_by' => $requestedBy,
             'action_key' => ApprovalActionKey::ProjectGroupAddMember->value,
             'action_payload' => [
