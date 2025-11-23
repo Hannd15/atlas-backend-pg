@@ -95,7 +95,10 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            'sslmode' => 'verify-ca', // Ver explicación abajo
+    
+            // Configuración SSL específica para Postgres
+            'sslrootcert' => base_path('storage/app/private/server-ca.pem'),
         ],
 
         'sqlsrv' => [
