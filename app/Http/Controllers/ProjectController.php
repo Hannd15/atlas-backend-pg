@@ -352,6 +352,7 @@ class ProjectController extends Controller
      *
      *         @OA\JsonContent(type="array", @OA\Items(
      *
+     *            @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="name", type="string", example="Entrega 1"),
      *             @OA\Property(property="due_date", type="string", format="date-time", example="2025-04-30 18:00:00"),
      *             @OA\Property(property="status", type="string", enum={"Pendiente", "Atrasado", "Pendiente de revisión", "Al día"}, example="Al día")
@@ -396,6 +397,7 @@ class ProjectController extends Controller
                 }
 
                 return [
+                    'id' => $deliverable->id,
                     'name' => $deliverable->name,
                     'due_date' => optional($deliverable->due_date)->toDateTimeString(),
                     'status' => $status,

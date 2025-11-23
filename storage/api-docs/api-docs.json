@@ -759,7 +759,7 @@
                     "Authentication"
                 ],
                 "summary": "Retrieve the authenticated user's profile",
-                "description": "Returns the raw Atlas user payload along with the user's project ids and project group id maintained locally.",
+                "description": "Returns the raw Atlas user payload along with the user's staff project ids, assigned project id, and project group id maintained locally.",
                 "operationId": "219c7795729d6b920ce9a87b2148c0cd",
                 "responses": {
                     "200": {
@@ -814,12 +814,17 @@
                                                 "type": "string"
                                             }
                                         },
-                                        "projects": {
+                                        "staff_projects": {
                                             "type": "array",
                                             "items": {
                                                 "type": "integer",
                                                 "example": 42
                                             }
+                                        },
+                                        "assigned_project_id": {
+                                            "type": "integer",
+                                            "example": 42,
+                                            "nullable": true
                                         },
                                         "group_id": {
                                             "type": "integer",
@@ -2225,6 +2230,10 @@
                                     "type": "array",
                                     "items": {
                                         "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
                                             "name": {
                                                 "type": "string",
                                                 "example": "Entrega 1"
@@ -3820,13 +3829,13 @@
                 }
             }
         },
-        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions": {
             "get": {
                 "tags": [
                     "Submissions"
                 ],
-                "summary": "List submissions for a deliverable",
-                "operationId": "518b53f6e54a0272c09dd59a27f75ccc",
+                "summary": "List submissions for a deliverable and project",
+                "operationId": "b19ca686c8d57f1fc8760082c7354f33",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -3846,6 +3855,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -3873,8 +3890,8 @@
                 "tags": [
                     "Submissions"
                 ],
-                "summary": "Create a submission for a deliverable",
-                "operationId": "df5bde30aa0e5357f8caccf1e29b9b32",
+                "summary": "Create a submission for a deliverable and project",
+                "operationId": "b2a36bc207b6543c5a1d879e54dc861f",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -3894,6 +3911,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -3928,13 +3953,13 @@
                 }
             }
         },
-        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}": {
             "get": {
                 "tags": [
                     "Submissions"
                 ],
                 "summary": "Show submission",
-                "operationId": "d27800556b7a6be1f9c520c34daa65ea",
+                "operationId": "245a471f03ebe65d08b37286e39900a8",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -3954,6 +3979,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -3986,8 +4019,8 @@
                 "tags": [
                     "Submissions"
                 ],
-                "summary": "Update submission",
-                "operationId": "f031df49c46be5a08fa190bdcd1f6c4d",
+                "summary": "Update submission comment",
+                "operationId": "1694e5510566bd8eb0656d3c95911909",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4007,6 +4040,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -4049,7 +4090,7 @@
                     "Submissions"
                 ],
                 "summary": "Delete submission",
-                "operationId": "dfb8be09f2faf5e9b601b0a10fb44dce",
+                "operationId": "0658091b48613a6f1f394fb83e6852ef",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4069,6 +4110,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -4138,13 +4187,13 @@
                 }
             }
         },
-        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations": {
             "get": {
                 "tags": [
                     "Submission Evaluations"
                 ],
                 "summary": "List evaluations for a submission",
-                "operationId": "dbdaad302885be181dfcb2125243a411",
+                "operationId": "3c9e08f9956274c58de963b02ede0daa",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4164,6 +4213,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -4200,7 +4257,7 @@
                     "Submission Evaluations"
                 ],
                 "summary": "Create evaluation",
-                "operationId": "3dbbe41953d340cd56413513844b135a",
+                "operationId": "30f12c2aff570a3c4315e951d4ce4238",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4220,6 +4277,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -4262,13 +4327,13 @@
                 }
             }
         },
-        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/evaluations/{evaluation}": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/evaluations/{evaluation}": {
             "get": {
                 "tags": [
                     "Submission Evaluations"
                 ],
                 "summary": "Show evaluation",
-                "operationId": "6a3084418ec547329d8763cba0caf114",
+                "operationId": "61a16ed7a0d4db68b0258bd7d0d4b26d",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4288,6 +4353,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -4329,7 +4402,7 @@
                     "Submission Evaluations"
                 ],
                 "summary": "Update evaluation",
-                "operationId": "b085ba6dbc6b75afa1117a7bbc25f587",
+                "operationId": "10cf21beb2931c1ae85c9cff739612d3",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4349,6 +4422,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -4399,7 +4480,7 @@
                     "Submission Evaluations"
                 ],
                 "summary": "Delete evaluation",
-                "operationId": "b531eb505e43b4080c839eabfe25ca73",
+                "operationId": "494e209ad1318b4cf6edc3842606fce8",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4419,6 +4500,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -4506,13 +4595,13 @@
                 }
             }
         },
-        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/files": {
             "get": {
                 "tags": [
                     "Submission Files"
                 ],
                 "summary": "Get files associated with a submission",
-                "operationId": "d902b0c2f8279ac36332207a6c6ad694",
+                "operationId": "3b7cf030e0893b854cf1ebb570606cee",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4532,6 +4621,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -4580,7 +4677,7 @@
                     "Submission Files"
                 ],
                 "summary": "Upload and associate a file with a submission",
-                "operationId": "88ef90248d3e8d98bb84d9aae9c3f040",
+                "operationId": "2beb138dea4ae6192a580503a630e336",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4600,6 +4697,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -4651,13 +4756,13 @@
                 }
             }
         },
-        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/submissions/{submission}/files/{file}": {
+        "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables/{deliverable}/projects/{project}/submissions/{submission}/files/{file}": {
             "delete": {
                 "tags": [
                     "Submission Files"
                 ],
                 "summary": "Detach a file from a submission",
-                "operationId": "b4f1c5fd3fcb52c0fc0267e7393574ff",
+                "operationId": "ef21138d3b3a52603641d3798af92263",
                 "parameters": [
                     {
                         "name": "academic_period",
@@ -4677,6 +4782,14 @@
                     },
                     {
                         "name": "deliverable",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -6772,6 +6885,11 @@
                         "format": "date-time",
                         "example": "2025-04-19T10:00:00"
                     },
+                    "comment": {
+                        "type": "string",
+                        "example": "Entrega realizada con atraso",
+                        "nullable": true
+                    },
                     "deliverable_name": {
                         "type": "string",
                         "example": "Entrega Parcial",
@@ -6813,50 +6931,20 @@
             },
             "SubmissionCreatePayload": {
                 "required": [
-                    "deliverable_id",
-                    "project_id",
-                    "submission_date"
+                    "comment"
                 ],
                 "properties": {
-                    "deliverable_id": {
-                        "type": "integer",
-                        "example": 12
-                    },
-                    "project_id": {
-                        "type": "integer",
-                        "example": 30
-                    },
-                    "submission_date": {
+                    "comment": {
                         "type": "string",
-                        "format": "date-time",
-                        "example": "2025-04-19T10:00:00"
-                    },
-                    "file_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
+                        "example": "Notas sobre la entrega"
                     }
                 },
                 "type": "object"
             },
             "SubmissionUpdatePayload": {
                 "properties": {
-                    "deliverable_id": {
-                        "type": "integer"
-                    },
-                    "project_id": {
-                        "type": "integer"
-                    },
-                    "submission_date": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "file_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
+                    "comment": {
+                        "type": "string"
                     }
                 },
                 "type": "object"
