@@ -346,22 +346,36 @@
                 }
             }
         },
-        "/api/pg/approval-requests/relevant": {
+        "/api/pg/approval-requests/sent": {
             "get": {
                 "tags": [
                     "Approval Requests"
                 ],
-                "summary": "List approval requests relevant to the authenticated user",
-                "operationId": "426af354f10c20fb61f2c4d9894875ec",
+                "summary": "List approval requests created by the authenticated user",
+                "operationId": "a91e274ed142135ea0b1bda50f6e59b8",
                 "responses": {
                     "200": {
-                        "description": "Relevant approval requests",
+                        "description": "Sent approval requests summary",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/ApprovalRequestResource"
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 10
+                                            },
+                                            "title": {
+                                                "type": "string",
+                                                "example": "Actualizar rúbrica"
+                                            },
+                                            "recipients": {
+                                                "type": "string",
+                                                "example": "Ana Gómez, Juan Pérez"
+                                            }
+                                        },
+                                        "type": "object"
                                     }
                                 }
                             }
@@ -370,13 +384,153 @@
                 }
             }
         },
-        "/api/pg/approval-requests/{approval_request}/decision": {
+        "/api/pg/approval-requests/sent/{approval_request}": {
+            "get": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "Show a sent approval request summary",
+                "operationId": "c77d76d18b08f8c4a903bf58a0fa6565",
+                "parameters": [
+                    {
+                        "name": "approval_request",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sent approval request detail",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 10
+                                        },
+                                        "title": {
+                                            "type": "string",
+                                            "example": "Actualizar rúbrica"
+                                        },
+                                        "recipients": {
+                                            "type": "string",
+                                            "example": "Ana Gómez, Juan Pérez"
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/approval-requests/received": {
+            "get": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "List approval requests assigned to the authenticated user",
+                "operationId": "ffa3ff60f635126fd75e2f06d8c7137c",
+                "responses": {
+                    "200": {
+                        "description": "Received approval requests summary",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 12
+                                            },
+                                            "title": {
+                                                "type": "string",
+                                                "example": "Aprobar proyecto"
+                                            },
+                                            "recipients": {
+                                                "type": "string",
+                                                "example": "Ana Gómez, Juan Pérez"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/approval-requests/received/{approval_request}": {
+            "get": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "Show a received approval request summary",
+                "operationId": "094d1a9daf4faf64afdbb9081fdc2906",
+                "parameters": [
+                    {
+                        "name": "approval_request",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Received approval request detail",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 12
+                                        },
+                                        "title": {
+                                            "type": "string"
+                                        },
+                                        "recipients": {
+                                            "type": "string"
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/approval-requests/received/{approval_request}/approve": {
             "post": {
                 "tags": [
                     "Approval Requests"
                 ],
-                "summary": "Approve or reject a request",
-                "operationId": "9a495628e3dfa5b2a1f82c626e402ec7",
+                "summary": "Approve an assigned request",
+                "operationId": "0d70db248c3ecef95b0b2262654d20da",
                 "parameters": [
                     {
                         "name": "approval_request",
@@ -388,20 +542,14 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
+                    "required": false,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "decision"
-                                ],
                                 "properties": {
-                                    "decision": {
+                                    "comment": {
                                         "type": "string",
-                                        "enum": [
-                                            "approved",
-                                            "rejected"
-                                        ]
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -420,16 +568,264 @@
                             }
                         }
                     },
-                    "403": {
-                        "description": "Not a recipient"
-                    },
-                    "409": {
-                        "description": "Already decided"
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/pg/approval-requests/received/{approval_request}/reject": {
+            "post": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "Reject an assigned request",
+                "operationId": "bbc3ce7d3a2661733c9786bb7075848c",
+                "parameters": [
+                    {
+                        "name": "approval_request",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "comment": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApprovalRequestResource"
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "description": "Not found"
                     }
                 }
+            }
+        },
+        "/api/pg/approval-requests/{approval_request}/files": {
+            "get": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "List files attached to an approval request",
+                "operationId": "1d255f17dfd77d71eef62c20a5f2ab28",
+                "parameters": [
+                    {
+                        "name": "approval_request",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Files related to the approval request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 90
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "example": "observaciones.pdf"
+                                            },
+                                            "extension": {
+                                                "type": "string",
+                                                "example": "pdf"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Approval Requests"
+                ],
+                "summary": "Upload and attach a file to an approval request",
+                "operationId": "cccd8b42224bec8ec6f32a281671d322",
+                "parameters": [
+                    {
+                        "name": "approval_request",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "file"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Attached file",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 90
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "example": "observaciones.pdf"
+                                        },
+                                        "extension": {
+                                            "type": "string",
+                                            "example": "pdf"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/auth/user-profile": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Retrieve the authenticated user's profile",
+                "description": "Returns the raw Atlas user payload along with the user's project ids and project group id maintained locally.",
+                "operationId": "219c7795729d6b920ce9a87b2148c0cd",
+                "responses": {
+                    "200": {
+                        "description": "Authenticated user details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 123
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "example": "Alice Example"
+                                        },
+                                        "email": {
+                                            "type": "string",
+                                            "example": "alice@example.com"
+                                        },
+                                        "avatar": {
+                                            "type": "string",
+                                            "example": "https://example.com/avatar.png"
+                                        },
+                                        "roles": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "roles_list": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "roles_names": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "permissions_list": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "permissions_names": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "projects": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer",
+                                                "example": 42
+                                            }
+                                        },
+                                        "group_id": {
+                                            "type": "integer",
+                                            "example": 7,
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/pg/academic-periods/{academic_period}/phases/{phase}/deliverables": {
@@ -4393,6 +4789,49 @@
                 }
             }
         },
+        "/api/pg/users/teachers/dropdown": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get a dropdown of users that have the teacher/staff permission",
+                "description": "Delegates to Atlas to fetch every user assigned the configured teacher permission and formats them for dropdowns.",
+                "operationId": "204bc93c1e703a05efabe9929a7d9fee",
+                "responses": {
+                    "200": {
+                        "description": "Dropdown entries for Atlas teacher/staff users",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 54
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Carlos Gómez"
+                                            },
+                                            "email": {
+                                                "type": "string",
+                                                "example": "carlos@example.com"
+                                            },
+                                            "roles_list": {
+                                                "type": "string",
+                                                "example": "Docente"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/pg/users/{id}": {
             "get": {
                 "tags": [
@@ -4674,12 +5113,12 @@
             }
         },
         "/api/pg/user-project-eligibilities/project-positions/{projectPosition}/sync": {
-            "post": {
+            "put": {
                 "tags": [
                     "User Project Eligibilities"
                 ],
                 "summary": "Sync eligible users for a project position",
-                "operationId": "556cd52d297ff01ec4cacca30b304e63",
+                "operationId": "be5e41c6bfb6de3698d91e3edb2b3a1e",
                 "parameters": [
                     {
                         "name": "projectPosition",
@@ -4827,6 +5266,10 @@
                     "decision": {
                         "type": "string",
                         "example": "approved",
+                        "nullable": true
+                    },
+                    "comment": {
+                        "type": "string",
                         "nullable": true
                     },
                     "decision_at": {
@@ -5582,6 +6025,16 @@
                     },
                     "description": {
                         "type": "string",
+                        "nullable": true
+                    },
+                    "thematic_line_id": {
+                        "type": "integer",
+                        "example": 4,
+                        "nullable": true
+                    },
+                    "preferred_director_id": {
+                        "type": "integer",
+                        "example": 32,
                         "nullable": true
                     },
                     "proposal_type_name": {
@@ -6370,6 +6823,10 @@
         {
             "name": "User Project Eligibilities",
             "description": "API endpoints for managing user project position eligibilities"
+        },
+        {
+            "name": "Authentication",
+            "description": "Authentication"
         }
     ]
 }
