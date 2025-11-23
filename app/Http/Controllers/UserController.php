@@ -318,7 +318,7 @@ class UserController extends Controller
     protected function studentPermission(): string
     {
         return $this->permissionFromConfig(
-            'student_filter_permission',
+            'permissions.assignable_to_pg_group',
             'Student permission configuration is missing.'
         );
     }
@@ -326,14 +326,14 @@ class UserController extends Controller
     protected function teacherPermission(): string
     {
         return $this->permissionFromConfig(
-            'teacher_filter_permission',
+            'permissions.assignable_to_pg_staff',
             'Teacher permission configuration is missing.'
         );
     }
 
     protected function permissionFromConfig(string $configKey, string $errorMessage): string
     {
-        $permission = trim((string) config("services.atlas_auth.{$configKey}"));
+        $permission = trim((string) config("atlas.{$configKey}"));
 
         if ($permission === '') {
             throw new HttpResponseException(response()->json([

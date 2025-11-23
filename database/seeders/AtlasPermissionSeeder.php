@@ -8,21 +8,6 @@ use Illuminate\Support\Facades\Log;
 
 class AtlasPermissionSeeder extends Seeder
 {
-    protected array $permissions = [
-        ['name' => 'asignable a un grupo de proyectos de grado'],
-        ['name' => 'asignable a staff de proyectos de grado'],
-        ['name' => 'ver propuestas'],
-        ['name' => 'crear proyectos'],
-        ['name' => 'editar proyectos'],
-        ['name' => 'eliminar proyectos'],
-        ['name' => 'ver personal de proyectos'],
-        ['name' => 'crear propuestas'],
-        ['name' => 'editar propuestas'],
-        ['name' => 'eliminar propuestas'],
-        ['name' => 'ver estados de proyectos'],
-        ['name' => 'cambiar estado de proyectos'],
-    ];
-
     public function run(): void
     {
         $baseUrl = env('ATLAS_AUTH_URL', '');
@@ -34,10 +19,24 @@ class AtlasPermissionSeeder extends Seeder
             return;
         }
 
+        $permissions = collect(config('atlas.permissions', []))
+            ->map(fn ($name) => is_string($name) ? trim($name) : $name)
+            ->filter(fn ($name) => ! empty($name))
+            ->unique()
+            ->values()
+            ->map(fn ($name) => ['name' => $name])
+            ->all();
+
+        if (empty($permissions)) {
+            Log::warning('AtlasPermissionSeeder skipped because no permissions were configured.');
+
+            return;
+        }
+
         $response = Http::withToken($token)
             ->acceptJson()
             ->post(rtrim($baseUrl, '/').'/api/auth/permissions/batch', [
-                'permissions' => $this->permissions,
+                'permissions' => $permissions,
             ]);
 
         if (! $response->successful()) {
@@ -49,6 +48,6 @@ class AtlasPermissionSeeder extends Seeder
             $response->throw();
         }
 
-        Log::info('Seeded atlas permissions.', ['count' => count($this->permissions)]);
+        Log::info('Seeded atlas permissions.', ['count' => count($permissions)]);
     }
 }

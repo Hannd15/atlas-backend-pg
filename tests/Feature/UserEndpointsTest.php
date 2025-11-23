@@ -173,7 +173,7 @@ class UserEndpointsTest extends TestCase
 
     public function test_students_endpoint_returns_only_student_role_users(): void
     {
-        $studentPermission = config('services.atlas_auth.student_filter_permission');
+        $studentPermission = config('atlas.permissions.assignable_to_pg_group');
 
         $student = User::factory()->create(['name' => 'Student Example', 'email' => 'student@example.com']);
         $teacher = User::factory()->create(['name' => 'Teacher Example', 'email' => 'teacher@example.com']);
@@ -198,7 +198,7 @@ class UserEndpointsTest extends TestCase
 
     public function test_teachers_endpoint_returns_only_teacher_permission_users(): void
     {
-        $teacherPermission = config('services.atlas_auth.teacher_filter_permission');
+        $teacherPermission = config('atlas.permissions.assignable_to_pg_staff');
 
         $student = User::factory()->create(['name' => 'Student Example', 'email' => 'student@example.com']);
         $teacher = User::factory()->create(['name' => 'Teacher Example', 'email' => 'teacher@example.com']);
