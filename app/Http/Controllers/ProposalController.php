@@ -70,7 +70,6 @@ class ProposalController extends AtlasAuthenticatedController
         $this->resolveAtlasUser($request);
 
         $proposals = Proposal::with($this->defaultRelations())
-            ->whereHas('type', fn ($query) => $query->where('code', 'made_by_teacher'))
             ->orderByDesc('updated_at')
             ->get();
 
