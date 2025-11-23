@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ApprovalActionKey;
 use App\Http\Requests\ProjectGroup\StoreProjectGroupRequest;
 use App\Http\Requests\ProjectGroup\UpdateProjectGroupRequest;
-use App\Models\GroupMember;
+use App\Models\ApprovalRequest;
 use App\Models\ProjectGroup;
+use App\Services\ApprovalRequestService;
+use App\Services\AtlasAuthService;
 use App\Services\AtlasUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -76,11 +79,15 @@ use Illuminate\Support\Facades\DB;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  */
-class ProjectGroupController extends Controller
+class ProjectGroupController extends AtlasAuthenticatedController
 {
     public function __construct(
-        protected AtlasUserService $atlasUserService
-    ) {}
+        AtlasAuthService $atlasAuthService,
+        protected AtlasUserService $atlasUserService,
+        protected ApprovalRequestService $approvalRequestService
+    ) {
+        parent::__construct($atlasAuthService);
+    }
 
     /**
      * @OA\Get(
@@ -144,10 +151,12 @@ class ProjectGroupController extends Controller
      */
     public function store(StoreProjectGroupRequest $request): JsonResponse
     {
-        return DB::transaction(function () use ($request) {
+        $requestedBy = $this->resolveAuthenticatedUserId($request);
+
+        return DB::transaction(function () use ($request, $requestedBy) {
             $group = ProjectGroup::create($request->safe()->only(['project_id']));
 
-            $this->syncMembers($group, $request->memberUserIds());
+            $this->syncMembers($group, $request->memberUserIds(), $requestedBy);
 
             $group->loadMissing('project', 'members');
 
@@ -211,8 +220,10 @@ class ProjectGroupController extends Controller
      */
     public function update(UpdateProjectGroupRequest $request, ProjectGroup $projectGroup): JsonResponse
     {
-        return DB::transaction(function () use ($request, $projectGroup) {
-            $this->syncMembers($projectGroup, $request->memberUserIds());
+        $requestedBy = $this->resolveAuthenticatedUserId($request);
+
+        return DB::transaction(function () use ($request, $projectGroup, $requestedBy) {
+            $this->syncMembers($projectGroup, $request->memberUserIds(), $requestedBy);
 
             $projectGroup->loadMissing('project', 'members');
 
@@ -271,18 +282,70 @@ class ProjectGroupController extends Controller
         return response()->json($groups);
     }
 
-    protected function syncMembers(ProjectGroup $group, ?array $userIds): void
+    protected function syncMembers(ProjectGroup $group, ?array $userIds, int $requestedBy): void
     {
         if ($userIds === null) {
             return;
         }
 
-        GroupMember::query()
-            ->whereIn('user_id', $userIds)
-            ->when($group->exists, fn ($query) => $query->where('group_id', '!=', $group->id))
-            ->delete();
+        $currentMembers = $group->users()
+            ->pluck('users.id')
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
 
-        $group->users()->sync($userIds);
+        $desiredMembers = collect($userIds)
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $toRemove = array_values(array_diff($currentMembers, $desiredMembers));
+        $toAdd = array_values(array_diff($desiredMembers, $currentMembers));
+
+        if (! empty($toRemove)) {
+            $group->users()->detach($toRemove);
+        }
+
+        foreach ($toAdd as $userId) {
+            $this->dispatchMemberAdditionRequest($group, $requestedBy, $userId);
+        }
+    }
+
+    protected function dispatchMemberAdditionRequest(ProjectGroup $group, int $requestedBy, int $userId): void
+    {
+        if ($this->hasPendingMembershipRequest($group->id, $userId)) {
+            return;
+        }
+
+        $group->loadMissing('project');
+        $groupLabel = $group->project?->title ?? "Grupo {$group->id}";
+
+        $payload = [
+            'title' => "Invitación para unirse a {$groupLabel}",
+            'description' => 'Confirma si deseas unirte a este grupo de proyecto.',
+            'requested_by' => $requestedBy,
+            'action_key' => ApprovalActionKey::ProjectGroupAddMember->value,
+            'action_payload' => [
+                'group_id' => $group->id,
+                'user_id' => $userId,
+            ],
+            'status' => ApprovalRequest::STATUS_PENDING,
+        ];
+
+        $this->approvalRequestService->create($payload, [$userId]);
+    }
+
+    protected function hasPendingMembershipRequest(int $groupId, int $userId): bool
+    {
+        return ApprovalRequest::query()
+            ->where('action_key', ApprovalActionKey::ProjectGroupAddMember->value)
+            ->where('status', ApprovalRequest::STATUS_PENDING)
+            ->where('action_payload->group_id', $groupId)
+            ->where('action_payload->user_id', $userId)
+            ->exists();
     }
 
     protected function transformForIndex(ProjectGroup $group, array $userNames): array

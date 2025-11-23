@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ApprovalActionKey;
 use App\Http\Requests\Proposal\StoreProposalRequest;
 use App\Http\Requests\Proposal\UpdateProposalRequest;
+use App\Models\ApprovalRequest;
 use App\Models\Proposal;
 use App\Models\ProposalStatus;
 use App\Models\ProposalType;
+use App\Services\ApprovalRequestService;
+use App\Services\AtlasAuthService;
+use App\Services\AtlasUserService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,6 +56,14 @@ use Illuminate\Support\Str;
  */
 class ProposalController extends AtlasAuthenticatedController
 {
+    public function __construct(
+        AtlasAuthService $atlasAuthService,
+        protected AtlasUserService $atlasUserService,
+        protected ApprovalRequestService $approvalRequestService
+    ) {
+        parent::__construct($atlasAuthService);
+    }
+
     /**
      * @OA\Get(
      *     path="/api/pg/proposals",
@@ -70,6 +83,7 @@ class ProposalController extends AtlasAuthenticatedController
         $this->resolveAtlasUser($request);
 
         $proposals = Proposal::with($this->defaultRelations())
+            ->whereHas('type', fn ($query) => $query->where('code', 'made_by_teacher'))
             ->orderByDesc('updated_at')
             ->get();
 
@@ -92,19 +106,23 @@ class ProposalController extends AtlasAuthenticatedController
     {
         $validated = $request->validated();
 
-        $proposalTypeId = $this->determineProposalTypeId($request);
+        $type = $this->determineProposalType($request);
+        $proposalTypeId = $type['id'];
+        $proposalTypeCode = $type['code'];
         $statusId = $validated['proposal_status_id'] ?? $this->defaultStatusId();
         $proposerId = $this->resolveAuthenticatedUserId($request);
 
-        $proposal = Proposal::create([
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'proposal_type_id' => $proposalTypeId,
-            'proposal_status_id' => $statusId,
-            'proposer_id' => $proposerId,
-            'preferred_director_id' => $validated['preferred_director_id'] ?? null,
-            'thematic_line_id' => $validated['thematic_line_id'],
-        ]);
+        $proposalData = $this->buildProposalData($validated, $proposalTypeId, $statusId, $proposerId);
+
+        if ($this->requiresTeacherApproval($proposalTypeCode)) {
+            return $this->initiateCommitteeApproval($request, $proposalData, $proposerId);
+        }
+
+        if ($this->requiresStudentApproval($proposalTypeCode)) {
+            return $this->initiateStudentApprovalFlow($request, $proposalData, $proposerId);
+        }
+
+        $proposal = Proposal::create($proposalData);
 
         $proposal->load($this->defaultRelations());
 
@@ -229,7 +247,7 @@ class ProposalController extends AtlasAuthenticatedController
         ];
     }
 
-    protected function determineProposalTypeId(Request $request): int
+    protected function determineProposalType(Request $request): array
     {
         $userData = $this->resolveAtlasUser($request);
 
@@ -240,6 +258,7 @@ class ProposalController extends AtlasAuthenticatedController
 
         if ($typeId === null) {
             $typeId = $this->typeId('made_by_student');
+            $typeCode = 'made_by_student';
         }
 
         if ($typeId === null) {
@@ -248,7 +267,10 @@ class ProposalController extends AtlasAuthenticatedController
             ], 503));
         }
 
-        return $typeId;
+        return [
+            'id' => $typeId,
+            'code' => $typeCode,
+        ];
     }
 
     protected function extractRoleNames(array $userData): array
@@ -318,6 +340,121 @@ class ProposalController extends AtlasAuthenticatedController
         }
 
         return $defaultStatusId;
+    }
+
+    protected function buildProposalData(array $validated, int $proposalTypeId, ?int $statusId, int $proposerId): array
+    {
+        return [
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'proposal_type_id' => $proposalTypeId,
+            'proposal_status_id' => $statusId,
+            'proposer_id' => $proposerId,
+            'preferred_director_id' => $validated['preferred_director_id'] ?? null,
+            'thematic_line_id' => $validated['thematic_line_id'],
+        ];
+    }
+
+    protected function requiresTeacherApproval(string $typeCode): bool
+    {
+        return $typeCode === 'made_by_teacher';
+    }
+
+    protected function requiresStudentApproval(string $typeCode): bool
+    {
+        return $typeCode === 'made_by_student';
+    }
+
+    protected function initiateCommitteeApproval(Request $request, array $proposalData, int $proposerId, string $origin = 'teacher'): JsonResponse
+    {
+        $token = trim((string) $request->bearerToken());
+        $recipientIds = $this->resolveCommitteeRecipientIds($token);
+
+        if (empty($recipientIds)) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'No hay integrantes del comité configurados para aprobar propuestas.',
+            ], 422));
+        }
+
+        $approvalRequest = $this->approvalRequestService->create([
+            'title' => "Aprobación de propuesta: {$proposalData['title']}",
+            'description' => 'El comité debe revisar y aprobar esta propuesta antes de su creación.',
+            'requested_by' => $proposerId,
+            'action_key' => ApprovalActionKey::ProposalCommittee->value,
+            'action_payload' => $this->buildProposalApprovalPayload($proposalData, $proposerId, $recipientIds, $origin),
+            'status' => ApprovalRequest::STATUS_PENDING,
+        ], $recipientIds);
+
+        return $this->approvalPendingResponse($approvalRequest, 'La propuesta fue enviada al comité para aprobación.');
+    }
+
+    protected function initiateStudentApprovalFlow(Request $request, array $proposalData, int $proposerId): JsonResponse
+    {
+        $preferredDirectorId = $proposalData['preferred_director_id'];
+
+        if ($preferredDirectorId === null) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Las propuestas de estudiantes requieren un director preferido.',
+            ], 422));
+        }
+
+        $token = trim((string) $request->bearerToken());
+        $committeeRecipientIds = $this->resolveCommitteeRecipientIds($token);
+
+        if (empty($committeeRecipientIds)) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'No hay integrantes del comité configurados para aprobar propuestas.',
+            ], 422));
+        }
+
+        $payload = $this->buildProposalApprovalPayload($proposalData, $proposerId, $committeeRecipientIds, 'student');
+
+        $approvalRequest = $this->approvalRequestService->create([
+            'title' => "Dirección de propuesta estudiantil: {$proposalData['title']}",
+            'description' => 'El director preferido debe aprobar la propuesta antes de escalarla al comité.',
+            'requested_by' => $proposerId,
+            'action_key' => ApprovalActionKey::ProposalStudentDirector->value,
+            'action_payload' => $payload,
+            'status' => ApprovalRequest::STATUS_PENDING,
+        ], [(int) $preferredDirectorId]);
+
+        return $this->approvalPendingResponse($approvalRequest, 'La propuesta fue enviada al director preferido para aprobación.');
+    }
+
+    protected function resolveCommitteeRecipientIds(string $token): array
+    {
+        $users = $this->atlasUserService->usersByPermission($token, 'parte del comité de proyectos de grado');
+
+        return collect($users)
+            ->map(fn ($user) => $user['id'] ?? null)
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function buildProposalApprovalPayload(array $proposalData, int $proposerId, array $committeeRecipientIds, string $origin): array
+    {
+        return [
+            'proposal' => $proposalData,
+            'requested_by' => $proposerId,
+            'committee_recipient_ids' => $committeeRecipientIds,
+            'origin' => $origin,
+        ];
+    }
+
+    protected function approvalPendingResponse(ApprovalRequest $approvalRequest, string $message): JsonResponse
+    {
+        $approvalRequest->loadMissing('recipients');
+
+        return response()->json([
+            'message' => $message,
+            'approval_request_id' => $approvalRequest->id,
+            'status' => $approvalRequest->status,
+            'title' => $approvalRequest->title,
+            'recipient_ids' => $approvalRequest->recipients->pluck('user_id')->values()->all(),
+        ], 202);
     }
 
     /**

@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\ApprovalRequest;
 use App\Models\Project;
 use App\Models\ProjectGroup;
 use App\Models\User;
+use App\Services\ApprovalRequestActionRunner;
+use App\Services\ApprovalRequestService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -45,7 +48,7 @@ class ProjectGroupEndpointsTest extends TestCase
         $this->assertArrayNotHasKey('name', $payload[0]);
     }
 
-    public function test_store_creates_group_and_syncs_members(): void
+    public function test_store_enqueues_member_requests_for_each_user(): void
     {
         $project = Project::factory()->create([
             'title' => 'Proyecto académico',
@@ -71,21 +74,26 @@ class ProjectGroupEndpointsTest extends TestCase
         $this->assertSame($group->id, $response->json('id'));
         $this->assertSame($project->id, $response->json('project_id'));
         $this->assertSame($project->title, $response->json('project_name'));
-        $this->assertEqualsCanonicalizing([$alice->id, $bob->id], $response->json('member_user_ids'));
+        $this->assertSame([], $response->json('member_user_ids'));
 
-        $this->assertArrayNotHasKey('name', $response->json());
+        $requests = ApprovalRequest::with('recipients')
+            ->where('action_key', 'project_group.add_member')
+            ->get();
+        $this->assertCount(2, $requests);
+        $this->assertEqualsCanonicalizing([
+            $alice->id,
+            $bob->id,
+        ], $requests->map(fn ($request) => $request->action_payload['user_id'])->all());
 
-        $this->assertDatabaseHas('group_members', [
-            'group_id' => $group->id,
-            'user_id' => $alice->id,
-        ]);
-        $this->assertDatabaseHas('group_members', [
-            'group_id' => $group->id,
-            'user_id' => $bob->id,
-        ]);
+        $requests->each(function (ApprovalRequest $request) {
+            $this->assertCount(1, $request->recipients);
+            $this->assertSame($request->action_payload['user_id'], $request->recipients->first()->user_id);
+        });
+
+        $this->assertTrue($group->users->isEmpty());
     }
 
-    public function test_store_moves_members_from_previous_groups(): void
+    public function test_store_moves_members_from_previous_groups_after_approval(): void
     {
         $project = Project::factory()->create();
 
@@ -101,15 +109,21 @@ class ProjectGroupEndpointsTest extends TestCase
             'member_user_ids' => [$alice->id],
         ];
 
-        $response = $this->postJson('/api/pg/project-groups', $payload);
-
-        $response->assertCreated();
+        $this->postJson('/api/pg/project-groups', $payload)->assertCreated();
 
         $originalGroup->refresh();
         $newGroup = ProjectGroup::where('project_id', $project->id)
             ->where('id', '!=', $originalGroup->id)
             ->latest('id')
             ->firstOrFail();
+
+        $this->assertEquals([$alice->id], $originalGroup->users->pluck('id')->all());
+        $this->assertTrue($newGroup->users->isEmpty());
+
+        $this->approveMembershipRequest($alice->id, $newGroup->id);
+
+        $originalGroup->refresh();
+        $newGroup->refresh();
 
         $this->assertTrue($originalGroup->users->isEmpty());
         $this->assertEquals([$alice->id], $newGroup->users->pluck('id')->all());
@@ -187,6 +201,14 @@ class ProjectGroupEndpointsTest extends TestCase
         $groupA->refresh();
         $groupB->refresh();
 
+        $this->assertEquals([$alice->id], $groupA->users->pluck('id')->all());
+        $this->assertTrue($groupB->users->isEmpty());
+
+        $this->approveMembershipRequest($alice->id, $groupB->id);
+
+        $groupA->refresh();
+        $groupB->refresh();
+
         $this->assertTrue($groupA->users->isEmpty());
         $this->assertEquals([$alice->id], $groupB->users->pluck('id')->all());
     }
@@ -220,4 +242,31 @@ class ProjectGroupEndpointsTest extends TestCase
                 ['value' => $groupB->id, 'label' => 'Proyecto B'],
             ]);
     }
+
+        protected function approveMembershipRequest(int $userId, ?int $groupId = null): void
+        {
+            $query = ApprovalRequest::query()
+                ->where('action_key', 'project_group.add_member')
+                ->where('status', ApprovalRequest::STATUS_PENDING)
+                ->where('action_payload->user_id', $userId);
+
+            if ($groupId !== null) {
+                $query->where('action_payload->group_id', $groupId);
+            }
+
+            $approvalRequest = $query->latest()->firstOrFail();
+
+            $updated = app(ApprovalRequestService::class)->recordDecision(
+                $approvalRequest,
+                $userId,
+                ApprovalRequest::DECISION_APPROVED
+            );
+
+            if ($updated->status !== ApprovalRequest::STATUS_PENDING) {
+                app(ApprovalRequestActionRunner::class)->run(
+                    $updated->fresh(),
+                    $updated->resolved_decision
+                );
+            }
+        }
 }
