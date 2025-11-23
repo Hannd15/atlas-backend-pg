@@ -5002,6 +5002,55 @@
                 }
             }
         },
+        "/api/pg/user-project-eligibilities/by-position/{project_position}": {
+            "get": {
+                "tags": [
+                    "User Project Eligibilities"
+                ],
+                "summary": "Get a single project position with eligible user IDs",
+                "operationId": "e489a1aa1c698ad2cc69b29100468d07",
+                "parameters": [
+                    {
+                        "name": "project_position",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project position with eligible user identifiers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "project_position_id": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "project_position_name": {
+                                            "type": "string",
+                                            "example": "Director"
+                                        },
+                                        "user_ids": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer",
+                                                "example": 42
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/pg/user-project-eligibilities/by-user/dropdown": {
             "get": {
                 "tags": [

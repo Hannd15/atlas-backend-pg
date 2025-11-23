@@ -146,6 +146,51 @@ class UserProjectEligibilityController extends Controller
 
     /**
      * @OA\Get(
+     *     path="/api/pg/user-project-eligibilities/by-position/{project_position}",
+     *     summary="Get a single project position with eligible user IDs",
+     *     tags={"User Project Eligibilities"},
+     *
+     *     @OA\Parameter(
+     *         name="project_position",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Project position with eligible user identifiers",
+     *
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="project_position_id", type="integer", example=3),
+     *             @OA\Property(property="project_position_name", type="string", example="Director"),
+     *             @OA\Property(property="user_ids", type="array", @OA\Items(type="integer", example=42))
+     *         )
+     *     )
+     * )
+     */
+    public function byPositionShow(Request $request, ProjectPosition $projectPosition): \Illuminate\Http\JsonResponse
+    {
+        $this->requireToken((string) $request->bearerToken());
+
+        $userIds = $projectPosition->eligibleUsers()
+            ->orderBy('name')
+            ->pluck('users.id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        return response()->json([
+            'project_position_id' => $projectPosition->id,
+            'project_position_name' => $projectPosition->name,
+            'user_ids' => $userIds,
+        ]);
+    }
+
+    /**
+     * @OA\Get(
      *     path="/api/pg/user-project-eligibilities/by-user/dropdown",
      *     summary="Dropdown of users with eligibility labels",
      *     tags={"User Project Eligibilities"},

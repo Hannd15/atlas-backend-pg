@@ -33,6 +33,22 @@ class UserProjectEligibilityEndpointsTest extends TestCase
             ->assertExactJson($this->userEligibilityByPositionArray());
     }
 
+    public function test_by_position_show_returns_position_with_user_ids(): void
+    {
+        $this->createEligibilityFixtures();
+
+        $position = ProjectPosition::where('name', 'Director')->firstOrFail();
+        $expectedIds = $position->eligibleUsers()->orderBy('name')->pluck('users.id')->map(fn ($id) => (int) $id)->values()->all();
+
+        $this->getJson("/api/pg/user-project-eligibilities/by-position/{$position->id}")
+            ->assertOk()
+            ->assertExactJson([
+                'project_position_id' => $position->id,
+                'project_position_name' => $position->name,
+                'user_ids' => $expectedIds,
+            ]);
+    }
+
     public function test_by_user_dropdown_returns_expected_payload(): void
     {
         $this->createEligibilityFixtures();
