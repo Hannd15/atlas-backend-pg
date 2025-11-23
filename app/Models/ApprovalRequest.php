@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ApprovalRequest extends Model
@@ -48,6 +49,11 @@ class ApprovalRequest extends Model
     public function recipients(): HasMany
     {
         return $this->hasMany(ApprovalRequestRecipient::class);
+    }
+
+    public function files(): BelongsToMany
+    {
+        return $this->belongsToMany(File::class, 'approval_request_files')->withTimestamps();
     }
 
     public function scopePending($query)

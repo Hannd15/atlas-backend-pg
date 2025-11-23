@@ -46,4 +46,9 @@ class File extends Model
     {
         return $this->belongsToMany(Proposal::class, 'proposal_files');
     }
+
+    public function approvalRequests(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(ApprovalRequest::class, 'approval_request_files')->withTimestamps();
+    }
 }

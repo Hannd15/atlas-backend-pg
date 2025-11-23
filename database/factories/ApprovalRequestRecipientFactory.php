@@ -22,6 +22,7 @@ class ApprovalRequestRecipientFactory extends Factory
             'approval_request_id' => ApprovalRequest::factory(),
             'user_id' => User::factory(),
             'decision' => null,
+            'comment' => null,
             'decision_at' => null,
         ];
     }

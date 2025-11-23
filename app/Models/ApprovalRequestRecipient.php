@@ -14,6 +14,7 @@ class ApprovalRequestRecipient extends Model
         'approval_request_id',
         'user_id',
         'decision',
+        'comment',
         'decision_at',
     ];
 

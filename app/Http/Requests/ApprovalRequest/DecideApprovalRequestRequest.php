@@ -2,10 +2,7 @@
 
 namespace App\Http\Requests\ApprovalRequest;
 
-use App\Models\ApprovalRequest;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class DecideApprovalRequestRequest extends FormRequest
 {
@@ -25,15 +22,20 @@ class DecideApprovalRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'decision' => ['required', 'string', Rule::in([
-                ApprovalRequest::DECISION_APPROVED,
-                ApprovalRequest::DECISION_REJECTED,
-            ])],
+            'comment' => ['nullable', 'string', 'max:2000'],
         ];
     }
 
-    public function decision(): string
+    public function comment(): ?string
     {
-        return Str::lower($this->string('decision')->toString());
+        $value = $this->input('comment');
+
+        if ($value === null) {
+            return null;
+        }
+
+        $comment = trim((string) $value);
+
+        return $comment === '' ? null : $comment;
     }
 }

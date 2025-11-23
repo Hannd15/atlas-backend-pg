@@ -98,7 +98,7 @@ return [
             'sslmode' => 'verify-ca', // Ver explicación abajo
     
             // Configuración SSL específica para Postgres
-            'sslrootcert' => base_path('storage/app/private/server-ca.pem'),
+            'sslrootcert' => storage_path('app/private/server-ca.pem'),
         ],
 
         'sqlsrv' => [

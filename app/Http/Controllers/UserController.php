@@ -99,8 +99,6 @@ class UserController extends Controller
      *
      *                 @OA\Property(property="value", type="integer", example=54),
      *                 @OA\Property(property="label", type="string", example="Carlos Gómez"),
-     *                 @OA\Property(property="email", type="string", example="carlos@example.com"),
-     *                 @OA\Property(property="roles_list", type="string", example="Docente"),
      *             )
      *         )
      *     )
@@ -314,9 +312,6 @@ class UserController extends Controller
         return collect([
             'value' => $id,
             'label' => $label,
-            'email' => $user['email'] ?? null,
-            'roles' => $user['roles'] ?? null,
-            'roles_list' => $rolesList,
         ])->reject(fn ($value) => $value === null || (is_array($value) && $value === []))->all();
     }
 

@@ -4813,14 +4813,6 @@
                                             "label": {
                                                 "type": "string",
                                                 "example": "Carlos Gómez"
-                                            },
-                                            "email": {
-                                                "type": "string",
-                                                "example": "carlos@example.com"
-                                            },
-                                            "roles_list": {
-                                                "type": "string",
-                                                "example": "Docente"
                                             }
                                         },
                                         "type": "object"

@@ -25,13 +25,13 @@ class ApprovalRequestService
             $request = ApprovalRequest::create($payload);
             $request->recipients()->createMany($recipientRows);
 
-            return $request->load('recipients');
+            return $request->load('recipients.user');
         });
     }
 
-    public function recordDecision(ApprovalRequest $approvalRequest, int $userId, string $decision): ApprovalRequest
+    public function recordDecision(ApprovalRequest $approvalRequest, int $userId, string $decision, ?string $comment = null): ApprovalRequest
     {
-        return DB::transaction(function () use ($approvalRequest, $userId, $decision) {
+        return DB::transaction(function () use ($approvalRequest, $userId, $decision, $comment) {
             /** @var \App\Models\ApprovalRequest $lockedRequest */
             $lockedRequest = ApprovalRequest::query()
                 ->whereKey($approvalRequest->getKey())
@@ -48,7 +48,7 @@ class ApprovalRequestService
 
             if (! $recipient) {
                 throw new HttpResponseException(response()->json([
-                    'message' => 'You are not allowed to vote on this request.',
+                    'message' => 'You are not allowed to act on this request.',
                 ], 403));
             }
 
@@ -61,10 +61,11 @@ class ApprovalRequestService
             $recipient->forceFill([
                 'decision' => $decision,
                 'decision_at' => now(),
+                'comment' => $comment,
             ])->save();
 
             $lockedRequest->unsetRelation('recipients');
-            $lockedRequest->load('recipients');
+            $lockedRequest->load('recipients.user');
 
             $this->maybeResolve($lockedRequest);
 

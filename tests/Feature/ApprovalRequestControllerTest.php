@@ -73,20 +73,27 @@ class ApprovalRequestControllerTest extends TestCase
 
         $this->setAtlasUser(['id' => $recipients[0]->id]);
 
-        $this->postJson("/api/pg/approval-requests/{$approvalRequest->id}/decision", ['decision' => 'approved'], $this->defaultHeaders)
-            ->assertOk()
+        $this->postJson(
+            "/api/pg/approval-requests/received/{$approvalRequest->id}/approve",
+            ['comment' => 'Looks good'],
+            $this->defaultHeaders
+        )->assertOk()
             ->assertJsonPath('status', 'pending');
 
         $this->assertDatabaseHas('approval_request_recipients', [
             'approval_request_id' => $approvalRequest->id,
             'user_id' => $recipients[0]->id,
             'decision' => 'approved',
+            'comment' => 'Looks good',
         ]);
 
         $this->setAtlasUser(['id' => $recipients[1]->id]);
 
-        $this->postJson("/api/pg/approval-requests/{$approvalRequest->id}/decision", ['decision' => 'approved'], $this->defaultHeaders)
-            ->assertOk()
+        $this->postJson(
+            "/api/pg/approval-requests/received/{$approvalRequest->id}/approve",
+            [],
+            $this->defaultHeaders
+        )->assertOk()
             ->assertJsonPath('status', 'approved')
             ->assertJsonPath('resolved_decision', 'approved');
 
@@ -115,28 +122,48 @@ class ApprovalRequestControllerTest extends TestCase
 
         $this->setAtlasUser(['id' => $intruder->id]);
 
-        $this->postJson("/api/pg/approval-requests/{$approvalRequest->id}/decision", ['decision' => 'approved'], $this->defaultHeaders)
+        $this->postJson("/api/pg/approval-requests/received/{$approvalRequest->id}/approve", [], $this->defaultHeaders)
             ->assertStatus(403)
-            ->assertExactJson(['message' => 'You are not allowed to vote on this request.']);
+            ->assertExactJson(['message' => 'You are not allowed to act on this request.']);
     }
 
-    public function test_relevant_route_returns_creator_and_recipient_requests(): void
+    public function test_sent_route_returns_requests_created_by_user(): void
     {
         $requester = User::factory()->create();
         $otherUser = User::factory()->create();
-        $recipient = User::factory()->create();
 
         $createdByUser = ApprovalRequest::factory()->create([
             'requested_by' => $requester->id,
             'action_key' => 'noop',
         ]);
+        ApprovalRequest::factory()->create([
+            'requested_by' => $otherUser->id,
+            'action_key' => 'noop',
+        ]);
+
+        $this->setAtlasUser(['id' => $requester->id]);
+
+        $response = $this->getJson('/api/pg/approval-requests/sent', $this->defaultHeaders)
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->json();
+
+        $this->assertSame($createdByUser->id, $response[0]['id']);
+        $this->assertSame($createdByUser->title, $response[0]['title']);
+    }
+
+    public function test_received_route_returns_requests_where_user_is_recipient(): void
+    {
+        $recipient = User::factory()->create();
+        $otherUser = User::factory()->create();
+
         $assignedToUser = ApprovalRequest::factory()->create([
             'requested_by' => $otherUser->id,
             'action_key' => 'noop',
         ]);
         ApprovalRequestRecipient::factory()->create([
             'approval_request_id' => $assignedToUser->id,
-            'user_id' => $requester->id,
+            'user_id' => $recipient->id,
         ]);
         $irrelevant = ApprovalRequest::factory()->create([
             'requested_by' => $otherUser->id,
@@ -144,20 +171,19 @@ class ApprovalRequestControllerTest extends TestCase
         ]);
         ApprovalRequestRecipient::factory()->create([
             'approval_request_id' => $irrelevant->id,
-            'user_id' => $recipient->id,
+            'user_id' => $otherUser->id,
         ]);
 
-        $this->setAtlasUser(['id' => $requester->id]);
+        $this->setAtlasUser(['id' => $recipient->id]);
 
-        $response = $this->getJson('/api/pg/approval-requests/relevant', $this->defaultHeaders)
+        $response = $this->getJson('/api/pg/approval-requests/received', $this->defaultHeaders)
             ->assertOk()
-            ->assertJsonCount(2)
+            ->assertJsonCount(1)
             ->json();
 
-        $this->assertEqualsCanonicalizing(
-            [$createdByUser->id, $assignedToUser->id],
-            collect($response)->pluck('id')->all()
-        );
+        $this->assertSame($assignedToUser->id, $response[0]['id']);
+        $this->assertSame($assignedToUser->title, $response[0]['title']);
+        $this->assertStringContainsString($recipient->name, $response[0]['recipients']);
     }
 
     protected function setAtlasUser(array $payload): void
