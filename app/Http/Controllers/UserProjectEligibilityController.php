@@ -282,7 +282,7 @@ class UserProjectEligibilityController extends Controller
     }
 
     /**
-     * @OA\Post(
+     * @OA\Put(
      *     path="/api/pg/user-project-eligibilities/project-positions/{projectPosition}/sync",
      *     summary="Sync eligible users for a project position",
      *     tags={"User Project Eligibilities"},
@@ -294,7 +294,7 @@ class UserProjectEligibilityController extends Controller
      *         @OA\Schema(type="integer", example=3)
      *     ),
      *
-     *     @OA\RequestBody(
+    *     @OA\RequestBody(
      *         required=true,
      *
      *         @OA\JsonContent(
@@ -309,7 +309,7 @@ class UserProjectEligibilityController extends Controller
      *         )
      *     ),
      *
-     *     @OA\Response(
+    *     @OA\Response(
      *         response=200,
      *         description="Project position summary with updated eligible users",
      *
@@ -320,7 +320,7 @@ class UserProjectEligibilityController extends Controller
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Missing bearer token")
+    *     @OA\Response(response=401, description="Missing bearer token")
      * )
      */
     public function syncPositionUsers(

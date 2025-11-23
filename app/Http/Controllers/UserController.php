@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\AtlasUserService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 /**
  * @OA\Tag(
@@ -47,10 +48,13 @@ class UserController extends Controller
      *     @OA\Response(
      *         response=200,
      *         description="Dropdown entries for Atlas student users",
+     *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(
      *                 type="object",
+     *
      *                 @OA\Property(property="value", type="integer", example=27),
      *                 @OA\Property(property="label", type="string", example="María López"),
      *             )
@@ -68,7 +72,51 @@ class UserController extends Controller
         );
 
         $dropdown = collect($students)
-            ->map(fn (array $user) => $this->formatStudentDropdownOption($user))
+            ->map(fn (array $user) => $this->formatDropdownOption($user))
+            ->filter()
+            ->values()
+            ->all();
+
+        return response()->json($dropdown);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/pg/users/teachers/dropdown",
+     *     summary="Get a dropdown of users that have the teacher/staff permission",
+     *     tags={"Users"},
+     *     description="Delegates to Atlas to fetch every user assigned the configured teacher permission and formats them for dropdowns.",
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dropdown entries for Atlas teacher/staff users",
+     *
+     *         @OA\JsonContent(
+     *             type="array",
+     *
+     *             @OA\Items(
+     *                 type="object",
+     *
+     *                 @OA\Property(property="value", type="integer", example=54),
+     *                 @OA\Property(property="label", type="string", example="Carlos Gómez"),
+     *                 @OA\Property(property="email", type="string", example="carlos@example.com"),
+     *                 @OA\Property(property="roles_list", type="string", example="Docente"),
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function teachersDropdown(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $token = $this->requireToken($request->bearerToken());
+
+        $teachers = $this->atlasUserService->usersByPermission(
+            $token,
+            $this->teacherPermission()
+        );
+
+        $dropdown = collect($teachers)
+            ->map(fn (array $user) => $this->formatDropdownOption($user))
             ->filter()
             ->values()
             ->all();
@@ -244,8 +292,7 @@ class UserController extends Controller
             ->implode(', ');
     }
 
-
-    protected function formatStudentDropdownOption(array $user): ?array
+    protected function formatDropdownOption(array $user): ?array
     {
         $id = isset($user['id']) ? (int) $user['id'] : null;
         $label = trim((string) ($user['name'] ?? ''));
@@ -254,19 +301,48 @@ class UserController extends Controller
             return null;
         }
 
-        return [
+        $rolesList = $user['roles_list'] ?? null;
+
+        if ($rolesList === null) {
+            $roles = Arr::wrap($user['roles'] ?? []);
+            $rolesList = collect($roles)
+                ->map(fn ($role) => trim((string) $role))
+                ->filter()
+                ->implode(', ');
+        }
+
+        return collect([
             'value' => $id,
             'label' => $label,
-        ];
+            'email' => $user['email'] ?? null,
+            'roles' => $user['roles'] ?? null,
+            'roles_list' => $rolesList,
+        ])->reject(fn ($value) => $value === null || (is_array($value) && $value === []))->all();
     }
 
     protected function studentPermission(): string
     {
-        $permission = trim((string) config('services.atlas_auth.student_filter_permission', 'asignable a un grupo de proyectos de grado'));
+        return $this->permissionFromConfig(
+            'student_filter_permission',
+            'Student permission configuration is missing.'
+        );
+    }
+
+    protected function teacherPermission(): string
+    {
+        return $this->permissionFromConfig(
+            'teacher_filter_permission',
+            'Teacher permission configuration is missing.'
+        );
+    }
+
+    protected function permissionFromConfig(string $configKey, string $errorMessage): string
+    {
+        $permission = trim((string) config("services.atlas_auth.{$configKey}"));
 
         if ($permission === '') {
             throw new HttpResponseException(response()->json([
-                'message' => 'Student permission configuration is missing.',
+                'message' => $errorMessage,
             ], 500));
         }
 

@@ -10,6 +10,7 @@ class AtlasPermissionSeeder extends Seeder
 {
     protected array $permissions = [
         ['name' => 'asignable a un grupo de proyectos de grado'],
+        ['name' => 'asignable a staff de proyectos de grado'],
         ['name' => 'ver propuestas'],
         ['name' => 'crear proyectos'],
         ['name' => 'editar proyectos'],
@@ -24,8 +25,8 @@ class AtlasPermissionSeeder extends Seeder
 
     public function run(): void
     {
-    $baseUrl = env('ATLAS_AUTH_URL', '');
-    $token = env('MODULE_PG_TOKEN', '');
+        $baseUrl = env('ATLAS_AUTH_URL', '');
+        $token = env('MODULE_PG_TOKEN', '');
 
         if (trim((string) $baseUrl) === '' || trim((string) $token) === '') {
             Log::warning('AtlasPermissionSeeder skipped because atlas_auth.url or atlas_auth.token is not configured.');
