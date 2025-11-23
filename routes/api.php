@@ -94,9 +94,13 @@ Route::middleware('auth.atlas')->group(function () {
         // Approval Requests
         Route::get('approval-requests', [ApprovalRequestController::class, 'index']);
         Route::post('approval-requests', [ApprovalRequestController::class, 'store']);
-        Route::get('approval-requests/relevant', [ApprovalRequestController::class, 'relevant']);
+        Route::get('approval-requests/sent', [ApprovalRequestController::class, 'sent']);
+        Route::get('approval-requests/sent/{approval_request}', [ApprovalRequestController::class, 'sentShow']);
+        Route::get('approval-requests/received', [ApprovalRequestController::class, 'received']);
+        Route::get('approval-requests/received/{approval_request}', [ApprovalRequestController::class, 'receivedShow']);
+        Route::post('approval-requests/received/{approval_request}/approve', [ApprovalRequestController::class, 'approve']);
+        Route::post('approval-requests/received/{approval_request}/reject', [ApprovalRequestController::class, 'reject']);
         Route::get('approval-requests/{approval_request}', [ApprovalRequestController::class, 'show']);
-        Route::post('approval-requests/{approval_request}/decision', [ApprovalRequestController::class, 'decide']);
 
         // Projects routes
         Route::get('projects/dropdown', [ProjectController::class, 'dropdown']);
