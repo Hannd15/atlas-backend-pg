@@ -24,7 +24,6 @@ use Illuminate\Http\Request;
  *     @OA\Property(property="evaluator_id", type="integer", example=2),
  *     @OA\Property(property="rubric_id", type="integer", example=5),
  *     @OA\Property(property="grade", type="number", format="float", example=4.5),
- *     @OA\Property(property="comments", type="string", nullable=true, example="Gran trabajo"),
  *     @OA\Property(property="evaluation_date", type="string", format="date-time", example="2025-04-15T17:45:00"),
  *     @OA\Property(property="user_name", type="string", nullable=true, example="Laura Pérez"),
  *     @OA\Property(property="evaluator_name", type="string", nullable=true, example="Ing. Carlos"),
@@ -41,7 +40,6 @@ use Illuminate\Http\Request;
  *     @OA\Property(property="user_id", type="integer", example=15),
  *     @OA\Property(property="rubric_id", type="integer", example=5),
  *     @OA\Property(property="grade", type="number", format="float", example=4.2),
- *     @OA\Property(property="comments", type="string", nullable=true),
  *     @OA\Property(property="evaluation_date", type="string", format="date-time", nullable=true),
  *     @OA\Property(property="evaluator_id", type="integer", example=2)
  * )
@@ -53,7 +51,6 @@ use Illuminate\Http\Request;
  *     @OA\Property(property="user_id", type="integer"),
  *     @OA\Property(property="rubric_id", type="integer"),
  *     @OA\Property(property="grade", type="number", format="float"),
- *     @OA\Property(property="comments", type="string", nullable=true),
  *     @OA\Property(property="evaluation_date", type="string", format="date-time"),
  *     @OA\Property(property="evaluator_id", type="integer")
  * )
@@ -124,7 +121,6 @@ class SubmissionEvaluationController extends Controller
             'user_id' => 'required|exists:users,id',
             'rubric_id' => 'required|exists:rubrics,id',
             'grade' => 'required|numeric',
-            'comments' => 'nullable|string',
             'evaluation_date' => 'nullable|date',
             'evaluator_id' => 'required|exists:users,id',
         ]);
@@ -192,7 +188,6 @@ class SubmissionEvaluationController extends Controller
             'user_id' => 'sometimes|required|exists:users,id',
             'rubric_id' => 'sometimes|required|exists:rubrics,id',
             'grade' => 'sometimes|required|numeric',
-            'comments' => 'sometimes|nullable|string',
             'evaluation_date' => 'sometimes|required|date',
             'evaluator_id' => 'sometimes|required|exists:users,id',
         ]);
@@ -245,7 +240,6 @@ class SubmissionEvaluationController extends Controller
             'evaluator_id' => $evaluation->evaluator_id,
             'rubric_id' => $evaluation->rubric_id,
             'grade' => $evaluation->grade,
-            'comments' => $evaluation->comments,
             'evaluation_date' => optional($evaluation->evaluation_date)->toDateTimeString(),
             'user_name' => $evaluation->user?->name,
             'evaluator_name' => $evaluation->evaluator?->name,

@@ -33,7 +33,6 @@ class SubmissionEvaluationEndpointsTest extends TestCase
                 'evaluator_id' => $evaluatorOne->id,
                 'rubric_id' => $rubric->id,
                 'grade' => 4.2,
-                'comments' => 'Buen trabajo',
                 'evaluation_date' => '2025-04-12 15:00:00',
             ],
             [
@@ -41,7 +40,6 @@ class SubmissionEvaluationEndpointsTest extends TestCase
                 'evaluator_id' => $evaluatorTwo->id,
                 'rubric_id' => $rubric->id,
                 'grade' => 3.9,
-                'comments' => 'Puede mejorar',
                 'evaluation_date' => '2025-04-13 09:30:00',
             ],
         ]);
@@ -69,7 +67,6 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluator_id' => $evaluator->id,
             'rubric_id' => $rubric->id,
             'grade' => 4.7,
-            'comments' => 'Excelente presentación',
         ];
 
         $response = $this->postJson("/api/pg/submissions/{$submission->id}/evaluations", $payload);
@@ -98,7 +95,6 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluator_id' => $evaluator->id,
             'rubric_id' => $rubric->id,
             'grade' => 3.5,
-            'comments' => 'Debe profundizar más',
             'evaluation_date' => '2025-04-11 10:00:00',
         ]);
 
@@ -121,7 +117,6 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluator_id' => $evaluator->id,
             'rubric_id' => $rubric->id,
             'grade' => 3.0,
-            'comments' => 'Revisar introducción',
             'evaluation_date' => '2025-04-14 11:00:00',
         ]);
 
@@ -158,7 +153,6 @@ class SubmissionEvaluationEndpointsTest extends TestCase
             'evaluator_id' => $evaluator->id,
             'rubric_id' => $rubric->id,
             'grade' => 4.1,
-            'comments' => 'Excelente diseño',
             'evaluation_date' => '2025-04-16 09:00:00',
         ]);
 

@@ -1777,7 +1777,7 @@
                     }
                 ],
                 "requestBody": {
-                    "description": "Phase update payload. When updating dates, they must be within the academic period and cannot overlap with other phases.",
+                    "description": "Phase update payload. When updating dates, they must remain within the academic period bounds.",
                     "required": true,
                     "content": {
                         "application/json": {
@@ -6579,11 +6579,6 @@
                         "format": "float",
                         "example": 4.5
                     },
-                    "comments": {
-                        "type": "string",
-                        "example": "Gran trabajo",
-                        "nullable": true
-                    },
                     "evaluation_date": {
                         "type": "string",
                         "format": "date-time",
@@ -6636,10 +6631,6 @@
                         "format": "float",
                         "example": 4.2
                     },
-                    "comments": {
-                        "type": "string",
-                        "nullable": true
-                    },
                     "evaluation_date": {
                         "type": "string",
                         "format": "date-time",
@@ -6663,10 +6654,6 @@
                     "grade": {
                         "type": "number",
                         "format": "float"
-                    },
-                    "comments": {
-                        "type": "string",
-                        "nullable": true
                     },
                     "evaluation_date": {
                         "type": "string",
