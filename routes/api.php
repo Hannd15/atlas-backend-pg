@@ -100,6 +100,8 @@ Route::middleware('auth.atlas')->group(function () {
         Route::get('approval-requests/received/{approval_request}', [ApprovalRequestController::class, 'receivedShow']);
         Route::post('approval-requests/received/{approval_request}/approve', [ApprovalRequestController::class, 'approve']);
         Route::post('approval-requests/received/{approval_request}/reject', [ApprovalRequestController::class, 'reject']);
+        Route::get('approval-requests/{approval_request}/files', [ApprovalRequestFileController::class, 'index']);
+        Route::get('approval-requests/{approval_request}/files', [ApprovalRequestFileController::class, 'store']);
         Route::get('approval-requests/{approval_request}', [ApprovalRequestController::class, 'show']);
 
         // Projects routes
