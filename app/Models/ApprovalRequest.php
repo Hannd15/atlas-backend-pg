@@ -12,15 +12,15 @@ class ApprovalRequest extends Model
 {
     use HasFactory;
 
-    public const STATUS_PENDING = 'pending';
+    public const STATUS_PENDING = 'Pendiente';
 
-    public const STATUS_APPROVED = 'approved';
+    public const STATUS_APPROVED = 'Aprobado';
 
-    public const STATUS_REJECTED = 'rejected';
+    public const STATUS_REJECTED = 'Rechazado';
 
-    public const DECISION_APPROVED = 'approved';
+    public const DECISION_APPROVED = 'Aprobado';
 
-    public const DECISION_REJECTED = 'rejected';
+    public const DECISION_REJECTED = 'Rechazado';
 
     protected $fillable = [
         'title',

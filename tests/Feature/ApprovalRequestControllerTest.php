@@ -31,7 +31,7 @@ class ApprovalRequestControllerTest extends TestCase
 
         $this->assertArrayHasKey('id', $response);
         $this->assertSame($creator->id, $response['requested_by']);
-        $this->assertSame('pending', $response['status']);
+        $this->assertSame(ApprovalRequest::STATUS_PENDING, $response['status']);
         $this->assertCount(2, $response['recipients']);
 
         $this->assertDatabaseHas('approval_requests', [
@@ -78,12 +78,12 @@ class ApprovalRequestControllerTest extends TestCase
             ['comment' => 'Looks good'],
             $this->defaultHeaders
         )->assertOk()
-            ->assertJsonPath('status', 'pending');
+            ->assertJsonPath('status', ApprovalRequest::STATUS_PENDING);
 
         $this->assertDatabaseHas('approval_request_recipients', [
             'approval_request_id' => $approvalRequest->id,
             'user_id' => $recipients[0]->id,
-            'decision' => 'approved',
+            'decision' => ApprovalRequest::DECISION_APPROVED,
             'comment' => 'Looks good',
         ]);
 
@@ -94,13 +94,13 @@ class ApprovalRequestControllerTest extends TestCase
             [],
             $this->defaultHeaders
         )->assertOk()
-            ->assertJsonPath('status', 'approved')
-            ->assertJsonPath('resolved_decision', 'approved');
+            ->assertJsonPath('status', ApprovalRequest::STATUS_APPROVED)
+            ->assertJsonPath('resolved_decision', ApprovalRequest::DECISION_APPROVED);
 
         $this->assertDatabaseHas('approval_requests', [
             'id' => $approvalRequest->id,
-            'status' => 'approved',
-            'resolved_decision' => 'approved',
+            'status' => ApprovalRequest::STATUS_APPROVED,
+            'resolved_decision' => ApprovalRequest::DECISION_APPROVED,
         ]);
     }
 
@@ -150,6 +150,7 @@ class ApprovalRequestControllerTest extends TestCase
 
         $this->assertSame($createdByUser->id, $response[0]['id']);
         $this->assertSame($createdByUser->title, $response[0]['title']);
+        $this->assertSame($createdByUser->status, $response[0]['status']);
     }
 
     public function test_received_route_returns_requests_where_user_is_recipient(): void
@@ -183,6 +184,7 @@ class ApprovalRequestControllerTest extends TestCase
 
         $this->assertSame($assignedToUser->id, $response[0]['id']);
         $this->assertSame($assignedToUser->title, $response[0]['title']);
+        $this->assertSame($assignedToUser->status, $response[0]['status']);
         $this->assertStringContainsString($recipient->name, $response[0]['recipients']);
     }
 

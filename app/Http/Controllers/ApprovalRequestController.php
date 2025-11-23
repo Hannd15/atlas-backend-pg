@@ -151,6 +151,7 @@ class ApprovalRequestController extends AtlasAuthenticatedController
      *
      *                 @OA\Property(property="id", type="integer", example=10),
      *                 @OA\Property(property="title", type="string", example="Actualizar rúbrica"),
+     *                 @OA\Property(property="status", type="string", example="pending"),
      *                 @OA\Property(property="recipients", type="string", example="Ana Gómez, Juan Pérez")
      *             )
      *         )
@@ -186,6 +187,7 @@ class ApprovalRequestController extends AtlasAuthenticatedController
      *
      *             @OA\Property(property="id", type="integer", example=10),
      *             @OA\Property(property="title", type="string", example="Actualizar rúbrica"),
+     *             @OA\Property(property="status", type="string", example="pending"),
      *             @OA\Property(property="recipients", type="string", example="Ana Gómez, Juan Pérez"),
      *             @OA\Property(property="description", type="string", nullable=true)
      *         )
@@ -220,6 +222,7 @@ class ApprovalRequestController extends AtlasAuthenticatedController
      *
      *                 @OA\Property(property="id", type="integer", example=12),
      *                 @OA\Property(property="title", type="string", example="Aprobar proyecto"),
+     *                 @OA\Property(property="status", type="string", example="pending"),
      *                 @OA\Property(property="recipients", type="string", example="Ana Gómez, Juan Pérez")
      *             )
      *         )
@@ -255,6 +258,7 @@ class ApprovalRequestController extends AtlasAuthenticatedController
      *
      *             @OA\Property(property="id", type="integer", example=12),
      *             @OA\Property(property="title", type="string"),
+     *             @OA\Property(property="status", type="string"),
      *             @OA\Property(property="recipients", type="string"),
      *             @OA\Property(property="description", type="string", nullable=true)
      *         )
@@ -332,6 +336,7 @@ class ApprovalRequestController extends AtlasAuthenticatedController
         $summary = [
             'id' => $approvalRequest->id,
             'title' => $approvalRequest->title,
+            'status' => $approvalRequest->status,
             'recipients' => $this->recipientsLabel($approvalRequest),
         ];
 
