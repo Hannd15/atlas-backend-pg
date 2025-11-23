@@ -2570,6 +2570,138 @@
                 }
             }
         },
+        "/api/pg/projects/{project}/staff": {
+            "get": {
+                "tags": [
+                    "Project Staff"
+                ],
+                "summary": "List staff assigned to a project",
+                "operationId": "d9714b86b9b77d1628519ecee53e5b4d",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project staff assignments",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProjectStaffAssignment"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pg/projects/{project}/project-positions/{project_position}/users/{user}/staff": {
+            "post": {
+                "tags": [
+                    "Project Staff"
+                ],
+                "summary": "Assign a user to a project position",
+                "operationId": "2e2506249e8da733a08e2ab7f269cbaa",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project_position",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Assignment created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectStaffAssignment"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Assignment already existed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectStaffAssignment"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Project Staff"
+                ],
+                "summary": "Remove a staff assignment",
+                "operationId": "62be17394badcdd6867238cb6281224f",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "project_position",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Assignment removed"
+                    },
+                    "404": {
+                        "description": "Assignment not found"
+                    }
+                }
+            }
+        },
         "/api/pg/proposals": {
             "get": {
                 "tags": [
@@ -6087,6 +6219,19 @@
                 },
                 "type": "object"
             },
+            "ProjectStaffAssignment": {
+                "properties": {
+                    "position": {
+                        "type": "string",
+                        "example": "Director"
+                    },
+                    "user_name": {
+                        "type": "string",
+                        "example": "Ana Directora"
+                    }
+                },
+                "type": "object"
+            },
             "ProposalPayload": {
                 "required": [
                     "title",
@@ -6867,6 +7012,10 @@
         {
             "name": "Project Positions",
             "description": "API endpoints for managing project positions"
+        },
+        {
+            "name": "Project Staff",
+            "description": "Manage staff assignments for projects"
         },
         {
             "name": "Proposals",
