@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\ApprovalRequestController;
+use App\Http\Controllers\ApprovalRequestFileController;
 use App\Http\Controllers\AuthenticatedUserController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\DeliverableFileController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\PhaseController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectGroupController;
 use App\Http\Controllers\ProjectPositionController;
+use App\Http\Controllers\ProjectStaffController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalFileController;
 use App\Http\Controllers\RepositoryProjectController;
@@ -101,7 +103,7 @@ Route::middleware('auth.atlas')->group(function () {
         Route::post('approval-requests/received/{approval_request}/approve', [ApprovalRequestController::class, 'approve']);
         Route::post('approval-requests/received/{approval_request}/reject', [ApprovalRequestController::class, 'reject']);
         Route::get('approval-requests/{approval_request}/files', [ApprovalRequestFileController::class, 'index']);
-        Route::get('approval-requests/{approval_request}/files', [ApprovalRequestFileController::class, 'store']);
+        Route::post('approval-requests/{approval_request}/files', [ApprovalRequestFileController::class, 'store']);
         Route::get('approval-requests/{approval_request}', [ApprovalRequestController::class, 'show']);
 
         // Projects routes
@@ -136,6 +138,11 @@ Route::middleware('auth.atlas')->group(function () {
         Route::get('project-groups/dropdown', [ProjectGroupController::class, 'dropdown']);
         Route::apiResource('project-groups', ProjectGroupController::class);
         Route::get('project-groups/{project_group}/members', [GroupMemberController::class, 'index']);
+
+        // Project Staff routes
+        Route::get('projects/{project}/staff', [ProjectStaffController::class, 'index']);
+        Route::post('projects/{project}/project-positions/{project_position}/users/{user}/staff', [ProjectStaffController::class, 'store'])->withoutScopedBindings();
+        Route::delete('projects/{project}/project-positions/{project_position}/users/{user}/staff', [ProjectStaffController::class, 'destroy'])->withoutScopedBindings();
 
         // Users routes (all user data proxied from Atlas auth module)
         Route::get('users/dropdown', [UserController::class, 'dropdown']);
