@@ -1602,11 +1602,6 @@
                                         "type": "string",
                                         "format": "time",
                                         "example": "11:00"
-                                    },
-                                    "timezone": {
-                                        "description": "Timezone for the meeting (defaults to app timezone)",
-                                        "type": "string",
-                                        "example": "America/New_York"
                                     }
                                 },
                                 "type": "object"
@@ -1699,6 +1694,18 @@
                                     "meeting_date": {
                                         "type": "string",
                                         "format": "date"
+                                    },
+                                    "start_time": {
+                                        "description": "Start time in HH:mm format",
+                                        "type": "string",
+                                        "format": "time",
+                                        "nullable": true
+                                    },
+                                    "end_time": {
+                                        "description": "End time in HH:mm format (must be after start_time)",
+                                        "type": "string",
+                                        "format": "time",
+                                        "nullable": true
                                     },
                                     "observations": {
                                         "type": "string",
@@ -5842,10 +5849,6 @@
                         "type": "integer",
                         "example": 12
                     },
-                    "project_name": {
-                        "type": "string",
-                        "example": "Proyecto Principal"
-                    },
                     "meeting_date": {
                         "type": "string",
                         "format": "date",
@@ -5861,11 +5864,6 @@
                         "type": "string",
                         "format": "time",
                         "example": "11:00",
-                        "nullable": true
-                    },
-                    "timezone": {
-                        "type": "string",
-                        "example": "America/New_York",
                         "nullable": true
                     },
                     "observations": {
@@ -5902,11 +5900,6 @@
                         "type": "string",
                         "format": "time",
                         "example": "11:00",
-                        "nullable": true
-                    },
-                    "url": {
-                        "type": "string",
-                        "example": "https://atlas.test/meetings/5",
                         "nullable": true
                     },
                     "google_meet_url": {

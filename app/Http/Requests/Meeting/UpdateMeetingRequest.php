@@ -24,8 +24,8 @@ class UpdateMeetingRequest extends FormRequest
         return [
             'meeting_date' => ['sometimes', 'required', 'date'],
             'observations' => ['sometimes', 'nullable', 'string'],
-            'start_time' => ['nullable', 'date_format:H:i'],
-            'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
+            'start_time' => ['sometimes', 'nullable', 'date_format:H:i', 'required_with:end_time'],
+            'end_time' => ['sometimes', 'nullable', 'date_format:H:i', 'after:start_time', 'required_with:start_time'],
         ];
     }
 

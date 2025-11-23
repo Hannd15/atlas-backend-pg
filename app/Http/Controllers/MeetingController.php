@@ -27,11 +27,9 @@ use Illuminate\Validation\ValidationException;
  *
  *     @OA\Property(property="id", type="integer", example=42),
  *     @OA\Property(property="project_id", type="integer", example=12),
- *     @OA\Property(property="project_name", type="string", example="Proyecto Principal"),
  *     @OA\Property(property="meeting_date", type="string", format="date", example="2025-02-14"),
  *     @OA\Property(property="start_time", type="string", format="time", nullable=true, example="10:00"),
  *     @OA\Property(property="end_time", type="string", format="time", nullable=true, example="11:00"),
- *     @OA\Property(property="timezone", type="string", nullable=true, example="America/New_York"),
  *     @OA\Property(property="observations", type="string", nullable=true, example="Revisión semanal"),
  *     @OA\Property(property="google_meet_url", type="string", nullable=true, example="https://meet.google.com/abc-defg-hij")
  * )
@@ -66,6 +64,7 @@ class MeetingController extends Controller
      *         name="project_id",
      *         in="query",
      *         required=true,
+     *
      *         @OA\Schema(type="integer"),
      *         description="Project identifier"
      *     ),
@@ -76,9 +75,11 @@ class MeetingController extends Controller
      *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(ref="#/components/schemas/MeetingSummaryResource")
      *         )
      *     ),
+     *
      *     @OA\Response(response=422, description="Missing project_id parameter")
      * )
      */
@@ -122,6 +123,7 @@ class MeetingController extends Controller
      *
      *         @OA\JsonContent(
      *             type="array",
+     *
      *             @OA\Items(ref="#/components/schemas/MeetingSummaryResource")
      *         )
      *     )
@@ -160,7 +162,6 @@ class MeetingController extends Controller
      *             @OA\Property(property="meeting_date", type="string", format="date", example="2025-02-14"),
      *             @OA\Property(property="start_time", type="string", format="time", example="10:00", description="Start time in HH:mm format"),
      *             @OA\Property(property="end_time", type="string", format="time", example="11:00", description="End time in HH:mm format (must be after start_time)"),
-     *             @OA\Property(property="timezone", type="string", example="America/New_York", description="Timezone for the meeting (defaults to app timezone)")
      *         )
      *     ),
      *
@@ -229,6 +230,8 @@ class MeetingController extends Controller
      *         @OA\JsonContent(
      *
      *             @OA\Property(property="meeting_date", type="string", format="date"),
+     *             @OA\Property(property="start_time", type="string", format="time", nullable=true, description="Start time in HH:mm format"),
+     *             @OA\Property(property="end_time", type="string", format="time", nullable=true, description="End time in HH:mm format (must be after start_time)"),
      *             @OA\Property(property="observations", type="string", nullable=true)
      *         )
      *     ),
@@ -300,13 +303,10 @@ class MeetingController extends Controller
         return [
             'id' => $meeting->id,
             'project_id' => $meeting->project_id,
-            'project_name' => $meeting->project?->title,
             'meeting_date' => optional($meeting->meeting_date)->toDateString(),
             'start_time' => $meeting->start_time ? Carbon::parse($meeting->start_time)->format('H:i') : null,
             'end_time' => $meeting->end_time ? Carbon::parse($meeting->end_time)->format('H:i') : null,
-            'timezone' => $meeting->timezone ?? self::DEFAULT_TIMEZONE,
             'observations' => $meeting->observations,
-            'url' => $meeting->url,
             'google_meet_url' => $meeting->google_meet_url,
         ];
     }

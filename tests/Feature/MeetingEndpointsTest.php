@@ -17,6 +17,8 @@ class MeetingEndpointsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $seed = false;
+
     public function test_store_creates_meeting_with_auto_attendees(): void
     {
         [$project, $memberUser, $staffUser] = $this->createProjectStructure('Proyecto Principal');
@@ -34,19 +36,14 @@ class MeetingEndpointsTest extends TestCase
             ->latest('id')
             ->firstOrFail();
 
-        $expectedUrl = sprintf('https://meetings.test/project-%s/%s', $project->id, $meetingDate->format('Ymd'));
-
         $response->assertCreated()
             ->assertExactJson([
                 'id' => $meeting->id,
                 'project_id' => $project->id,
-                'project_name' => 'Proyecto Principal',
                 'meeting_date' => $meetingDate->toDateString(),
                 'start_time' => null,
                 'end_time' => null,
-                'timezone' => 'America/Bogota',
                 'observations' => null,
-                'url' => $expectedUrl,
                 'google_meet_url' => null,
             ]);
 
@@ -58,7 +55,7 @@ class MeetingEndpointsTest extends TestCase
         $this->assertSame($staffUser->id, $meeting->created_by);
     }
 
-    public function test_update_only_allows_date_and_observations(): void
+    public function test_update_allows_date_time_and_observations_only(): void
     {
         [$project, $memberUser, $staffUser] = $this->createProjectStructure('Proyecto de seguimiento');
 
@@ -82,33 +79,35 @@ class MeetingEndpointsTest extends TestCase
         ]);
 
         $updatedDate = Carbon::now()->addDays(5);
+        $updatedStart = '09:00';
+        $updatedEnd = '10:00';
         $otherUser = User::factory()->create();
 
         $response = $this->putJson("/api/pg/projects/{$project->id}/meetings/{$meeting->id}", [
             'meeting_date' => $updatedDate->toDateString(),
+            'start_time' => $updatedStart,
+            'end_time' => $updatedEnd,
             'observations' => 'Agenda revisada',
             'created_by' => $otherUser->id,
             'project_id' => $project->id + 1,
         ]);
 
-        $expectedUrl = sprintf('https://meetings.test/project-%s/%s', $project->id, $updatedDate->format('Ymd'));
-
         $response->assertOk()->assertExactJson([
             'id' => $meeting->id,
             'project_id' => $project->id,
-            'project_name' => 'Proyecto de seguimiento',
             'meeting_date' => $updatedDate->toDateString(),
-            'start_time' => null,
-            'end_time' => null,
-            'timezone' => 'America/Bogota',
+            'start_time' => $updatedStart,
+            'end_time' => $updatedEnd,
             'observations' => 'Agenda revisada',
-            'url' => $expectedUrl,
             'google_meet_url' => null,
         ]);
 
         $meeting->refresh()->load('attendees');
 
         $this->assertSame($staffUser->id, $meeting->created_by);
+        $this->assertSame($project->id, $meeting->project_id);
+        $this->assertSame($updatedStart, Carbon::parse($meeting->start_time)->format('H:i'));
+        $this->assertSame($updatedEnd, Carbon::parse($meeting->end_time)->format('H:i'));
         $this->assertContains($newMember->id, $meeting->attendees->pluck('id')->all());
         $this->assertContains($memberUser->id, $meeting->attendees->pluck('id')->all());
     }
@@ -129,20 +128,21 @@ class MeetingEndpointsTest extends TestCase
             ->where('project_id', $project->id)
             ->latest('id')
             ->firstOrFail();
-        $meeting->update(['observations' => 'Notas generales']);
 
         $this->getJson("/api/pg/meetings?project_id={$project->id}")
             ->assertOk()
             ->assertExactJson([
                 [
-                    'project_name' => 'Proyecto reducido',
+                    'id' => $meeting->id,
                     'meeting_date' => '2025-01-15',
-                    'observations' => 'Notas generales',
+                    'start_time' => null,
+                    'end_time' => null,
+                    'google_meet_url' => null,
                 ],
             ]);
     }
 
-    public function test_project_meetings_endpoint_returns_full_details(): void
+    public function test_project_meetings_endpoint_returns_summary_payload(): void
     {
         [$project, $memberUser, $staffUser] = $this->createProjectStructure('Proyecto completo');
 
@@ -161,21 +161,14 @@ class MeetingEndpointsTest extends TestCase
         $meeting->update(['observations' => 'Plan de trabajo']);
         $meeting->refresh();
 
-        $expectedUrl = sprintf('https://meetings.test/project-%s/%s', $project->id, $meetingDate->format('Ymd'));
-
         $this->getJson("/api/pg/projects/{$project->id}/meetings")
             ->assertOk()
             ->assertExactJson([
                 [
                     'id' => $meeting->id,
-                    'project_id' => $project->id,
-                    'project_name' => 'Proyecto completo',
                     'meeting_date' => $meetingDate->toDateString(),
                     'start_time' => null,
                     'end_time' => null,
-                    'timezone' => 'America/Bogota',
-                    'observations' => 'Plan de trabajo',
-                    'url' => $expectedUrl,
                     'google_meet_url' => null,
                 ],
             ]);
@@ -234,19 +227,14 @@ class MeetingEndpointsTest extends TestCase
             ->latest('id')
             ->firstOrFail();
 
-        $expectedUrl = sprintf('https://meetings.test/project-%s/%s', $project->id, $meetingDate->format('Ymd'));
-
         $response->assertCreated()
             ->assertJson([
                 'id' => $meeting->id,
                 'project_id' => $project->id,
-                'project_name' => 'Proyecto con Meet',
                 'meeting_date' => $meetingDate->toDateString(),
                 'start_time' => '10:00',
                 'end_time' => '11:00',
-                'timezone' => 'America/Bogota',
                 'observations' => null,
-                'url' => $expectedUrl,
             ]);
 
         // Verify structure includes google_meet_url field
@@ -316,7 +304,6 @@ class MeetingEndpointsTest extends TestCase
             ->assertJson([
                 'start_time' => '14:30',
                 'end_time' => '15:30',
-                'timezone' => 'America/Bogota',
                 'observations' => 'Horario actualizado',
             ]);
 
