@@ -1,15 +1,40 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+    build: .
+    image: atlas-backend:latest
+    env_file: .env
     environment:
-      - REDIS_HOST=redis
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      APP_URL: https://atlas.example.com
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: atlas
+      DB_USERNAME: atlas
+      DB_PASSWORD: secret
+      PORT: 8001
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./storage:/app/storage
     depends_on:
-      - redis
+      db:
+        condition: service_healthy
 
-  redis:
-    image: redis:alpine
-    restart: always
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: atlas
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:

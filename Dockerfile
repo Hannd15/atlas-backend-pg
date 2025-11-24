@@ -1,111 +1,79 @@
-FROM dunglas/frankenphp:php8.3
+# syntax=docker/dockerfile:1.7
 
-# Install system dependencies and PHP extensions
-# install-php-extensions is provided by the base image
-RUN install-php-extensions \
-    pcntl \
-    pdo_pgsql \
-    pgsql \
-    redis \
-    bcmath \
-    intl \
-    zip \
-    opcache
-
-# Install Node.js and NPM for frontend build
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs
-
-# Set working directory
+# --- Composer dependencies ---------------------------------------------------
+FROM composer:2.8 AS vendor
 WORKDIR /app
 
-# Copy composer files first to leverage cache
 COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-ansi \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --prefer-dist \
+    --optimize-autoloader
 
-# Install composer dependencies
-ENV COMPOSER_ALLOW_SUPERUSER=1
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
-
-# Copy package files
-COPY package.json package-lock.json ./
-
-# Install npm dependencies
-RUN npm ci
-
-# Copy the rest of the application
 COPY . .
+RUN composer dump-autoload --no-dev --classmap-authoritative
 
-# Build frontend assets
+# --- Frontend assets ---------------------------------------------------------
+FROM node:20-alpine AS frontend
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --no-progress
+
+COPY resources ./resources
+COPY vite.config.js ./vite.config.js
 RUN npm run build
 
-# Optimize autoloader
-RUN composer dump-autoload --optimize
+# --- Runtime image -----------------------------------------------------------
+FROM dunglas/frankenphp:1.6-php8.3-bookworm AS production
+WORKDIR /app
 
-# Create storage directories and set permissions
-RUN mkdir -p storage/framework/sessions \
-    storage/framework/views \
-    storage/framework/cache \
-    bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache
-
-# Environment variables
-ENV APP_NAME=Laravel \
-    APP_ENV=local \
-    APP_KEY=base64:5G3/KAIBwKLJSGIueOkx4eMG8zpwgHp9ntgD9tGuC14= \
+ENV APP_ENV=production \
     APP_DEBUG=false \
-    APP_URL=http://localhost \
-    APP_LOCALE=en \
-    APP_FALLBACK_LOCALE=en \
-    APP_FAKER_LOCALE=en_US \
-    APP_MAINTENANCE_DRIVER=file \
-    PHP_CLI_SERVER_WORKERS=4 \
-    BCRYPT_ROUNDS=12 \
-    LOG_CHANNEL=stack \
-    LOG_STACK=single \
-    LOG_DEPRECATIONS_CHANNEL=null \
-    LOG_LEVEL=debug \
-    DB_CONNECTION=pgsql \
-    DB_HOST=136.113.109.137 \
-    DB_PORT=5432 \
-    DB_DATABASE=atlas_db \
-    DB_USERNAME=postgres \
-    DB_PASSWORD=Rootqwerty123! \
-    SESSION_DRIVER=database \
-    SESSION_LIFETIME=120 \
-    SESSION_ENCRYPT=false \
-    SESSION_PATH=/ \
-    SESSION_DOMAIN=null \
-    BROADCAST_CONNECTION=log \
-    FILESYSTEM_DISK=local \
-    QUEUE_CONNECTION=database \
-    CACHE_STORE=database \
-    MEMCACHED_HOST=127.0.0.1 \
-    REDIS_CLIENT=phpredis \
-    REDIS_HOST=127.0.0.1 \
-    REDIS_PASSWORD=null \
-    REDIS_PORT=6379 \
-    MAIL_MAILER=log \
-    MAIL_SCHEME=null \
-    MAIL_HOST=127.0.0.1 \
-    MAIL_PORT=2525 \
-    MAIL_USERNAME=null \
-    MAIL_PASSWORD=null \
-    MAIL_FROM_ADDRESS="hello@example.com" \
-    MAIL_FROM_NAME="Laravel" \
-    AWS_ACCESS_KEY_ID= \
-    AWS_SECRET_ACCESS_KEY= \
-    AWS_DEFAULT_REGION=us-east-1 \
-    AWS_BUCKET= \
-    AWS_USE_PATH_STYLE_ENDPOINT=false \
-    VITE_APP_NAME="Laravel" \
-    OCO_LANGUAGE=es_ES \
-    ATLAS_AUTH_URL=http://localhost:8000 \
-    MODULE_PG_TOKEN=test-pg-token \
-    TELESCOPE_ENABLED=false \
-    OCTANE_SERVER=frankenphp
+    LOG_CHANNEL=stderr \
+    OCTANE_SERVER=frankenphp \
+    PORT=8000
 
-# Expose port 8000
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl gosu \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN install-php-extensions \
+    bcmath \
+    gd \
+    intl \
+    opcache \
+    pcntl \
+    pdo_pgsql \
+    redis \
+    zip
+
+COPY --from=vendor /app /app
+COPY --from=frontend /app/public/build ./public/build
+
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+RUN set -eux; \
+    mkdir -p \
+        storage/app/public \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs; \
+    touch storage/logs/laravel.log; \
+    ln -sfn /app/storage/app/public /app/public/storage; \
+    chown -R www-data:www-data storage bootstrap/cache; \
+    chmod -R ug+rwX storage bootstrap/cache
+
 EXPOSE 8000
 
-# Start Octane with FrankenPHP
-ENTRYPOINT ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8000"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://127.0.0.1:${PORT}/health || exit 1
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--workers=auto", "--max-requests=500"]

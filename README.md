@@ -1,61 +1,176 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🔐 ATLAS Backend PG
+
+## 📋 Descripción
+
+**ATLAS Backend PG** es uno de los módulos del ecosistema **ATLAS**, desarrollado con **Laravel 12**. Este servicio expone APIs REST para administrar proyectos, entregables, rúbricas y procesos de aprobación.
+
+### 🔧 Componentes Principales
+
+#### Capa HTTP
+- **Controladores API** (`app/Http/Controllers`): orquestan las solicitudes, delegando la lógica a servicios y modelos.
+- **Middleware** (`app/Http/Middleware`): aplica autenticación, límites de acceso y trazabilidad de sesiones.
+- **Form Requests** (`app/Http/Requests`): encapsulan reglas de validación y políticas de autorización por recurso.
+
+#### Autenticación y Autorización
+Este módulo se comunica con el módulo central de **ATLAS** para verificar los tókens de autenticación enviados por los usuarios, así como los roles y permisos que tienen asignados.
+
+#### Modelos y Persistencia
+- **Eloquent ORM** (`app/Models`): modelado de periodos académicos, grupos, proyectos y repositorios.
+- **Migraciones** (`database/migrations`): versionado del esquema relacional (PostgreSQL por defecto).
+- **Factories & Seeders** (`database/factories`, `database/seeders`): generación de datos de prueba y cargas iniciales.
+- **Storage** (`storage/`): persistencia de archivos, reportes y documentación Swagger.
+
+## 🚀 Inicio Rápido
+
+### Prerrequisitos
+
+- **PHP 8.4+** con extensiones `bcmath`, `intl`, `pcntl`, `pdo_pgsql`, `redis`, `zip`.
+- **Composer 2.8+**
+- **Node.js 20+** y **npm**
+- **PostgreSQL 16+** (u otro motor soportado en `config/database.php`)
+
+### Instalación local
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/Hannd15/atlas-backend-pg.git
+cd atlas-backend-pg
+
+# Dependencias PHP
+composer install
+
+# Dependencias front (Tailwind + Vite)
+npm install
+
+# Variables de entorno
+cp .env.example .env
+php artisan key:generate
+
+# Migraciones y seeds
+php artisan migrate --seed
+
+# Generar documentación Swagger
+php artisan l5-swagger:generate
+
+# Compilar assets
+npm run build
+```
+
+> **Tip:** para desarrollo puedes ejecutar `npm run dev` y `php artisan serve` (o `php artisan octane:start`) en paralelo.
+
+## 🚢 Despliegue con Docker
+
+El módulo incluye un `Dockerfile` multi-stage basado en **dunglas/frankenphp** que:
+
+- Instala dependencias PHP en una etapa aislada de Composer.
+- Construye assets con **Node 20 Alpine** y Vite.
+- Empaqueta todo en una imagen ligera con **Octane + FrankenPHP** escuchando en `:8001`.
+- Configura extensiones críticas (`pdo_pgsql`, `redis`, `pcntl`, `opcache`, etc.) y healthcheck en `/health`.
+
+### Construir la imagen
+
+```bash
+docker build -t atlas-backend:latest .
+```
+
+### Ejemplo `docker-compose.yml`
+
+```yaml
+services:
+  app:
+    build: .
+    image: atlas-backend:latest
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      APP_URL: https://atlas.example.com
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: atlas
+      DB_USERNAME: atlas
+      DB_PASSWORD: secret
+      PORT: 8001
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: atlas
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
+```
+
+Después de levantar los contenedores:
+
+```bash
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan storage:link
+docker compose exec app php artisan l5-swagger:generate
+```
+
+> **Nota:** monta `storage/` como volumen para conservar archivos, respaldos y documentación generada. Ajusta variables sensibles en `.env` o un gestor de secretos.
+
+## 🔑 Ajustes de OAuth / Integraciones externas
+
+El proyecto está listo para integrar OAuth2/Socialite. Configura tus credenciales en el `.env`:
+
+```bash
+GOOGLE_CLIENT_ID=tu_cliente
+GOOGLE_CLIENT_SECRET=tu_secreto
+GOOGLE_REDIRECT_URI=https://atlas.example.com/auth/google/callback
+```
+
+## 📖 Documentación API
+
+- **Swagger UI**: `http://localhost:8001/api/documentation`
+- Los archivos OpenAPI se generan en `storage/api-docs` tras ejecutar `php artisan l5-swagger:generate`.
+
+## 🗂️ Estructura del Proyecto
+
+```
+atlas-backend-pg/
+├── app/
+│   ├── Console/Commands      # Tareas programadas y utilidades
+│   ├── Http/Controllers      # Controladores API
+│   ├── Http/Middleware       # Seguridad y contexto
+│   ├── Http/Requests         # Validaciones
+│   ├── Models                # Entidades Eloquent
+│   ├── Providers             # Service Providers y bindings
+│   └── Services              # Integraciones externas
+├── bootstrap/                # Inicio de la app y binding de 
+├── database/
+│   ├── factories             # Fabricas de modelos
+│   ├── migrations            # Migraciones
+│   └── seeders               # Seeders
+├── docs/                     # Documentación funcional
+├── public/                   # Punto de entrada web / assets build
+├── routes/                   # Rutas API, web y console
+├── storage/                  # Logs, cache, Swagger, uploads
+├── tests/                    # Suite PHPUnit
+└── Dockerfile                # Imagen de despliegue (FrankenPHP + Octane)
+```
+
+
+---
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  Construido con ❤️ sobre <a href="https://laravel.com" target="_blank">Laravel</a>
 </p>
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

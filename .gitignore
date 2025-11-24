@@ -22,9 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
-*.md
 **/caddy
 frankenphp
 frankenphp-worker.php
+AGENTS.md
+CLAUDE.md
+GEMINI.md
 
 config/database.php
