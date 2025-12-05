@@ -56,7 +56,6 @@ php artisan l5-swagger:generate
 npm run build
 ```
 
-> **Tip:** para desarrollo puedes ejecutar `npm run dev` y `php artisan serve` (o `php artisan octane:start`) en paralelo.
 
 ## 🚢 Despliegue con Docker
 
@@ -126,7 +125,7 @@ docker compose exec app php artisan storage:link
 docker compose exec app php artisan l5-swagger:generate
 ```
 
-> **Nota:** monta `storage/` como volumen para conservar archivos, respaldos y documentación generada. Ajusta variables sensibles en `.env` o un gestor de secretos.
+> **Nota:** monta `storage/` como volumen para conservar archivos y documentación generada. Ajusta variables sensibles en `.env` o un gestor de secretos.
 
 ## 🔑 Ajustes de OAuth / Integraciones externas
 
@@ -172,5 +171,5 @@ atlas-backend-pg/
 ---
 
 <p align="center">
-  Construido con ❤️ sobre <a href="https://laravel.com" target="_blank">Laravel</a>
+  Construido con ❤️ en <a href="https://laravel.com" target="_blank">Laravel</a>
 </p>
